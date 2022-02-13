@@ -50,3 +50,16 @@ def test_compare():
     test = redline.Redline(test_string_1)
     with pytest.raises(ValueError):
         test.compare()
+
+
+def test_opcodes_error():
+    test_string_1 = "The quick brown fox jumps over the lazy dog."
+    test = redline.Redline(test_string_1)
+    with pytest.raises(ValueError):
+        print(test.opcodes)
+
+
+def test_source():
+    test_string_1 = "The quick brown fox jumps over the lazy dog."
+    test = redline.Redline(test_string_1)
+    assert test.source == test_string_1
