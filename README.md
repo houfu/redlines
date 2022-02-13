@@ -1,10 +1,10 @@
-# Redline
+# Redlines
 
-Redline produces a Markdown text showing the differences between two strings/text. The changes are represented with
+`Redlines` produces a Markdown text showing the differences between two strings/text. The changes are represented with
 strike-throughs and underlines, which looks similar to Microsoft Word's track changes. This method of showing changes is
 more familiar to lawyers and is more compact for long series of characters.
 
-Redline uses [SequenceMatcher](https://docs.python.org/3/library/difflib.html#difflib.SequenceMatcher)
+Redlines uses [SequenceMatcher](https://docs.python.org/3/library/difflib.html#difflib.SequenceMatcher)
 to find differences between words used.
 
 ## Example
@@ -25,27 +25,35 @@ Which is rendered like this:
 
 The quick brown fox <del>jumps over </del><ins>walks past </ins>the lazy dog.
 
+## Install
+
+```shell
+pip install redlines
+```
+
 ## Usage
 
-The library contains one class: `Redline`, which is used to compare text.
+The library contains one class: `Redlines`, which is used to compare text.
 
 ```python
-from redline import redline
+from redlines import Redlines
 
-test = redline.Redline("The quick brown fox jumps over the lazy dog.",
-                       "The quick brown fox walks past the lazy dog.")
+test = Redlines("The quick brown fox jumps over the lazy dog.",
+                "The quick brown fox walks past the lazy dog.")
 assert test.output_markdown == "The quick brown fox <del>jumps over </del><ins>walks past </ins>the lazy dog."
 ```
 
 Alternatively, you can create Redline with the text to be tested, and compare several times to see the results.
 
 ```python
-from redline import redline
+from redlines import Redlines
 
-test = redline.Redline("The quick brown fox jumps over the lazy dog.")
-assert test.compare('The quick brown fox walks past the lazy dog.') == "The quick brown fox <del>jumps over </del><ins>walks past </ins>the lazy dog."
+test = Redlines("The quick brown fox jumps over the lazy dog.")
+assert test.compare(
+    'The quick brown fox walks past the lazy dog.') == "The quick brown fox <del>jumps over </del><ins>walks past </ins>the lazy dog."
 
-assert test.compare('The quick brown fox jumps over the dog.') == 'The quick brown fox jumps over the <del>lazy </del>dog.'
+assert test.compare(
+    'The quick brown fox jumps over the dog.') == 'The quick brown fox jumps over the <del>lazy </del>dog.'
 ```
 
 ## Roadmap / Contributing

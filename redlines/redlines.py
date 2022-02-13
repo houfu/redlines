@@ -7,7 +7,7 @@ def tokenize_text(text: str) -> list[str]:
     return re.findall(tokenizer, text)
 
 
-class Redline:
+class Redlines:
     _source: str = None
     _test: str = None
     _seq1: list[str] = None
