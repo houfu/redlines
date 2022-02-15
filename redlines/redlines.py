@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import re
 
 tokenizer = re.compile(r"((?:[^()\s]+|[().?!-])\s*)")
@@ -68,35 +70,32 @@ class Redlines:
         """Returns the delta in markdown format."""
         result = []
         style = 'red'
-        md_styles = {"ins": ('span style="color:red;font-weight:700;"', 'span'),
-                     "del": ('span style=”color:red;font-weight:700;text-decoration:line-through;”', 'span')}
 
         if self.options.get('markdown_style'):
             style = self.options['markdown_style']
 
-        match style:
-            case 'none':
-                md_styles = {"ins": ('ins', 'ins'), "del": ('del', 'del')}
-            case 'red':
-                md_styles = {"ins": ('span style="color:red;font-weight:700;"', 'span'),
-                             "del": ('span style="color:red;font-weight:700;text-decoration:line-through;"', 'span')}
+        if style == 'none':
+            md_styles = {"ins": ('ins', 'ins'), "del": ('del', 'del')}
+        elif 'red':
+            md_styles = {"ins": ('span style="color:red;font-weight:700;"', 'span'),
+                         "del": ('span style="color:red;font-weight:700;text-decoration:line-through;"', 'span')}
 
         for tag, i1, i2, j1, j2 in self.opcodes:
-            match tag:
-                case 'equal':
-                    result.append("".join(self._seq1[i1:i2]))
-                case 'insert':
-                    result.append(f"<{md_styles['ins'][0]}>{''.join(self._seq2[j1:j2])}</{md_styles['ins'][1]}>")
-                case 'delete':
-                    result.append(f"<{md_styles['del'][0]}>{''.join(self._seq1[i1:i2])}</{md_styles['del'][1]}>")
-                case 'replace':
-                    result.append(
-                        f"<{md_styles['del'][0]}>{''.join(self._seq1[i1:i2])}</{md_styles['del'][1]}>"
-                        f"<{md_styles['ins'][0]}>{''.join(self._seq2[j1:j2])}</{md_styles['ins'][1]}>")
+            if tag == 'equal':
+                result.append("".join(self._seq1[i1:i2]))
+            elif tag == 'insert':
+                result.append(f"<{md_styles['ins'][0]}>{''.join(self._seq2[j1:j2])}</{md_styles['ins'][1]}>")
+            elif tag == 'delete':
+                result.append(f"<{md_styles['del'][0]}>{''.join(self._seq1[i1:i2])}</{md_styles['del'][1]}>")
+            elif tag == 'replace':
+                result.append(
+                    f"<{md_styles['del'][0]}>{''.join(self._seq1[i1:i2])}</{md_styles['del'][1]}>"
+                    f"<{md_styles['ins'][0]}>{''.join(self._seq2[j1:j2])}</{md_styles['ins'][1]}>")
 
         return "".join(result)
 
     def compare(self, test: str | None = None, output: str = "markdown", **options):
+
         """
         Compare `test` with `source`, and produce a delta in a format specified by `output`.
 
@@ -115,5 +114,5 @@ class Redlines:
         if options:
             self.options = options
 
-        match output:
-            case 'markdown': return self.output_markdown
+        if output == 'markdown':
+            return self.output_markdown

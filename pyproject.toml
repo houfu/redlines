@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "redlines"
-version = "0.2.1"
+version = "0.2.2"
 description = "Compare text, and produce human-readable differences or deltas which look like track changes in Microsoft Word."
 authors = ["houfu <houfu@lovelawrobots.com>"]
 license = "MIT"
@@ -9,7 +9,7 @@ homepage = "https://github.com/houfu/redlines"
 repository = "https://github.com/houfu/redlines"
 
 [tool.poetry.dependencies]
-python = "^3.10 "
+python = "<4.0,>=3.8"
 
 [tool.poetry.dev-dependencies]
 pytest = "^7.0.1"
