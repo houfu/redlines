@@ -9,7 +9,7 @@ from redlines import Redlines
      "The quick brown fox jumps over the <ins>lazy </ins>dog.")
 ])
 def test_redline_add(test_string_1, test_string_2, expected_md):
-    test = Redlines(test_string_1, test_string_2)
+    test = Redlines(test_string_1, test_string_2, markdown_style='none')
     assert test.output_markdown == expected_md
 
 
@@ -19,7 +19,7 @@ def test_redline_add(test_string_1, test_string_2, expected_md):
      "The quick brown fox jumps over the <del>lazy </del>dog.")
 ])
 def test_redline_delete(test_string_1, test_string_2, expected_md):
-    test = Redlines(test_string_1, test_string_2)
+    test = Redlines(test_string_1, test_string_2, markdown_style='none')
     assert test.output_markdown == expected_md
 
 
@@ -29,7 +29,7 @@ def test_redline_delete(test_string_1, test_string_2, expected_md):
      "The quick brown fox <del>jumps over </del><ins>walks past </ins>the lazy dog.")
 ])
 def test_redline_replace(test_string_1, test_string_2, expected_md):
-    test = Redlines(test_string_1, test_string_2)
+    test = Redlines(test_string_1, test_string_2, markdown_style='none')
     assert test.output_markdown == expected_md
 
 
@@ -37,7 +37,7 @@ def test_compare():
     test_string_1 = "The quick brown fox jumps over the lazy dog."
     test_string_2 = "The quick brown fox walks past the lazy dog."
     expected_md = "The quick brown fox <del>jumps over </del><ins>walks past </ins>the lazy dog."
-    test = Redlines(test_string_1)
+    test = Redlines(test_string_1, markdown_style='none')
     assert test.compare(test_string_2) == expected_md
 
     # When compare is called twice on the same test string, the first result is given
@@ -61,5 +61,18 @@ def test_opcodes_error():
 
 def test_source():
     test_string_1 = "The quick brown fox jumps over the lazy dog."
-    test = Redlines(test_string_1)
+    test = Redlines(test_string_1, markdown_style='none')
     assert test.source == test_string_1
+
+
+def test_markdown_style():
+    test_string_1 = "The quick brown fox jumps over the lazy dog."
+    test_string_2 = "The quick brown fox walks past the lazy dog."
+    expected_md = "The quick brown fox <del>jumps over </del><ins>walks past </ins>the lazy dog."
+    test = Redlines(test_string_1, markdown_style='none')
+    assert test.compare(test_string_2) == expected_md
+
+    expected_md = 'The quick brown fox <span style="color:red;font-weight:700;text-decoration:line-through;">jumps ' \
+                  'over </span><span style="color:red;font-weight:700;">walks past </span>the lazy dog.'
+    test = Redlines(test_string_1, markdown_style='red')
+    assert test.compare(test_string_2) == expected_md

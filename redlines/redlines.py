@@ -36,7 +36,7 @@ class Redlines:
         self._test = value
         self._seq2 = tokenize_text(value)
 
-    def __init__(self, source: str, test: str | None = None):
+    def __init__(self, source: str, test: str | None = None, **options):
         """
         Redline is a class used to compare text, and producing human-readable differences or deltas
         which look like track changes in Microsoft Word.
@@ -45,6 +45,7 @@ class Redlines:
         :param test: Optional test text to compare with the source.
         """
         self.source = source
+        self.options = options
         if test:
             self.test = test
             self.compare()
@@ -66,20 +67,36 @@ class Redlines:
     def output_markdown(self) -> str:
         """Returns the delta in markdown format."""
         result = []
+        style = 'red'
+        md_styles = {"ins": ('span style="color:red;font-weight:700;"', 'span'),
+                     "del": ('span style=”color:red;font-weight:700;text-decoration:line-through;”', 'span')}
+
+        if self.options.get('markdown_style'):
+            style = self.options['markdown_style']
+
+        match style:
+            case 'none':
+                md_styles = {"ins": ('ins', 'ins'), "del": ('del', 'del')}
+            case 'red':
+                md_styles = {"ins": ('span style="color:red;font-weight:700;"', 'span'),
+                             "del": ('span style="color:red;font-weight:700;text-decoration:line-through;"', 'span')}
+
         for tag, i1, i2, j1, j2 in self.opcodes:
             match tag:
                 case 'equal':
                     result.append("".join(self._seq1[i1:i2]))
                 case 'insert':
-                    result.append(f"<ins>{''.join(self._seq2[j1:j2])}</ins>")
+                    result.append(f"<{md_styles['ins'][0]}>{''.join(self._seq2[j1:j2])}</{md_styles['ins'][1]}>")
                 case 'delete':
-                    result.append(f"<del>{''.join(self._seq1[i1:i2])}</del>")
+                    result.append(f"<{md_styles['del'][0]}>{''.join(self._seq1[i1:i2])}</{md_styles['del'][1]}>")
                 case 'replace':
-                    result.append(f"<del>{''.join(self._seq1[i1:i2])}</del><ins>{''.join(self._seq2[j1:j2])}</ins>")
+                    result.append(
+                        f"<{md_styles['del'][0]}>{''.join(self._seq1[i1:i2])}</{md_styles['del'][1]}>"
+                        f"<{md_styles['ins'][0]}>{''.join(self._seq2[j1:j2])}</{md_styles['ins'][1]}>")
 
         return "".join(result)
 
-    def compare(self, test: str | None = None, output: str = "markdown"):
+    def compare(self, test: str | None = None, output: str = "markdown", **options):
         """
         Compare `test` with `source`, and produce a delta in a format specified by `output`.
 
@@ -94,6 +111,9 @@ class Redlines:
                 self.test = test
         elif self.test is None:
             raise ValueError('No test string was provided when the function was called, or during initialisation.')
+
+        if options:
+            self.options = options
 
         match output:
             case 'markdown': return self.output_markdown
