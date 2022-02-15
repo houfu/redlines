@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "redlines"
-version = "0.2.0"
+version = "0.2.1"
 description = "Compare text, and produce human-readable differences or deltas which look like track changes in Microsoft Word."
 authors = ["houfu <houfu@lovelawrobots.com>"]
 license = "MIT"
