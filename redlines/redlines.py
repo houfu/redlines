@@ -1,31 +1,58 @@
 from __future__ import annotations
 
 import re
+from difflib import SequenceMatcher
 
 tokenizer = re.compile(r"((?:[^()\s]+|[().?!-])\s*)")
 
-# This pattern matches two or more newlines, and any spaces between them.
-newline_pattern = re.compile(r"((?:\n[ ]*){2,})")
+# This pattern matches one or more newline characters `\n`, and any spaces between them.
+# It is used to split the text into paragraphs.
+# (?:\n *) is a non-capturing group that must start with a \n or \r and be followed by zero or more spaces.
+# ((?:\n *)+) is the previous non-capturing group repeated one or more times.
+paragraph_pattern = re.compile(r"((?:\n *)+)")
+
+space_pattern = re.compile(r"(\s+)")
 
 
 def tokenize_text(text: str) -> list[str]:
     return re.findall(tokenizer, text)
 
 
-def split_newlines(text: str) -> tuple(list[str], list[str]):
+def split_paragraphs(text: str) -> list[str]:
     """
-    Splits a string into a list of strings, and a list of substring containing newlines.
-    :param text: The text to split.
-    :return: A tuple containing the list of strings, and a list of substring containing newlines.
-    """
-    return re.split(newline_pattern, text), re.findall(newline_pattern, text)
+    Splits a string into a list of paragraphs.
+    For example, if the text is "Hello\nWorld\nThis is a test", the result will be:
+    ['Hello', 'World', 'This is a test']
 
+    :param text: The text to split.
+    :return: a list of paragraphs.
+    """
+
+    splitted_text=re.split(paragraph_pattern, text)
+    result = []
+    for s in splitted_text:
+        if s and not re.fullmatch(space_pattern, s):
+            result.append(s)
+    
+    return result
+    
+def split_paragraphs_and_tokenize_text(text: str) -> list[list[str]]:
+    """
+    Splits a string into a list of paragraphs. Then, each paragraph is tokenized.
+    For example, if the text is "Hello World\nThis is a test. \n This is another test.", the result will be:
+    [['Hello ', 'World'], ['This ', 'is ', 'a ', 'test.'], ['This ', 'is ', 'another ', 'test.']]
+
+    :param text: The text to split.
+    :return: a list of lists of tokens.
+    """
+    paragraphs = split_paragraphs(text)
+    return [tokenize_text(p) for p in paragraphs]
 
 class Redlines:
     _source: str = None
     _test: str = None
-    _seq1: list[str] = None
-    _seq2: list[str] = None
+    _seqlist1: list[list[str]] = [] # This is a list of list. Each sub-list is a sequence of tokens in a paragraph in the source.
+    _seqlist2: list[list[str]] = [] # This is a list of list. Each sub-list is a sequence of tokens in a paragraph in the test.
 
     @property
     def source(self):
@@ -38,7 +65,7 @@ class Redlines:
     @source.setter
     def source(self, value):
         self._source = value
-        self._seq1 = tokenize_text(value)
+        self._seqlist1 = split_paragraphs_and_tokenize_text(value)
 
     @property
     def test(self):
@@ -48,7 +75,7 @@ class Redlines:
     @test.setter
     def test(self, value):
         self._test = value
-        self._seq2 = tokenize_text(value)
+        self._seqlist2 = split_paragraphs_and_tokenize_text(value)
 
     def __init__(self, source: str, test: str | None = None, **options):
         """
@@ -65,20 +92,43 @@ class Redlines:
             self.compare()
 
     @property
-    def opcodes(self) -> list[tuple[str, int, int, int, int]]:
+    def opcodes(self) -> list[list[tuple[str, int, int, int, int]]]:
         """
-        Return list of 5-tuples describing how to turn `source` into `test`.
-        Similar to `SequenceMatcher.get_opcodes`
+        Return a list of list. (list of 5-tuples describing how to turn a `source` paragraph into a `test` paragraph)
+        Each sub-list represent a paragraph, and is a list of 5-tuples describing how to turn a `source` paragraph into a `test` paragraph
+        Each 5-tuple represents a single change in the source and test text.
+        The 5-tuple has the following format:
+        (tag, i1, i2, j1, j2)
+        where:
+        - tag is a string describing the type of change, and could be 'equal', 'replace', 'insert', 'delete'
+        - i1, i2, j1, j2 are integers, where i1 and j1 are the starting and ending indices of the change
         """
-        if self._seq2 is None:
+
+
+        if not self._seqlist2:
             raise ValueError(
                 "No test string was provided when the function was called, or during initialisation."
             )
+        
+        # If the number of pararagraphs in the source is greater than the number of paragraphs in the test,
+        # we add empty lists to the end of the list of lists.
+        
+        len_seqlist1 = len(self._seqlist1)
+        len_seqlist2 = len(self._seqlist2)
+        if len_seqlist1>len_seqlist2:
+            for i in range(len_seqlist1-len_seqlist2):
+                self._seqlist2.append([])
+        elif len_seqlist2>len_seqlist1:
+            for i in range(len_seqlist2-len_seqlist1):
+                self._seqlist1.append([])
+        assert len(self._seqlist1) == len(self._seqlist2)
 
-        from difflib import SequenceMatcher
+        result=[]
+        for seq1, seq2 in zip(self._seqlist1, self._seqlist2):
+            matcher = SequenceMatcher(None, seq1, seq2)
+            result.append(matcher.get_opcodes())
 
-        matcher = SequenceMatcher(None, self._seq1, self._seq2)
-        return matcher.get_opcodes()
+        return result
 
     @property
     def output_markdown(self) -> str:
@@ -99,40 +149,22 @@ class Redlines:
                     "span",
                 ),
             }
+        for opcode, seq1, seq2 in zip(self.opcodes, self._seqlist1, self._seqlist2):
+            for tag, i1, i2, j1, j2 in opcode:
+                if tag == 'equal':
+                    result.append("".join(seq1[i1:i2]))
+                elif tag == 'insert':
+                    result.append(f"<{md_styles['ins'][0]}>{''.join(seq2[j1:j2])}</{md_styles['ins'][1]}>")
+                elif tag == 'delete':
+                    result.append(f"<{md_styles['del'][0]}>{''.join(seq1[i1:i2])}</{md_styles['del'][1]}>")
+                elif tag == 'replace':
+                    result.append(
+                        f"<{md_styles['del'][0]}>{''.join(seq1[i1:i2])}</{md_styles['del'][1]}>"
+                        f"<{md_styles['ins'][0]}>{''.join(seq2[j1:j2])}</{md_styles['ins'][1]}>")
 
-        for tag, i1, i2, j1, j2 in self.opcodes:
-            if tag == "equal":
-                result.append("".join(self._seq1[i1:i2]))
-            elif tag == "insert":
-                temp_str = "".join(self._seq2[j1:j2])
-                temp_list, temp_newline_list = split_newlines(temp_str)
-                for s in temp_list:
-                    if s and s in temp_newline_list:
-                        result.append(s)
-                    else:
-                        result.append(
-                            f"<{md_styles['ins'][0]}>{s}</{md_styles['ins'][1]}>"
-                        )
-            elif tag == "delete":
-                temp_str = "".join(self._seq1[i1:i2]).replace("\n", "")
-                result.append(
-                    f"<{md_styles['del'][0]}>{temp_str}</{md_styles['del'][1]}>"
-                )
-            elif tag == "replace":
-                temp_str = "".join(self._seq1[i1:i2]).replace("\n", "")
-                result.append(
-                    f"<{md_styles['del'][0]}>{temp_str}</{md_styles['del'][1]}>"
-                )
-
-                temp_str = "".join(self._seq2[j1:j2])
-                temp_list, temp_newline_list = split_newlines(temp_str)
-                for s in temp_list:
-                    if s and s in temp_newline_list:
-                        result.append(s)
-                    else:
-                        result.append(
-                            f"<{md_styles['ins'][0]}>{s}</{md_styles['ins'][1]}>"
-                        )
+            result.append("\n\n")
+        # pop the last '\n\n'
+        result.pop()
 
         return "".join(result)
 
