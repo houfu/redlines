@@ -8,15 +8,16 @@ tokenizer = re.compile(r"((?:[^()\s]+|[().?!-])\s*)")
 newline_pattern = re.compile(r"((?:\n[ ]*){2,})")
 
 
-
 def tokenize_text(text: str) -> list[str]:
     return re.findall(tokenizer, text)
+
 
 def split_newlines(text: str) -> tuple(list[str], list[str]):
     """
     Splits a string into a list of strings, and a list of substring containing newlines.
     :param text: The text to split.
-    :return: A tuple containing the list of strings, and a list of substring containing newlines."""
+    :return: A tuple containing the list of strings, and a list of substring containing newlines.
+    """
     return re.split(newline_pattern, text), re.findall(newline_pattern, text)
 
 
@@ -70,9 +71,12 @@ class Redlines:
         Similar to `SequenceMatcher.get_opcodes`
         """
         if self._seq2 is None:
-            raise ValueError('No test string was provided when the function was called, or during initialisation.')
+            raise ValueError(
+                "No test string was provided when the function was called, or during initialisation."
+            )
 
         from difflib import SequenceMatcher
+
         matcher = SequenceMatcher(None, self._seq1, self._seq2)
         return matcher.get_opcodes()
 
@@ -80,16 +84,21 @@ class Redlines:
     def output_markdown(self) -> str:
         """Returns the delta in markdown format."""
         result = []
-        style = 'red'
+        style = "red"
 
-        if self.options.get('markdown_style'):
-            style = self.options['markdown_style']
+        if self.options.get("markdown_style"):
+            style = self.options["markdown_style"]
 
-        if style == 'none':
-            md_styles = {"ins": ('ins', 'ins'), "del": ('del', 'del')}
-        elif 'red':
-            md_styles = {"ins": ('span style="color:red;font-weight:700;"', 'span'),
-                         "del": ('span style="color:red;font-weight:700;text-decoration:line-through;"', 'span')}
+        if style == "none":
+            md_styles = {"ins": ("ins", "ins"), "del": ("del", "del")}
+        elif "red":
+            md_styles = {
+                "ins": ('span style="color:red;font-weight:700;"', "span"),
+                "del": (
+                    'span style="color:red;font-weight:700;text-decoration:line-through;"',
+                    "span",
+                ),
+            }
 
         for tag, i1, i2, j1, j2 in self.opcodes:
             if tag == "equal":
@@ -105,14 +114,14 @@ class Redlines:
                             f"<{md_styles['ins'][0]}>{s}</{md_styles['ins'][1]}>"
                         )
             elif tag == "delete":
-                temp_str = "".join(self._seq1[i1:i2]).replace('\n', '')
+                temp_str = "".join(self._seq1[i1:i2]).replace("\n", "")
                 result.append(
                     f"<{md_styles['del'][0]}>{temp_str}</{md_styles['del'][1]}>"
                 )
             elif tag == "replace":
-                temp_str1 = "".join(self._seq1[i1:i2]).replace('\n', '')
+                temp_str = "".join(self._seq1[i1:i2]).replace("\n", "")
                 result.append(
-                    f"<{md_styles['del'][0]}>{temp_str1}</{md_styles['del'][1]}>"
+                    f"<{md_styles['del'][0]}>{temp_str}</{md_styles['del'][1]}>"
                 )
 
                 temp_str = "".join(self._seq2[j1:j2])
@@ -128,7 +137,6 @@ class Redlines:
         return "".join(result)
 
     def compare(self, test: str | None = None, output: str = "markdown", **options):
-
         """
         Compare `test` with `source`, and produce a delta in a format specified by `output`.
 
@@ -142,10 +150,12 @@ class Redlines:
             else:
                 self.test = test
         elif self.test is None:
-            raise ValueError('No test string was provided when the function was called, or during initialisation.')
+            raise ValueError(
+                "No test string was provided when the function was called, or during initialisation."
+            )
 
         if options:
             self.options = options
 
-        if output == 'markdown':
+        if output == "markdown":
             return self.output_markdown
