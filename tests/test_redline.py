@@ -102,7 +102,7 @@ def test_markdown_style():
     assert test.compare(test_string_2) == expected_md
 
 
-def test_newline_handling():
+def test_paragraphs_handling():
     test_string_1 = """
 Happy Saturday,
 
@@ -145,3 +145,24 @@ Sophia."""
 )
 def test_split_paragraphs_and_tokenize_text(test_string,expected_list):
     assert split_paragraphs_and_tokenize_text(test_string) == expected_list
+
+def test_different_number_of_paragraphs():
+    test_string_1 = """
+Happy Saturday,
+
+Thank you for reaching out, have a good weekend
+
+Best,
+
+Sophia 
+"""
+    test_string_2 = """Happy Saturday,
+
+Thank you for reaching out. Have a good weekend.
+
+Sophia."""
+
+    expected_md='Happy Saturday,\n\nThank you for reaching <span style="color:red;font-weight:700;text-decoration:line-through;">out, have </span><span style="color:red;font-weight:700;">out. Have </span>a good <span style="color:red;font-weight:700;text-decoration:line-through;">weekend</span><span style="color:red;font-weight:700;">weekend.</span>\n\n<span style="color:red;font-weight:700;text-decoration:line-through;">Best,</span><span style="color:red;font-weight:700;">Sophia.</span>\n\n<span style="color:red;font-weight:700;text-decoration:line-through;">Sophia </span>'
+
+    test = Redlines(test_string_1, test_string_2, markdown_style="red")
+    assert test.output_markdown == expected_md

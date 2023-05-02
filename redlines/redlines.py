@@ -89,12 +89,11 @@ class Redlines:
         self.options = options
         if test:
             self.test = test
-            self.compare()
 
     @property
     def opcodes(self) -> list[list[tuple[str, int, int, int, int]]]:
         """
-        Return a list of list. (list of 5-tuples describing how to turn a `source` paragraph into a `test` paragraph)
+        Return a list of list. 
         Each sub-list represent a paragraph, and is a list of 5-tuples describing how to turn a `source` paragraph into a `test` paragraph
         Each 5-tuple represents a single change in the source and test text.
         The 5-tuple has the following format:
@@ -104,14 +103,13 @@ class Redlines:
         - i1, i2, j1, j2 are integers, where i1 and j1 are the starting and ending indices of the change
         """
 
-
         if not self._seqlist2:
             raise ValueError(
                 "No test string was provided when the function was called, or during initialisation."
             )
         
         # If the number of pararagraphs in the source is greater than the number of paragraphs in the test,
-        # we add empty lists to the end of the list of lists.
+        # we add empty lists to the end of the list of lists, and vice versa. 
         
         len_seqlist1 = len(self._seqlist1)
         len_seqlist2 = len(self._seqlist2)
