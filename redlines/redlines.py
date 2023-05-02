@@ -4,9 +4,20 @@ import re
 
 tokenizer = re.compile(r"((?:[^()\s]+|[().?!-])\s*)")
 
+# This pattern matches two or more newlines, and any spaces between them.
+newline_pattern = re.compile(r"((?:\n[ ]*){2,})")
+
+
 
 def tokenize_text(text: str) -> list[str]:
     return re.findall(tokenizer, text)
+
+def split_newlines(text: str) -> tuple(list[str], list[str]):
+    """
+    Splits a string into a list of strings, and a list of substring containing newlines.
+    :param text: The text to split.
+    :return: A tuple containing the list of strings, and a list of substring containing newlines."""
+    return re.split(newline_pattern, text), re.findall(newline_pattern, text)
 
 
 class Redlines:
@@ -81,16 +92,38 @@ class Redlines:
                          "del": ('span style="color:red;font-weight:700;text-decoration:line-through;"', 'span')}
 
         for tag, i1, i2, j1, j2 in self.opcodes:
-            if tag == 'equal':
+            if tag == "equal":
                 result.append("".join(self._seq1[i1:i2]))
-            elif tag == 'insert':
-                result.append(f"<{md_styles['ins'][0]}>{''.join(self._seq2[j1:j2])}</{md_styles['ins'][1]}>")
-            elif tag == 'delete':
-                result.append(f"<{md_styles['del'][0]}>{''.join(self._seq1[i1:i2])}</{md_styles['del'][1]}>")
-            elif tag == 'replace':
+            elif tag == "insert":
+                temp_str = "".join(self._seq2[j1:j2])
+                temp_list, temp_newline_list = split_newlines(temp_str)
+                for s in temp_list:
+                    if s and s in temp_newline_list:
+                        result.append(s)
+                    else:
+                        result.append(
+                            f"<{md_styles['ins'][0]}>{s}</{md_styles['ins'][1]}>"
+                        )
+            elif tag == "delete":
+                temp_str = "".join(self._seq1[i1:i2]).replace('\n', '')
                 result.append(
-                    f"<{md_styles['del'][0]}>{''.join(self._seq1[i1:i2])}</{md_styles['del'][1]}>"
-                    f"<{md_styles['ins'][0]}>{''.join(self._seq2[j1:j2])}</{md_styles['ins'][1]}>")
+                    f"<{md_styles['del'][0]}>{temp_str}</{md_styles['del'][1]}>"
+                )
+            elif tag == "replace":
+                temp_str1 = "".join(self._seq1[i1:i2]).replace('\n', '')
+                result.append(
+                    f"<{md_styles['del'][0]}>{temp_str1}</{md_styles['del'][1]}>"
+                )
+
+                temp_str = "".join(self._seq2[j1:j2])
+                temp_list, temp_newline_list = split_newlines(temp_str)
+                for s in temp_list:
+                    if s and s in temp_newline_list:
+                        result.append(s)
+                    else:
+                        result.append(
+                            f"<{md_styles['ins'][0]}>{s}</{md_styles['ins'][1]}>"
+                        )
 
         return "".join(result)
 
