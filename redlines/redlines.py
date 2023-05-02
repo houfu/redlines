@@ -20,7 +20,7 @@ def tokenize_text(text: str) -> list[str]:
 
 def split_paragraphs(text: str) -> list[str]:
     """
-    Splits a string into a list of paragraphs.
+    Splits a string into a list of paragraphs. One or more `\n` splits the paragraphs.
     For example, if the text is "Hello\nWorld\nThis is a test", the result will be:
     ['Hello', 'World', 'This is a test']
 
@@ -40,7 +40,7 @@ def split_paragraphs(text: str) -> list[str]:
 def split_paragraphs_and_tokenize_text(text: str) -> list[list[str]]:
     """
     Splits a string into a list of paragraphs. Then, each paragraph is tokenized.
-    For example, if the text is "Hello World\nThis is a test. \n This is another test.", the result will be:
+    For example, if the text is "Hello World\nThis is a test.\n This is another test.", the result will be:
     [['Hello ', 'World'], ['This ', 'is ', 'a ', 'test.'], ['This ', 'is ', 'another ', 'test.']]
 
     :param text: The text to split.
@@ -53,16 +53,8 @@ def split_paragraphs_and_tokenize_text(text: str) -> list[list[str]]:
 class Redlines:
     _source: str = None
     _test: str = None
-    _seqlist1: list[
-        list[str]
-    ] = (
-        []
-    )  # This is a list of list. Each sub-list is a sequence of tokens in a paragraph in the source.
-    _seqlist2: list[
-        list[str]
-    ] = (
-        []
-    )  # This is a list of list. Each sub-list is a sequence of tokens in a paragraph in the test.
+    _seqlist1: list[list[str]] = [] # This is a list of list. Each sub-list is a sequence of tokens in a paragraph in the source.
+    _seqlist2: list[list[str]] = [] # This is a list of list. Each sub-list is a sequence of tokens in a paragraph in the test.
 
     @property
     def source(self):
@@ -129,7 +121,6 @@ class Redlines:
         elif len_seqlist2 > len_seqlist1:
             for i in range(len_seqlist2 - len_seqlist1):
                 self._seqlist1.append([])
-        assert len(self._seqlist1) == len(self._seqlist2)
 
         result = []
         for seq1, seq2 in zip(self._seqlist1, self._seqlist2):
@@ -176,7 +167,7 @@ class Redlines:
                     )
 
             result.append("\n\n")
-        # pop the last '\n\n'
+        # pop the last '\n\n', which is after the last paragraph.
         result.pop()
 
         return "".join(result)
