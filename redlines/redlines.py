@@ -28,14 +28,15 @@ def split_paragraphs(text: str) -> list[str]:
     :return: a list of paragraphs.
     """
 
-    splitted_text=re.split(paragraph_pattern, text)
+    splitted_text = re.split(paragraph_pattern, text)
     result = []
     for s in splitted_text:
         if s and not re.fullmatch(space_pattern, s):
             result.append(s)
-    
+
     return result
-    
+
+
 def split_paragraphs_and_tokenize_text(text: str) -> list[list[str]]:
     """
     Splits a string into a list of paragraphs. Then, each paragraph is tokenized.
@@ -48,11 +49,20 @@ def split_paragraphs_and_tokenize_text(text: str) -> list[list[str]]:
     paragraphs = split_paragraphs(text)
     return [tokenize_text(p) for p in paragraphs]
 
+
 class Redlines:
     _source: str = None
     _test: str = None
-    _seqlist1: list[list[str]] = [] # This is a list of list. Each sub-list is a sequence of tokens in a paragraph in the source.
-    _seqlist2: list[list[str]] = [] # This is a list of list. Each sub-list is a sequence of tokens in a paragraph in the test.
+    _seqlist1: list[
+        list[str]
+    ] = (
+        []
+    )  # This is a list of list. Each sub-list is a sequence of tokens in a paragraph in the source.
+    _seqlist2: list[
+        list[str]
+    ] = (
+        []
+    )  # This is a list of list. Each sub-list is a sequence of tokens in a paragraph in the test.
 
     @property
     def source(self):
@@ -93,7 +103,7 @@ class Redlines:
     @property
     def opcodes(self) -> list[list[tuple[str, int, int, int, int]]]:
         """
-        Return a list of list. 
+        Return a list of list.
         Each sub-list represent a paragraph, and is a list of 5-tuples describing how to turn a `source` paragraph into a `test` paragraph
         Each 5-tuple represents a single change in the source and test text.
         The 5-tuple has the following format:
@@ -107,21 +117,21 @@ class Redlines:
             raise ValueError(
                 "No test string was provided when the function was called, or during initialisation."
             )
-        
+
         # If the number of pararagraphs in the source is greater than the number of paragraphs in the test,
-        # we add empty lists to the end of the list of lists, and vice versa. 
-        
+        # we add empty lists to the end of the list of lists, and vice versa.
+
         len_seqlist1 = len(self._seqlist1)
         len_seqlist2 = len(self._seqlist2)
-        if len_seqlist1>len_seqlist2:
-            for i in range(len_seqlist1-len_seqlist2):
+        if len_seqlist1 > len_seqlist2:
+            for i in range(len_seqlist1 - len_seqlist2):
                 self._seqlist2.append([])
-        elif len_seqlist2>len_seqlist1:
-            for i in range(len_seqlist2-len_seqlist1):
+        elif len_seqlist2 > len_seqlist1:
+            for i in range(len_seqlist2 - len_seqlist1):
                 self._seqlist1.append([])
         assert len(self._seqlist1) == len(self._seqlist2)
 
-        result=[]
+        result = []
         for seq1, seq2 in zip(self._seqlist1, self._seqlist2):
             matcher = SequenceMatcher(None, seq1, seq2)
             result.append(matcher.get_opcodes())
@@ -149,16 +159,21 @@ class Redlines:
             }
         for opcode, seq1, seq2 in zip(self.opcodes, self._seqlist1, self._seqlist2):
             for tag, i1, i2, j1, j2 in opcode:
-                if tag == 'equal':
+                if tag == "equal":
                     result.append("".join(seq1[i1:i2]))
-                elif tag == 'insert':
-                    result.append(f"<{md_styles['ins'][0]}>{''.join(seq2[j1:j2])}</{md_styles['ins'][1]}>")
-                elif tag == 'delete':
-                    result.append(f"<{md_styles['del'][0]}>{''.join(seq1[i1:i2])}</{md_styles['del'][1]}>")
-                elif tag == 'replace':
+                elif tag == "insert":
+                    result.append(
+                        f"<{md_styles['ins'][0]}>{''.join(seq2[j1:j2])}</{md_styles['ins'][1]}>"
+                    )
+                elif tag == "delete":
                     result.append(
                         f"<{md_styles['del'][0]}>{''.join(seq1[i1:i2])}</{md_styles['del'][1]}>"
-                        f"<{md_styles['ins'][0]}>{''.join(seq2[j1:j2])}</{md_styles['ins'][1]}>")
+                    )
+                elif tag == "replace":
+                    result.append(
+                        f"<{md_styles['del'][0]}>{''.join(seq1[i1:i2])}</{md_styles['del'][1]}>"
+                        f"<{md_styles['ins'][0]}>{''.join(seq2[j1:j2])}</{md_styles['ins'][1]}>"
+                    )
 
             result.append("\n\n")
         # pop the last '\n\n'

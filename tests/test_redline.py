@@ -115,7 +115,7 @@ Sophia
 Thank you for reaching out. Have a good weekend.
 
 Sophia."""
-    expected_md = 'Happy Saturday,\n\nThank you for reaching <del>out, have </del><ins>out. Have </ins>a good <del>weekend</del><ins>weekend.</ins>\n\n<del>Sophia </del><ins>Sophia.</ins>'
+    expected_md = "Happy Saturday,\n\nThank you for reaching <del>out, have </del><ins>out. Have </ins>a good <del>weekend</del><ins>weekend.</ins>\n\n<del>Sophia </del><ins>Sophia.</ins>"
     test = Redlines(test_string_1, markdown_style="none")
     assert test.compare(test_string_2) == expected_md
 
@@ -123,28 +123,39 @@ Sophia."""
     test = Redlines(test_string_1, markdown_style="red")
     assert test.compare(test_string_2) == expected_md
 
+
 @pytest.mark.parametrize(
     "test_string, expected_list",
     [
         (
             "Hello World\nThis is a test.\n This is another test.",
-            [['Hello ', 'World'], ['This ', 'is ', 'a ', 'test.'], ['This ', 'is ', 'another ', 'test.']],
+            [
+                ["Hello ", "World"],
+                ["This ", "is ", "a ", "test."],
+                ["This ", "is ", "another ", "test."],
+            ],
         ),
-
         (
             "Hello World\n\r\nThis is a test.\n\n This is another test.",
-            [['Hello ', 'World'], ['This ', 'is ', 'a ', 'test.'], ['This ', 'is ', 'another ', 'test.']],
+            [
+                ["Hello ", "World"],
+                ["This ", "is ", "a ", "test."],
+                ["This ", "is ", "another ", "test."],
+            ],
         ),
-
-                (
+        (
             "\n Hello World\n\r\nThis is a test.\n    \r\t\n This is another test.\n",
-            [['Hello ', 'World'], ['This ', 'is ', 'a ', 'test.'], ['This ', 'is ', 'another ', 'test.']],
+            [
+                ["Hello ", "World"],
+                ["This ", "is ", "a ", "test."],
+                ["This ", "is ", "another ", "test."],
+            ],
         ),
-
     ],
 )
-def test_split_paragraphs_and_tokenize_text(test_string,expected_list):
+def test_split_paragraphs_and_tokenize_text(test_string, expected_list):
     assert split_paragraphs_and_tokenize_text(test_string) == expected_list
+
 
 def test_different_number_of_paragraphs():
     test_string_1 = """
@@ -162,7 +173,7 @@ Thank you for reaching out. Have a good weekend.
 
 Sophia."""
 
-    expected_md='Happy Saturday,\n\nThank you for reaching <span style="color:red;font-weight:700;text-decoration:line-through;">out, have </span><span style="color:red;font-weight:700;">out. Have </span>a good <span style="color:red;font-weight:700;text-decoration:line-through;">weekend</span><span style="color:red;font-weight:700;">weekend.</span>\n\n<span style="color:red;font-weight:700;text-decoration:line-through;">Best,</span><span style="color:red;font-weight:700;">Sophia.</span>\n\n<span style="color:red;font-weight:700;text-decoration:line-through;">Sophia </span>'
+    expected_md = 'Happy Saturday,\n\nThank you for reaching <span style="color:red;font-weight:700;text-decoration:line-through;">out, have </span><span style="color:red;font-weight:700;">out. Have </span>a good <span style="color:red;font-weight:700;text-decoration:line-through;">weekend</span><span style="color:red;font-weight:700;">weekend.</span>\n\n<span style="color:red;font-weight:700;text-decoration:line-through;">Best,</span><span style="color:red;font-weight:700;">Sophia.</span>\n\n<span style="color:red;font-weight:700;text-decoration:line-through;">Sophia </span>'
 
     test = Redlines(test_string_1, test_string_2, markdown_style="red")
     assert test.output_markdown == expected_md
