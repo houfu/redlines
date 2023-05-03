@@ -115,11 +115,13 @@ Sophia
 Thank you for reaching out. Have a good weekend.
 
 Sophia."""
-    expected_md = "Happy Saturday,\n\nThank you for reaching <del>out, have </del><ins>out. Have </ins>a good <del>weekend</del><ins>weekend.</ins>\n\n<del>Sophia </del><ins>Sophia.</ins>"
+    expected_md = \
+    'Happy Saturday,\n\nThank you for reaching <del>out, have </del><ins>out. Have </ins>a good <del>weekend</del><ins>weekend.</ins>\n\n<del>Sophia</del><ins>Sophia.</ins>'
     test = Redlines(test_string_1, markdown_style="none")
     assert test.compare(test_string_2) == expected_md
 
-    expected_md = 'Happy Saturday,\n\nThank you for reaching <span style="color:red;font-weight:700;text-decoration:line-through;">out, have </span><span style="color:red;font-weight:700;">out. Have </span>a good <span style="color:red;font-weight:700;text-decoration:line-through;">weekend</span><span style="color:red;font-weight:700;">weekend.</span>\n\n<span style="color:red;font-weight:700;text-decoration:line-through;">Sophia </span><span style="color:red;font-weight:700;">Sophia.</span>'
+    expected_md = \
+    'Happy Saturday,\n\nThank you for reaching <span style="color:red;font-weight:700;text-decoration:line-through;">out, have </span><span style="color:red;font-weight:700;">out. Have </span>a good <span style="color:red;font-weight:700;text-decoration:line-through;">weekend</span><span style="color:red;font-weight:700;">weekend.</span>\n\n<span style="color:red;font-weight:700;text-decoration:line-through;">Sophia</span><span style="color:red;font-weight:700;">Sophia.</span>'
     test = Redlines(test_string_1, markdown_style="red")
     assert test.compare(test_string_2) == expected_md
 
@@ -173,7 +175,7 @@ Thank you for reaching out. Have a good weekend.
 
 Sophia."""
 
-    expected_md = 'Happy Saturday,\n\nThank you for reaching <span style="color:red;font-weight:700;text-decoration:line-through;">out, have </span><span style="color:red;font-weight:700;">out. Have </span>a good <span style="color:red;font-weight:700;text-decoration:line-through;">weekend</span><span style="color:red;font-weight:700;">weekend.</span>\n\n<span style="color:red;font-weight:700;text-decoration:line-through;">Best,</span><span style="color:red;font-weight:700;">Sophia.</span>\n\n<span style="color:red;font-weight:700;text-decoration:line-through;">Sophia </span>'
-
+    expected_md = \
+    'Happy Saturday,\n\nThank you for reaching <span style="color:red;font-weight:700;text-decoration:line-through;">out, have </span><span style="color:red;font-weight:700;">out. Have </span>a good <span style="color:red;font-weight:700;text-decoration:line-through;">weekend</span><span style="color:red;font-weight:700;">weekend.</span>\n\n<span style="color:red;font-weight:700;text-decoration:line-through;">Best,</span><span style="color:red;font-weight:700;">Sophia.</span>\n\n<span style="color:red;font-weight:700;text-decoration:line-through;">Sophia</span>'
     test = Redlines(test_string_1, test_string_2, markdown_style="red")
     assert test.output_markdown == expected_md
