@@ -32,7 +32,7 @@ def split_paragraphs(text: str) -> list[str]:
     result = []
     for s in splitted_text:
         if s and not re.fullmatch(space_pattern, s):
-            result.append(s)
+            result.append(s.strip())
 
     return result
 
