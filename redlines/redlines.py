@@ -52,7 +52,6 @@ def concatenate_paragraphs_and_add_chr_182(text: str) -> str:
         result.append(p)
         result.append(' ¶ ')
          # Add a string ' ¶ ' between paragraphs.
-         # In case that '¶' is already in the text, we add two more spaces to make it a little bit special.
     if len(paragraphs) > 0:
         result.pop()
 
@@ -132,11 +131,11 @@ class Redlines:
         for tag, i1, i2, j1, j2 in self.opcodes:
             if tag == 'equal':
                 temp_str="".join(self._seq1[i1:i2])
-                temp_str=re.sub(' ¶ ','\n\n',temp_str)
+                temp_str=re.sub('¶ ','\n\n',temp_str)
                 result.append(temp_str)
             elif tag == 'insert':
                 temp_str = ''.join(self._seq2[j1:j2])
-                splits = re.split(' ¶ ', temp_str)
+                splits = re.split('¶ ', temp_str)
                 for split in splits:
                     result.append(f"<{md_styles['ins'][0]}>{split}</{md_styles['ins'][1]}>")
                     result.append('\n\n')
@@ -149,7 +148,7 @@ class Redlines:
                 result.append(
                     f"<{md_styles['del'][0]}>{''.join(self._seq1[i1:i2])}</{md_styles['del'][1]}>")
                 temp_str = ''.join(self._seq2[j1:j2])
-                splits = re.split(' ¶ ', temp_str)
+                splits = re.split('¶ ', temp_str)
                 for split in splits:
                     result.append(f"<{md_styles['ins'][0]}>{split}</{md_styles['ins'][1]}>")
                     result.append('\n\n')
