@@ -132,7 +132,7 @@ class Redlines:
             if tag == 'equal':
                 temp_str="".join(self._seq1[i1:i2])
                 temp_str=re.sub('¶ ','\n\n',temp_str)
-                # here is we use '¶ ' instead of ' ¶ ', because the leading space will be included in the previous token, 
+                # here we use '¶ ' instead of ' ¶ ', because the leading space will be included in the previous token, 
                 # according to tokenizer = re.compile(r"((?:[^()\s]+|[().?!-])\s*)")
                 result.append(temp_str)
             elif tag == 'insert':
