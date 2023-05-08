@@ -6,7 +6,7 @@ tokenizer = re.compile(r"((?:[^()\s]+|[().?!-])\s*)")
 
 # This pattern matches one or more newline characters `\n`, and any spaces between them.
 # It is used to split the text into paragraphs.
-# (?:\n *) is a non-capturing group that must start with a \n or \r and be followed by zero or more spaces.
+# (?:\n *) is a non-capturing group that must start with a \n   and be followed by zero or more spaces.
 # ((?:\n *)+) is the previous non-capturing group repeated one or more times.
 paragraph_pattern = re.compile(r"((?:\n *)+)")
 
