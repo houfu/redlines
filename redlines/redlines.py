@@ -2,6 +2,18 @@ from __future__ import annotations
 
 import re
 
+# This regular expression matches a group of characters that can include any character except for parentheses
+# and whitespace characters (which include spaces, tabs, and line breaks) or any character
+# that is a parenthesis or punctuation mark (.?!-).
+# The group can also include any whitespace characters that follow these characters.
+# Breaking it down further:
+
+#    ( and ) indicate a capturing group
+#    (?: ) is a non-capturing group, meaning it matches the pattern but doesn't capture the matched text
+#    [^()\s]+ matches one or more characters that are not parentheses or whitespace characters
+#    | indicates an alternative pattern
+#    [().?!-] matches any character that is a parenthesis or punctuation mark (.?!-)
+#    \s* matches zero or more whitespace characters (spaces, tabs, or line breaks) that follow the previous pattern.
 tokenizer = re.compile(r"((?:[^()\s]+|[().?!-])\s*)")
 
 # This pattern matches one or more newline characters `\n`, and any spaces between them.
