@@ -1,4 +1,5 @@
 # Redlines
+![Repository banner image](repository-open-graph.png)
 
 `Redlines` produces a Markdown text showing the differences between two strings/text. The changes are represented with
 strike-throughs and underlines, which looks similar to Microsoft Word's track changes. This method of showing changes is
@@ -11,7 +12,7 @@ to find differences between words used.
 
 Given an original string:
 
-    The quick brown fox jumps over the lazy dog.`
+    The quick brown fox jumps over the lazy dog.
 
 And the string to be tested with:
 
@@ -38,9 +39,14 @@ The library contains one class: `Redlines`, which is used to compare text.
 ```python
 from redlines import Redlines
 
-test = Redlines("The quick brown fox jumps over the lazy dog.",
-                "The quick brown fox walks past the lazy dog.")
-assert test.output_markdown == "The quick brown fox <del>jumps over </del><ins>walks past </ins>the lazy dog."
+test = Redlines(
+    "The quick brown fox jumps over the lazy dog.",
+    "The quick brown fox walks past the lazy dog.",
+)
+assert (
+        test.output_markdown
+        == "The quick brown fox <del>jumps over </del><ins>walks past </ins>the lazy dog."
+)
 ```
 
 Alternatively, you can create Redline with the text to be tested, and compare several times to see the results.
@@ -49,12 +55,23 @@ Alternatively, you can create Redline with the text to be tested, and compare se
 from redlines import Redlines
 
 test = Redlines("The quick brown fox jumps over the lazy dog.")
-assert test.compare(
-    'The quick brown fox walks past the lazy dog.') == "The quick brown fox <del>jumps over </del><ins>walks past </ins>the lazy dog."
+assert (
+        test.compare("The quick brown fox walks past the lazy dog.")
+        == "The quick brown fox <del>jumps over </del><ins>walks past </ins>the lazy dog."
+)
 
-assert test.compare(
-    'The quick brown fox jumps over the dog.') == 'The quick brown fox jumps over the <del>lazy </del>dog.'
+assert (
+        test.compare("The quick brown fox jumps over the dog.")
+        == "The quick brown fox jumps over the <del>lazy </del>dog."
+)
 ```
+
+## Uses
+
+* View and mark changes in legislation: [PLUS Explorer](https://houfu-plus-explorer-explorer-r52oh0.streamlit.app/)
+* Visualise changes after ChatGPT transforms a
+  text: [ChatGPT Prompt Engineering for Developers](https://www.deeplearning.ai/short-courses/chatgpt-prompt-engineering-for-developers/)
+  Lesson 6
 
 ## Roadmap / Contributing
 
