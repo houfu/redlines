@@ -114,11 +114,12 @@ Sophia
 Thank you for reaching out. Have a good weekend.
 
 Sophia."""
-    expected_md = \
-    'Happy Saturday, \n\nThank you for reaching <del>out, have </del><ins>out. Have </ins>a good <del>weekend </del><ins>weekend. </ins>\n\n<del>Sophia</del><ins>Sophia.</ins>'
+    expected_md = (
+        "Happy Saturday, \n\nThank you for reaching <del>out, have </del><ins>out. Have </ins>a good "
+        "<del>weekend </del><ins>weekend. </ins>\n\n<del>Sophia</del><ins>Sophia.</ins>"
+    )
     test = Redlines(test_string_1, markdown_style="none")
     assert test.compare(test_string_2) == expected_md
-
 
 
 def test_different_number_of_paragraphs():
@@ -137,7 +138,9 @@ Thank you for reaching out. Have a good weekend.
 
 Sophia."""
 
-    expected_md = \
-    'Happy Saturday, \n\nThank you for reaching <del>out, have </del><ins>out. Have </ins>a good <del>weekend </del><ins>weekend. </ins>\n\n<del>Best, ¶ Sophia</del><ins>Sophia.</ins>'
+    expected_md = (
+        "Happy Saturday, \n\nThank you for reaching <del>out, have </del><ins>out. Have </ins>a good <del>weekend "
+        "</del><ins>weekend. </ins>\n\n<del>Best, ¶ Sophia</del><ins>Sophia.</ins>"
+    )
     test = Redlines(test_string_1, test_string_2, markdown_style="none")
     assert test.output_markdown == expected_md
