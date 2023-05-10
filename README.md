@@ -68,7 +68,7 @@ assert (
 
 ## Uses
 
-* View and mark changes in legislation: [PLUS Explorer](https://houfu-plus-explorer-explorer-r52oh0.streamlit.app/)
+* View and mark changes in legislation: [PLUS Explorer](https://houfu-plus-explorer.streamlit.app/)
 * Visualise changes after ChatGPT transforms a
   text: [ChatGPT Prompt Engineering for Developers](https://www.deeplearning.ai/short-courses/chatgpt-prompt-engineering-for-developers/)
   Lesson 6
