@@ -133,21 +133,42 @@ class Redlines:
     def output_markdown(self) -> str:
         """Returns the delta in Markdown format."""
         result = []
-        style = "red"
+        default_style = 'red_green'
+        style = default_style
+
+        elem_attributes = {
+            "ins": { "class": "inserted" },
+            "del": { "class": "deleted" },
+        }
 
         if self.options.get("markdown_style"):
             style = self.options["markdown_style"]
 
         if style == "none":
             md_styles = {"ins": ("ins", "ins"), "del": ("del", "del")}
-        elif "red":
+        elif style == 'red_green':
             md_styles = {
-                "ins": ('span style="color:red;font-weight:700;"', "span"),
+                "ins": (
+                    f"span {elem_attributes['ins']['class']} style='color:green;font-weight:700;'", 
+                    'span'
+                ),
                 "del": (
-                    'span style="color:red;font-weight:700;text-decoration:line-through;"',
-                    "span",
+                    f"span {elem_attributes['del']['class']} style='color:red;font-weight:700;text-decoration:line-through;'",
+                    'span'
+                )
+            }
+        elif style == "red":
+            md_styles = {
+                "ins": (
+                    f"span {elem_attributes['ins']['class']} style='color:red;font-weight:700;'", 
+                    'span'
+                ),
+                "del": (
+                    f"span {elem_attributes['del']['class']} style='color:red;font-weight:700;text-decoration:line-through;'",
+                    'span'
                 ),
             }
+
 
         for tag, i1, i2, j1, j2 in self.opcodes:
             if tag == "equal":
