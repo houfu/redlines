@@ -137,9 +137,14 @@ class Redlines:
         style = default_style
 
         elem_attributes = {
-            "ins": { "class": "inserted" },
-            "del": { "class": "deleted" },
+            "ins": { "class": "class='inserted'" },
+            "del": { "class": "class='deleted'" },
         }
+
+        def get_elem_attr(elem, attr):
+            if elem in elem_attributes and attr in elem_attributes[elem]:
+                return elem_attributes[elem][attr]
+            return ""
 
         if self.options.get("markdown_style"):
             style = self.options["markdown_style"]
@@ -149,23 +154,23 @@ class Redlines:
         elif style == 'red_green':
             md_styles = {
                 "ins": (
-                    f"span {elem_attributes['ins']['class']} style='color:green;font-weight:700;'", 
-                    'span'
+                    f"span {get_elem_attr('ins', 'class')} style='color:green;font-weight:700;'", 
+                    "span"
                 ),
                 "del": (
-                    f"span {elem_attributes['del']['class']} style='color:red;font-weight:700;text-decoration:line-through;'",
-                    'span'
+                    f"span {get_elem_attr('del', 'class')} style='color:red;font-weight:700;text-decoration:line-through;'",
+                    "span"
                 )
             }
         elif style == "red":
             md_styles = {
                 "ins": (
-                    f"span {elem_attributes['ins']['class']} style='color:red;font-weight:700;'", 
-                    'span'
+                    f"span {get_elem_attr('ins', 'class')} style='color:red;font-weight:700;'", 
+                    "span"
                 ),
                 "del": (
-                    f"span {elem_attributes['del']['class']} style='color:red;font-weight:700;text-decoration:line-through;'",
-                    'span'
+                    f"span {get_elem_attr('del', 'class')} style='color:red;font-weight:700;text-decoration:line-through;'",
+                    "span"
                 ),
             }
 
