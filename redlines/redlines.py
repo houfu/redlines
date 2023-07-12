@@ -133,21 +133,47 @@ class Redlines:
     def output_markdown(self) -> str:
         """Returns the delta in Markdown format."""
         result = []
-        style = "red"
+        default_style = 'red_green'
+        style = default_style
+
+        elem_attributes = {
+            "ins": { "class": "class='inserted'" },
+            "del": { "class": "class='deleted'" },
+        }
+
+        def get_elem_attr(elem, attr):
+            if elem in elem_attributes and attr in elem_attributes[elem]:
+                return elem_attributes[elem][attr]
+            return ""
 
         if self.options.get("markdown_style"):
             style = self.options["markdown_style"]
 
         if style == "none":
             md_styles = {"ins": ("ins", "ins"), "del": ("del", "del")}
-        elif "red":
+        elif style == 'red_green':
             md_styles = {
-                "ins": ('span style="color:red;font-weight:700;"', "span"),
+                "ins": (
+                    f"span {get_elem_attr('ins', 'class')} style='color:green;font-weight:700;'", 
+                    "span"
+                ),
                 "del": (
-                    'span style="color:red;font-weight:700;text-decoration:line-through;"',
-                    "span",
+                    f"span {get_elem_attr('del', 'class')} style='color:red;font-weight:700;text-decoration:line-through;'",
+                    "span"
+                )
+            }
+        elif style == "red":
+            md_styles = {
+                "ins": (
+                    f"span {get_elem_attr('ins', 'class')} style='color:red;font-weight:700;'", 
+                    "span"
+                ),
+                "del": (
+                    f"span {get_elem_attr('del', 'class')} style='color:red;font-weight:700;text-decoration:line-through;'",
+                    "span"
                 ),
             }
+
 
         for tag, i1, i2, j1, j2 in self.opcodes:
             if tag == "equal":
