@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import re
 
+from rich.text import Text
+
 # This regular expression matches a group of characters that can include any character except for parentheses
 # and whitespace characters (which include spaces, tabs, and line breaks) or any character
 # that is a parenthesis or punctuation mark (.?!-).
@@ -187,6 +189,32 @@ class Redlines:
                     result.pop()
 
         return "".join(result)
+
+    @property
+    def output_rich(self) -> Text:
+        """Returns the delta in text with colors/style for the console."""
+        console_text = Text()
+
+        for tag, i1, i2, j1, j2 in self.opcodes:
+            if tag == "equal":
+                temp_str = "".join(self._seq1[i1:i2])
+                temp_str = re.sub("¶ ", "\n\n", temp_str)
+                console_text.append(temp_str)
+            elif tag == "insert":
+                temp_str = "".join(self._seq2[j1:j2])
+                splits = re.split("¶ ", temp_str)
+                for split in splits:
+                    console_text.append(split, "green")
+            elif tag == "delete":
+                console_text.append("".join(self._seq1[i1:i2]), "red strike")
+            elif tag == "replace":
+                console_text.append("".join(self._seq1[i1:i2]), "red strike")
+                temp_str = "".join(self._seq2[j1:j2])
+                splits = re.split("¶ ", temp_str)
+                for split in splits:
+                    console_text.append(split, "green")
+
+        return console_text
 
     def compare(self, test: str | None = None, output: str = "markdown", **options):
         """
