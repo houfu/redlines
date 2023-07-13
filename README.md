@@ -66,6 +66,14 @@ assert (
 )
 ```
 
+Redlines also features a simple command line tool `redlines` to visualise the differences in text in the terminal.
+
+```
+ Usage: redlines text [OPTIONS] SOURCE TEST                                                                                                                                                                                                   
+                                                                                                                                                                                                                                              
+ Compares the strings SOURCE and TEST and produce a redline in the terminal. 
+```
+
 ## Uses
 
 * View and mark changes in legislation: [PLUS Explorer](https://houfu-plus-explorer.streamlit.app/)

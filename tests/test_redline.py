@@ -1,4 +1,5 @@
 import pytest
+from rich.text import Text
 
 from redlines import Redlines
 
@@ -13,7 +14,7 @@ from redlines import Redlines
         )
     ],
 )
-def test_redline_add(test_string_1, test_string_2, expected_md):
+def test_redline_add_md(test_string_1, test_string_2, expected_md):
     test = Redlines(test_string_1, test_string_2, markdown_style="none")
     assert test.output_markdown == expected_md
 
@@ -28,7 +29,7 @@ def test_redline_add(test_string_1, test_string_2, expected_md):
         )
     ],
 )
-def test_redline_delete(test_string_1, test_string_2, expected_md):
+def test_redline_delete_md(test_string_1, test_string_2, expected_md):
     test = Redlines(test_string_1, test_string_2, markdown_style="none")
     assert test.output_markdown == expected_md
 
@@ -43,9 +44,62 @@ def test_redline_delete(test_string_1, test_string_2, expected_md):
         )
     ],
 )
-def test_redline_replace(test_string_1, test_string_2, expected_md):
+def test_redline_replace_md(test_string_1, test_string_2, expected_md):
     test = Redlines(test_string_1, test_string_2, markdown_style="none")
     assert test.output_markdown == expected_md
+
+
+@pytest.mark.parametrize(
+    "test_string_1, test_string_2, expected_rich",
+    [
+        (
+            "The quick brown fox jumps over the dog.",
+            "The quick brown fox jumps over the lazy dog.",
+            Text.from_markup(
+                "The quick brown fox jumps over the [green]lazy [/green]dog."
+            ),
+        )
+    ],
+)
+def test_redline_add_rich(test_string_1, test_string_2, expected_rich):
+    test = Redlines(test_string_1, test_string_2)
+    assert test.output_rich == expected_rich
+
+
+@pytest.mark.skip("Not sure why [red strike] is not the same as [strike red]")
+@pytest.mark.parametrize(
+    "test_string_1, test_string_2, expected_rich",
+    [
+        (
+            "The quick brown fox jumps over the lazy dog.",
+            "The quick brown fox jumps over the dog.",
+            Text.from_markup(
+                "The quick brown fox jumps over the [red strike]lazy [/red strike]dog."
+            ),
+        )
+    ],
+)
+def test_redline_delete_rich(test_string_1, test_string_2, expected_rich):
+    test = Redlines(test_string_1, test_string_2)
+    assert test.output_rich == expected_rich
+
+
+@pytest.mark.skip("Not sure why [red strike] is not the same as [strike red]")
+@pytest.mark.parametrize(
+    "test_string_1, test_string_2, expected_rich",
+    [
+        (
+            "The quick brown fox jumps over the lazy dog.",
+            "The quick brown fox walks past the lazy dog.",
+            Text.from_markup(
+                "The quick brown fox [red strike]jumps over [/red strike][green]walks past [/green]the lazy dog."
+            ),
+        )
+    ],
+)
+def test_redline_replace_rich(test_string_1, test_string_2, expected_rich):
+    test = Redlines(test_string_1, test_string_2)
+    assert test.output_rich == expected_rich
 
 
 def test_compare():
