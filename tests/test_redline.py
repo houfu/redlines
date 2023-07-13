@@ -139,6 +139,7 @@ def test_source():
 
 
 def test_markdown_style():
+    # Test "none" style
     test_string_1 = "The quick brown fox jumps over the lazy dog."
     test_string_2 = "The quick brown fox walks past the lazy dog."
     expected_md = (
@@ -147,11 +148,33 @@ def test_markdown_style():
     test = Redlines(test_string_1, markdown_style="none")
     assert test.compare(test_string_2) == expected_md
 
+    # Test one of the provided markdown styles
     expected_md = (
-        'The quick brown fox <span style="color:red;font-weight:700;text-decoration:line-through;">jumps '
-        'over </span><span style="color:red;font-weight:700;">walks past </span>the lazy dog.'
+        "The quick brown fox <span style='color:red;font-weight:700;text-decoration:line-through;'>jumps "
+        "over </span><span style='color:red;font-weight:700;'>walks past </span>the lazy dog."
     )
     test = Redlines(test_string_1, markdown_style="red")
+    assert test.compare(test_string_2) == expected_md
+
+    # Test default custom css styles
+    expected_md = (
+        "The quick brown fox <span class='redline-deleted'>jumps "
+        "over </span><span class='redline-inserted'>walks past </span>the lazy dog."
+    )
+    test = Redlines(test_string_1, markdown_style="custom_css")
+    assert test.compare(test_string_2) == expected_md
+
+    # Test custom css styles with custom names
+    expected_md = (
+        "The quick brown fox <span class='deleted'>jumps "
+        "over </span><span class='inserted'>walks past </span>the lazy dog."
+    )
+    test = Redlines(
+        test_string_1,
+        markdown_style="custom_css",
+        ins_class="inserted",
+        del_class="deleted",
+    )
     assert test.compare(test_string_2) == expected_md
 
 

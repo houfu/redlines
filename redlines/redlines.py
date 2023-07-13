@@ -135,47 +135,63 @@ class Redlines:
     def output_markdown(self) -> str:
         """Returns the delta in Markdown format."""
         result = []
-        default_style = 'red_green'
-        style = default_style
 
-        elem_attributes = {
-            "ins": { "class": "class='inserted'" },
-            "del": { "class": "class='deleted'" },
+        # default_style = "red_green"
+
+        md_styles = {
+            "ins": (
+                f"span style='color:red;font-weight:700;'",
+                "span",
+            ),
+            "del": (
+                f"span style='color:red;font-weight:700;text-decoration:line-through;'",
+                "span",
+            ),
         }
-
-        def get_elem_attr(elem, attr):
-            if elem in elem_attributes and attr in elem_attributes[elem]:
-                return elem_attributes[elem][attr]
-            return ""
 
         if self.options.get("markdown_style"):
             style = self.options["markdown_style"]
 
-        if style == "none":
-            md_styles = {"ins": ("ins", "ins"), "del": ("del", "del")}
-        elif style == 'red_green':
-            md_styles = {
-                "ins": (
-                    f"span {get_elem_attr('ins', 'class')} style='color:green;font-weight:700;'", 
-                    "span"
-                ),
-                "del": (
-                    f"span {get_elem_attr('del', 'class')} style='color:red;font-weight:700;text-decoration:line-through;'",
-                    "span"
+            if style == "none":
+                md_styles = {"ins": ("ins", "ins"), "del": ("del", "del")}
+            elif style == "red":
+                md_styles = {
+                    "ins": (
+                        f"span style='color:red;font-weight:700;'",
+                        "span",
+                    ),
+                    "del": (
+                        f"span style='color:red;font-weight:700;text-decoration:line-through;'",
+                        "span",
+                    ),
+                }
+            elif style == "custom_css":
+                ins_class = (
+                    self.options["ins_class"]
+                    if "ins_class" in self.options
+                    else "redline-inserted"
                 )
-            }
-        elif style == "red":
-            md_styles = {
-                "ins": (
-                    f"span {get_elem_attr('ins', 'class')} style='color:red;font-weight:700;'", 
-                    "span"
-                ),
-                "del": (
-                    f"span {get_elem_attr('del', 'class')} style='color:red;font-weight:700;text-decoration:line-through;'",
-                    "span"
-                ),
-            }
+                del_class = (
+                    self.options["del_class"]
+                    if "del_class" in self.options
+                    else "redline-deleted"
+                )
 
+                elem_attributes = {
+                    "ins": f"class='{ins_class}'",
+                    "del": f"class='{del_class}'",
+                }
+
+                md_styles = {
+                    "ins": (
+                        f"span {elem_attributes['ins']}",
+                        "span",
+                    ),
+                    "del": (
+                        f"span {elem_attributes['del']}",
+                        "span",
+                    ),
+                }
 
         for tag, i1, i2, j1, j2 in self.opcodes:
             if tag == "equal":
