@@ -24,7 +24,7 @@ The library gives a result of:
 
 Which is rendered like this:
 
-The quick brown fox <del>jumps over </del><ins>walks past </ins>the lazy dog.
+> The quick brown fox <del>jumps over </del><ins>walks past </ins>the lazy dog.
 
 ## Install
 
@@ -74,6 +74,21 @@ Redlines also features a simple command line tool `redlines` to visualise the di
  Compares the strings SOURCE and TEST and produce a redline in the terminal. 
 ```
 
+### Custom styling in markdown
+
+By default, markdown output is styled in "red_green", like the following:
+
+> "The quick brown fox <span style='color:red;font-weight:700;text-decoration:line-through;'>jumps
+> over </span><span style='color:green;font-weight:700;'>walks past </span>the lazy dog."
+
+Set the `markdown_style` option in the constructor or compare function to change the styling.
+The available styles are "red"" and "none".
+
+You can also use css classes to provide custom styling by setting `markdown_style` as "custom_css".
+Insertions and deletions are now styled using the "redline-inserted" and "redline-deleted" CSS classes.
+You can also set your own CSS classes by specifying the name of the CSS class in the options "ins_class"
+and "del_class" respectively in the constructor or compare function.
+
 ## Uses
 
 * View and mark changes in legislation: [PLUS Explorer](https://houfu-plus-explorer.streamlit.app/)
@@ -87,7 +102,7 @@ Please feel free to post issues and comments. I work on this in my free time, so
 
 ### Nice things to do
 
-* Style the way changes are presented
+* <s>Style the way changes are presented</s>
 * Other than Markdown, have other output formats (HTML? PDF?)
 * Associate changes with an author
 * Show different changes by different authors or times.
