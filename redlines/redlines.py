@@ -140,7 +140,7 @@ class Redlines:
 
         md_styles = {
             "ins": (
-                f"span style='color:red;font-weight:700;'",
+                f"span style='color:green;font-weight:700;'",
                 "span",
             ),
             "del": (

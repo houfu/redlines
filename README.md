@@ -74,6 +74,10 @@ Redlines also features a simple command line tool `redlines` to visualise the di
  Compares the strings SOURCE and TEST and produce a redline in the terminal. 
 ```
 
+### Custom styling
+
+By default, markdown output is styled in "red green", like the following:
+
 ## Uses
 
 * View and mark changes in legislation: [PLUS Explorer](https://houfu-plus-explorer.streamlit.app/)
@@ -87,7 +91,7 @@ Please feel free to post issues and comments. I work on this in my free time, so
 
 ### Nice things to do
 
-* Style the way changes are presented
+* <s>Style the way changes are presented</s>
 * Other than Markdown, have other output formats (HTML? PDF?)
 * Associate changes with an author
 * Show different changes by different authors or times.
