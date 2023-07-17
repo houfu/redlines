@@ -248,9 +248,9 @@ class Redlines:
                 for split in splits:
                     console_text.append(split, "green")
             elif tag == "delete":
-                console_text.append("".join(self._seq1[i1:i2]), "red strike")
+                console_text.append("".join(self._seq1[i1:i2]), "strike red")
             elif tag == "replace":
-                console_text.append("".join(self._seq1[i1:i2]), "red strike")
+                console_text.append("".join(self._seq1[i1:i2]), "strike red")
                 temp_str = "".join(self._seq2[j1:j2])
                 splits = re.split("¶ ", temp_str)
                 for split in splits:
