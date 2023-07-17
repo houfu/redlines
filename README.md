@@ -89,6 +89,12 @@ Insertions and deletions are now styled using the "redline-inserted" and "redlin
 You can also set your own CSS classes by specifying the name of the CSS class in the options "ins_class"
 and "del_class" respectively in the constructor or compare function.
 
+**Styling will not appear in markdown environments which disallow HTML**. There is no consistent support for 
+strikethroughs and colors in the markdown standard, and styling is largely accomplished through raw HTML. 
+If you are using GitHub or Streamlit, you may not get the formatting you expect or see any change at all.
+
+To get formatting working in Streamlit, you need to set the `unsafe_allow_html` argument in `st.write` or `st.markdown` to `True`.
+
 ## Uses
 
 * View and mark changes in legislation: [PLUS Explorer](https://houfu-plus-explorer.streamlit.app/)
