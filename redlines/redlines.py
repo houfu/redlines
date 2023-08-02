@@ -140,12 +140,12 @@ class Redlines:
 
         md_styles = {
             "ins": (
-                f"span style='color:green;font-weight:700;'",
-                "span",
+                f"<span style='color:green;font-weight:700;'>",
+                "</span>",
             ),
             "del": (
-                f"span style='color:red;font-weight:700;text-decoration:line-through;'",
-                "span",
+                f"<span style='color:red;font-weight:700;text-decoration:line-through;'>",
+                "</span>",
             ),
         }
 
@@ -153,16 +153,16 @@ class Redlines:
             style = self.options["markdown_style"]
 
             if style == "none":
-                md_styles = {"ins": ("ins", "ins"), "del": ("del", "del")}
+                md_styles = {"ins": ("<ins>", "</ins>"), "del": ("<del>", "</del>")}
             elif style == "red":
                 md_styles = {
                     "ins": (
-                        f"span style='color:red;font-weight:700;'",
-                        "span",
+                        f"<span style='color:red;font-weight:700;'>",
+                        "</span>",
                     ),
                     "del": (
-                        f"span style='color:red;font-weight:700;text-decoration:line-through;'",
-                        "span",
+                        f"<span style='color:red;font-weight:700;text-decoration:line-through;'>",
+                        "</span>",
                     ),
                 }
             elif style == "custom_css":
@@ -184,14 +184,16 @@ class Redlines:
 
                 md_styles = {
                     "ins": (
-                        f"span {elem_attributes['ins']}",
-                        "span",
+                        f"<span {elem_attributes['ins']}>",
+                        "</span>",
                     ),
                     "del": (
-                        f"span {elem_attributes['del']}",
-                        "span",
+                        f"<span {elem_attributes['del']}>",
+                        "</span>",
                     ),
                 }
+            elif style == "ghfm":
+                md_styles = {"ins": ("**", "**"), "del": ("~~", "~~")}
 
         for tag, i1, i2, j1, j2 in self.opcodes:
             if tag == "equal":
@@ -204,28 +206,24 @@ class Redlines:
                 temp_str = "".join(self._seq2[j1:j2])
                 splits = re.split("¶ ", temp_str)
                 for split in splits:
-                    result.append(
-                        f"<{md_styles['ins'][0]}>{split}</{md_styles['ins'][1]}>"
-                    )
+                    result.append(f"{md_styles['ins'][0]}{split}{md_styles['ins'][1]}")
                     result.append("\n\n")
                 if len(splits) > 0:
                     result.pop()
             elif tag == "delete":
                 result.append(
-                    f"<{md_styles['del'][0]}>{''.join(self._seq1[i1:i2])}</{md_styles['del'][1]}>"
+                    f"{md_styles['del'][0]}{''.join(self._seq1[i1:i2])}{md_styles['del'][1]}"
                 )
                 # for 'delete', we make no change, because otherwise there will be two times '\n\n' than the original
                 # text.
             elif tag == "replace":
                 result.append(
-                    f"<{md_styles['del'][0]}>{''.join(self._seq1[i1:i2])}</{md_styles['del'][1]}>"
+                    f"{md_styles['del'][0]}{''.join(self._seq1[i1:i2])}{md_styles['del'][1]}"
                 )
                 temp_str = "".join(self._seq2[j1:j2])
                 splits = re.split("¶ ", temp_str)
                 for split in splits:
-                    result.append(
-                        f"<{md_styles['ins'][0]}>{split}</{md_styles['ins'][1]}>"
-                    )
+                    result.append(f"{md_styles['ins'][0]}{split}{md_styles['ins'][1]}")
                     result.append("\n\n")
                 if len(splits) > 0:
                     result.pop()
