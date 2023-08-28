@@ -66,7 +66,7 @@ def test_redline_add_rich(test_string_1, test_string_2, expected_rich):
     assert test.output_rich == expected_rich
 
 
-@pytest.mark.skip("Not sure why [red strike] is not the same as [strike red]")
+# @pytest.mark.skip("Not sure why [red strike] is not the same as [strike red]")
 @pytest.mark.parametrize(
     "test_string_1, test_string_2, expected_rich",
     [
@@ -84,7 +84,6 @@ def test_redline_delete_rich(test_string_1, test_string_2, expected_rich):
     assert test.output_rich == expected_rich
 
 
-@pytest.mark.skip("Not sure why [red strike] is not the same as [strike red]")
 @pytest.mark.parametrize(
     "test_string_1, test_string_2, expected_rich",
     [
