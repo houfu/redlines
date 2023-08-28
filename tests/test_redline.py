@@ -176,6 +176,11 @@ def test_markdown_style():
     )
     assert test.compare(test_string_2) == expected_md
 
+    # Test ghfm (GitHub Flavored Markdown) style
+    expected_md = "The quick brown fox ~~jumps over ~~**walks past **the lazy dog."
+    test = Redlines(test_string_1, markdown_style="ghfm")
+    assert test.compare(test_string_2) == expected_md
+
 
 def test_paragraphs_handling():
     test_string_1 = """

@@ -76,24 +76,31 @@ Redlines also features a simple command line tool `redlines` to visualise the di
 
 ### Custom styling in markdown
 
-By default, markdown output is styled in "red_green", like the following:
-
-> "The quick brown fox <span style='color:red;font-weight:700;text-decoration:line-through;'>jumps
-> over </span><span style='color:green;font-weight:700;'>walks past </span>the lazy dog."
+By default, markdown output is styled in "red_green".
 
 Set the `markdown_style` option in the constructor or compare function to change the styling.
-The available styles are "red"" and "none".
+The other available styles are "red", "none" and "ghfm".
 
 You can also use css classes to provide custom styling by setting `markdown_style` as "custom_css".
 Insertions and deletions are now styled using the "redline-inserted" and "redline-deleted" CSS classes.
 You can also set your own CSS classes by specifying the name of the CSS class in the options "ins_class"
 and "del_class" respectively in the constructor or compare function.
 
-**Styling will not appear in markdown environments which disallow HTML**. There is no consistent support for 
-strikethroughs and colors in the markdown standard, and styling is largely accomplished through raw HTML. 
+### Redlines does not seem to work under certain markdown environments, eg. Streamlit or GitHub
+
+**Styling may not appear in markdown environments which disallow HTML**. There is no consistent support for
+strikethroughs and colors in the markdown standard, and styling is largely accomplished through raw HTML.
 If you are using GitHub or Streamlit, you may not get the formatting you expect or see any change at all.
 
-To get formatting working in Streamlit, you need to set the `unsafe_allow_html` argument in `st.write` or `st.markdown` to `True`.
+Try these options:
+
+* Enable use of HTML. In Streamlit, you need to set the `unsafe_allow_html` argument in `st.write` or `st.markdown`
+  to `True`.
+* Set `markdown_style` as "ghfm": the GitHub Flavoured Markdown provides support for strikethrough (but no colours or
+  underline)
+* Set `markdown_style` as "none": some environments only support a subset of HTML tags in markdown (for eg. GitHub).
+  This might include
+  the `ins` and `del` HTML tags used by this style. Styling usually follows that of the browser.
 
 ## Uses
 
