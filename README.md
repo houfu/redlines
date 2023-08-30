@@ -113,6 +113,9 @@ Try these options:
 
 Please feel free to post issues and comments. I work on this in my free time, so please excuse lack of activity.
 
+For questions and discussions, you can join [my matrix room on matrix.esq.social.](https://chat.matrix.esq.social/#/room/#redlines:matrix.esq.social) 
+Matrix is a federated communication platform similar to Discord.
+
 ### Nice things to do
 
 * <s>Style the way changes are presented</s>
