@@ -138,6 +138,13 @@ def test_source():
 
 
 def test_markdown_style():
+    # Test default - "red green"
+    test_string_1 = "The quick brown fox jumps over the lazy dog."
+    test_string_2 = "The quick brown fox walks past the lazy dog."
+    expected_md = "The quick brown fox <span style='color:red;font-weight:700;text-decoration:line-through;'>jumps over </span><span style='color:green;font-weight:700;'>walks past </span>the lazy dog."
+    test = Redlines(test_string_1)
+    assert test.compare(test_string_2) == expected_md
+
     # Test None style
     test_string_1 = "The quick brown fox jumps over the lazy dog."
     test_string_2 = "The quick brown fox walks past the lazy dog."
