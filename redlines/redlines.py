@@ -149,10 +149,10 @@ class Redlines:
             ),
         }
 
-        if self.options.get("markdown_style"):
+        if "markdown_style" in self.options:
             style = self.options["markdown_style"]
 
-            if style == "none":
+            if style == None or 'none':
                 md_styles = {"ins": ("<ins>", "</ins>"), "del": ("<del>", "</del>")}
             elif style == "red":
                 md_styles = {
