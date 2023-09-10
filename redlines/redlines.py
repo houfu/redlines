@@ -4,6 +4,8 @@ import re
 
 from rich.text import Text
 
+from redlines.document import Document
+
 # This regular expression matches a group of characters that can include any character except for parentheses
 # and whitespace characters (which include spaces, tabs, and line breaks) or any character
 # that is a parenthesis or punctuation mark (.?!-).
@@ -101,7 +103,9 @@ class Redlines:
         self._test = value
         self._seq2 = tokenize_text(concatenate_paragraphs_and_add_chr_182(value))
 
-    def __init__(self, source: str, test: str | None = None, **options):
+    def __init__(
+        self, source: str | Document, test: str | Document | None = None, **options
+    ):
         """
         Redline is a class used to compare text, and producing human-readable differences or deltas
         which look like track changes in Microsoft Word.
@@ -109,10 +113,10 @@ class Redlines:
         :param source: The source text to be used as a basis for comparison.
         :param test: Optional test text to compare with the source.
         """
-        self.source = source
+        self.source = source.text if isinstance(source, Document) else source
         self.options = options
         if test:
-            self.test = test
+            self.test = test.text if isinstance(test, Document) else test
             # self.compare()
 
     @property
