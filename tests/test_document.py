@@ -2,12 +2,12 @@ from redlines import Redlines
 
 
 def test_PlainTextFile_text():
-    from redlines.document import PlainTextFile
+    from redlines import PlainTextFile
 
-    source = PlainTextFile("documents/PlainTextFile/source.txt")
+    source = PlainTextFile("tests/documents/PlainTextFile/source.txt")
     assert source.text == "The quick brown fox jumps over the lazy dog."
 
-    test = PlainTextFile("documents/PlainTextFile/test.txt")
+    test = PlainTextFile("tests/documents/PlainTextFile/test.txt")
     assert test.text == "The quick brown fox walks past the lazy dog."
 
     redline = Redlines(source, test)
