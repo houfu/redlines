@@ -6,27 +6,34 @@ from rich.text import Text
 
 from redlines.document import Document
 
-# This regular expression matches a group of characters that can include any character except for parentheses
-# and whitespace characters (which include spaces, tabs, and line breaks) or any character
-# that is a parenthesis or punctuation mark (.?!-).
-# The group can also include any whitespace characters that follow these characters.
-# Breaking it down further:
-
-#    ( and ) indicate a capturing group
-#    (?: ) is a non-capturing group, meaning it matches the pattern but doesn't capture the matched text
-#    [^()\s]+ matches one or more characters that are not parentheses or whitespace characters
-#    | indicates an alternative pattern
-#    [().?!-] matches any character that is a parenthesis or punctuation mark (.?!-)
-#    \s* matches zero or more whitespace characters (spaces, tabs, or line breaks) that follow the previous pattern.
 tokenizer = re.compile(r"((?:[^()\s]+|[().?!-])\s*)")
+"""
+This regular expression matches a group of characters that can include any character except for parentheses
+and whitespace characters (which include spaces, tabs, and line breaks) or any character
+that is a parenthesis or punctuation mark (.?!-).
+The group can also include any whitespace characters that follow these characters.
 
+Breaking it down further:
+
+* `(` and `)` indicate a capturing group
+* `(?: )` is a non-capturing group, meaning it matches the pattern but doesn't capture the matched text
+* `[^()\s]+` matches one or more characters that are not parentheses or whitespace characters
+* `|` indicates an alternative pattern
+* `[().?!-]` matches any character that is a parenthesis or punctuation mark `(.?!-)`
+* `\s*` matches zero or more whitespace characters (spaces, tabs, or line breaks) that follow the previous pattern.
+"""
 # This pattern matches one or more newline characters `\n`, and any spaces between them.
-# It is used to split the text into paragraphs.
-# (?:\n *) is a non-capturing group that must start with a \n   and be followed by zero or more spaces.
-# ((?:\n *)+) is the previous non-capturing group repeated one or more times.
+
 paragraph_pattern = re.compile(r"((?:\n *)+)")
+"""
+It is used to split the text into paragraphs.
+
+* `(?:\\n *)` is a non-capturing group that must start with a `\\n`   and be followed by zero or more spaces.
+* `((?:\\n *)+)` is the previous non-capturing group repeated one or more times.
+"""
 
 space_pattern = re.compile(r"(\s+)")
+"""It is used to detect space."""
 
 
 def tokenize_text(text: str) -> list[str]:
@@ -81,10 +88,9 @@ class Redlines:
     _seq2: list[str] = None
 
     @property
-    def source(self):
+    def source(self) -> str:
         """
-        The source text to be used as a basis for comparison.
-        :return:
+        :return: The source text to be used as a basis for comparison.
         """
         return self._source
 
@@ -95,7 +101,7 @@ class Redlines:
 
     @property
     def test(self):
-        """The text to be compared with the source."""
+        """:return: The text to be compared with the source."""
         return self._test
 
     @test.setter
@@ -110,6 +116,36 @@ class Redlines:
         Redline is a class used to compare text, and producing human-readable differences or deltas
         which look like track changes in Microsoft Word.
 
+        ```python
+        # import the class
+        from redlines import Redlines
+
+        # Create a Redlines object using the two strings to compare
+        test = Redlines(
+            "The quick brown fox jumps over the lazy dog.",
+            "The quick brown fox walks past the lazy dog.",
+        )
+
+        # This produces an output in Markdown format
+        test.output_markdown
+        ```
+
+        Besides strings, Redlines can also receive an input in another format if it is supported by the Document class
+
+        ```python
+        from redlines import PlainTextFile
+
+        source = PlainTextFile("tests/documents/PlainTextFile/source.txt")
+        test = PlainTextFile("tests/documents/PlainTextFile/test.txt")
+
+        redline = Redlines(source, test)
+        assert (
+            redline.output_markdown
+            == "The quick brown fox <span style='color:red;font-weight:700;text-decoration:line-through;'>jumps over </span><span style='color:green;font-weight:700;'>walks past </span>the lazy dog."
+        )
+
+        ```
+
         :param source: The source text to be used as a basis for comparison.
         :param test: Optional test text to compare with the source.
         """
@@ -123,7 +159,15 @@ class Redlines:
     def opcodes(self) -> list[tuple[str, int, int, int, int]]:
         """
         Return list of 5-tuples describing how to turn `source` into `test`.
-        Similar to `SequenceMatcher.get_opcodes`
+        Similar to [`SequenceMatcher.get_opcodes`](https://docs.python.org/3/library/difflib.html#difflib.SequenceMatcher.get_opcodes).
+
+        ```pycon
+        >>> test_string_1 = 'The quick brown fox jumps over the lazy dog.'
+        ... test_string_2 = 'The quick brown fox walks past the lazy dog.'
+        ... s = Redlines(test_string_1, test_string_2)
+        ... s.opcodes
+        [('equal', 0, 4, 0, 4), ('replace', 4, 6, 4, 6), ('equal', 6, 9, 6, 9)]
+        ```
         """
         if self._seq2 is None:
             raise ValueError(
@@ -137,7 +181,71 @@ class Redlines:
 
     @property
     def output_markdown(self) -> str:
-        """Returns the delta in Markdown format."""
+        """
+        Returns the delta in Markdown format.
+
+        ## Styling Markdown
+        To output markdown in a particular manner, you must pass a `markdown_style` option when the `Redlines` object
+        is created or when `Redlines.compare` is called.
+
+        ```python
+        from redlines import Redlines
+
+        test = Redlines(
+            "The quick brown fox jumps over the lazy dog.",
+            "The quick brown fox walks past the lazy dog.",
+            markdown_style="red"  # This option specifies the style as red
+        )
+
+        test.compare(markdown_style="none") # This option specifies the style as none
+        ```
+
+        ### Available styles
+
+        | Style | Preview |
+        |-------| -------|
+        |red-green (**default**) | "The quick brown fox <span style='color:red;font-weight:700;text-decoration:line-through;'>jumps over </span><span style='color:green;font-weight:700;'>walks past </span>the lazy dog."|
+        |none | 'The quick brown fox <del>jumps over </del><ins>walks past </ins>the lazy dog.'|
+        |red | "The quick brown fox <span style='color:red;font-weight:700;text-decoration:line-through;'>jumps over </span><span style='color:red;font-weight:700;'>walks past </span>the lazy dog."|
+        |ghfm (GitHub Flavored Markdown)| 'The quick brown fox ~~jumps over ~~**walks past **the lazy dog.' |
+
+        ### Custom styling
+
+        You can also use css classes to provide custom styling by setting `markdown_style` as "custom_css".
+        Insertions and deletions are now styled using the "redline-inserted" and "redline-deleted" CSS classes.
+        You can also set your own CSS classes by specifying the name of the CSS class in the options `ins_class`
+        and `del_class` respectively in the constructor or compare function.
+
+        ## Markdown output in specific environments
+
+        Users have reported that the output doesn't display correctly in their environments.
+        This is because styling may not appear in markdown environments which disallow HTML.
+        There is no consistent support for strikethroughs and colors in the markdown standard,
+        and styling is largely accomplished through raw HTML. If you are using GitHub or Streamlit, you may not get
+        the formatting you expect or see any change at all.
+
+        If you are facing this kind of difficulty, here are some recommendations. If your experience doesn't match
+        the hints or description below, or you continue to face problems, please raise an issue.
+
+        ### Jupyter Notebooks
+        This library was first written for the Jupyter notebook environment, so all the available styles, including
+        the default (`red-green`), `red` and `none` work.
+
+        ### Streamlit
+
+        Try this:
+
+        * Enable parsing of HTML. In Streamlit, you need to set the `unsafe_allow_html` argument in `st.write` or
+        `st.markdown` to `True`.
+        * Use the markdown style `ghfm`
+
+        ### Colab
+
+        Try this:
+        * Use the markdown style `none` or `ghfm`
+        * `Redlines.output_rich` has been reported to work in Colab
+
+        """
         result = []
 
         # default_style = "red_green"
