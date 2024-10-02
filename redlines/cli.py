@@ -39,7 +39,7 @@ def cli():
 @click.argument("test", required=True)
 def text(source, test):
     """
-    Compares the strings SOURCE and TEST and produce a redline in the terminal.
+    Compares the strings SOURCE and TEST and produce a redline in the terminal in a display that shows the original, new and redlined text.
     """
 
     redlines = Redlines(source, test)
@@ -59,3 +59,16 @@ def text(source, test):
         Layout(Panel(test, title="Test", title_align="left"), name="test"),
     )
     console.print(layout)
+
+
+@cli.command()
+@click.argument("source", required=True)
+@click.argument("test", required=True)
+def simple_text(source, test):
+    """
+    Compares the strings SOURCE and TEST and outputs the redline in the terminal.
+    """
+    from rich import print
+
+    redlines = Redlines(source, test)
+    print(redlines.output_rich)
