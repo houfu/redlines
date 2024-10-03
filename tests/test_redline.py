@@ -197,6 +197,11 @@ def test_markdown_style():
     test = Redlines(test_string_1, markdown_style="ghfm")
     assert test.compare(test_string_2) == expected_md
 
+    # Test bbcode (BBCode) style
+    expected_md = "The quick brown fox [s][color=red]jumps over [/color][/s][b][color=green]walks past [/color][/b]the lazy dog."
+    test = Redlines(test_string_1, markdown_style="bbcode")
+    assert test.compare(test_string_2) == expected_md
+
 
 def test_paragraphs_handling():
     test_string_1 = """
