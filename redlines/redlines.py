@@ -208,6 +208,7 @@ class Redlines:
         |none | 'The quick brown fox <del>jumps over </del><ins>walks past </ins>the lazy dog.'|
         |red | "The quick brown fox <span style='color:red;font-weight:700;text-decoration:line-through;'>jumps over </span><span style='color:red;font-weight:700;'>walks past </span>the lazy dog."|
         |ghfm (GitHub Flavored Markdown)| 'The quick brown fox ~~jumps over ~~**walks past **the lazy dog.' |
+        |bb-code (BBCode) | 'The quick brown fox [s]jumps over [/s][u]walks past [/u]the lazy dog.' |
 
         ### Custom styling
 
@@ -306,6 +307,8 @@ class Redlines:
                 }
             elif style == "ghfm":
                 md_styles = {"ins": ("**", "**"), "del": ("~~", "~~")}
+            elif style == "bb-code":
+                md_styles = {"ins": ("[u]", "[/u]"), "del": ("[s]", "[/s]")}
 
         for tag, i1, i2, j1, j2 in self.opcodes:
             if tag == "equal":
