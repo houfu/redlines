@@ -5,80 +5,11 @@ import re
 from rich.text import Text
 
 from redlines.document import Document
-
-tokenizer = re.compile(r"((?:[^()\s]+|[().?!-])\s*)")
-"""
-This regular expression matches a group of characters that can include any character except for parentheses
-and whitespace characters (which include spaces, tabs, and line breaks) or any character
-that is a parenthesis or punctuation mark (.?!-).
-The group can also include any whitespace characters that follow these characters.
-
-Breaking it down further:
-
-* `(` and `)` indicate a capturing group
-* `(?: )` is a non-capturing group, meaning it matches the pattern but doesn't capture the matched text
-* `[^()\s]+` matches one or more characters that are not parentheses or whitespace characters
-* `|` indicates an alternative pattern
-* `[().?!-]` matches any character that is a parenthesis or punctuation mark `(.?!-)`
-* `\s*` matches zero or more whitespace characters (spaces, tabs, or line breaks) that follow the previous pattern.
-"""
-# This pattern matches one or more newline characters `\n`, and any spaces between them.
-
-paragraph_pattern = re.compile(r"((?:\n *)+)")
-"""
-It is used to split the text into paragraphs.
-
-* `(?:\\n *)` is a non-capturing group that must start with a `\\n`   and be followed by zero or more spaces.
-* `((?:\\n *)+)` is the previous non-capturing group repeated one or more times.
-"""
-
-space_pattern = re.compile(r"(\s+)")
-"""It is used to detect space."""
-
-
-def tokenize_text(text: str) -> list[str]:
-    return re.findall(tokenizer, text)
-
-
-def split_paragraphs(text: str) -> list[str]:
-    """
-    Splits a string into a list of paragraphs. One or more `\n` splits the paragraphs.
-    For example, if the text is "Hello\nWorld\nThis is a test", the result will be:
-    ['Hello', 'World', 'This is a test']
-
-    :param text: The text to split.
-    :return: a list of paragraphs.
-    """
-
-    split_text = re.split(paragraph_pattern, text)
-    result = []
-    for s in split_text:
-        if s and not re.fullmatch(space_pattern, s):
-            result.append(s.strip())
-
-    return result
-
-
-def concatenate_paragraphs_and_add_chr_182(text: str) -> str:
-    """
-    Split paragraphs and concatenate them. Then add a character '¶' between paragraphs.
-    For example, if the text is "Hello\nWorld\nThis is a test", the result will be:
-    "Hello¶World¶This is a test"
-
-    :param text: The text to split.
-    :return: a list of paragraphs.
-    """
-    paragraphs = split_paragraphs(text)
-
-    result = []
-    for p in paragraphs:
-        result.append(p)
-        result.append(" ¶ ")
-        # Add a string ' ¶ ' between paragraphs.
-    if len(paragraphs) > 0:
-        result.pop()
-
-    return "".join(result)
+from redlines.processor import (
+    tokenize_text,
+    concatenate_paragraphs_and_add_chr_182,
+    WholeDocumentProcessor,
+)
 
 
 class Redlines:
@@ -154,6 +85,7 @@ class Redlines:
         if test:
             self.test = test.text if isinstance(test, Document) else test
             # self.compare()
+        self.processor = WholeDocumentProcessor()
 
     @property
     def opcodes(self) -> list[tuple[str, int, int, int, int]]:
@@ -174,10 +106,8 @@ class Redlines:
                 "No test string was provided when the function was called, or during initialisation."
             )
 
-        from difflib import SequenceMatcher
-
-        matcher = SequenceMatcher(None, self._seq1, self._seq2)
-        return matcher.get_opcodes()
+        redlines = self.processor.process(self._source, self._test)
+        return [redline.opcodes for redline in redlines]
 
     @property
     def output_markdown(self) -> str:
