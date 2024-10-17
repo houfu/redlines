@@ -62,7 +62,8 @@ The documentation contains other information on common issues users have faced w
 * [Using plain text files and others as input](redlines/document.html)
 
 """
+
 from .document import *
 from .redlines import Redlines
 
-__all__ = ["redlines", "document"]
+__all__ = ["redlines", "document", "processor"]
