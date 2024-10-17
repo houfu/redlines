@@ -1,6 +1,6 @@
 [project]
 name = "redlines"
-version = "0.4.2"
+version = "0.5.0"
 description = "Compare text, and produce human-readable differences or deltas which look like track changes in Microsoft Word."
 readme = "README.md"
 dependencies = [
@@ -24,12 +24,12 @@ redlines = 'redlines.cli:cli'
 
 [tool.poetry]
 name = "redlines"
-version = "0.4.2"
+version = "0.5.0"
 description = "Compare text, and produce human-readable differences or deltas which look like track changes in Microsoft Word."
-authors = ["houfu <houfu@lovelawrobots.com>"]
+authors = ["houfu <houfu@outlook.sg>"]
 license = "MIT"
 readme = "README.md"
-homepage = "https://github.com/houfu/redlines"
+homepage = "https://houfu.github.io/redlines/"
 repository = "https://github.com/houfu/redlines"
 
 [tool.poetry.dependencies]
