@@ -139,6 +139,7 @@ class Redlines:
         |red | "The quick brown fox <span style='color:red;font-weight:700;text-decoration:line-through;'>jumps over </span><span style='color:red;font-weight:700;'>walks past </span>the lazy dog."|
         |ghfm (GitHub Flavored Markdown)| 'The quick brown fox ~~jumps over ~~**walks past **the lazy dog.' |
         |bbcode (BBCode) | 'The quick brown fox [s][color=red]jumps over [/color][/s][b][color=green]walks past [/color][/b]the lazy dog.' |
+        |streamlit | 'The quick brown fox ~~:red[jumps over ]~~ **:green[walks past ]** the lazy dog.' |
 
         ### Custom styling
 
@@ -166,9 +167,10 @@ class Redlines:
 
         Try this:
 
+        * If streamlit version is >= 1.16.0, consider the markdown style "streamlit"
+        * If streamlit version is < 1.16.0, consider the markdown style `ghfm`
         * Enable parsing of HTML. In Streamlit, you need to set the `unsafe_allow_html` argument in `st.write` or
         `st.markdown` to `True`.
-        * Use the markdown style `ghfm`
 
         ### Colab
 
@@ -238,7 +240,12 @@ class Redlines:
             elif style == "ghfm":
                 md_styles = {"ins": ("**", "**"), "del": ("~~", "~~")}
             elif style == "bbcode":
-                md_styles = {"ins": ("[b][color=green]", "[/color][/b]"), "del": ("[s][color=red]", "[/color][/s]")}
+                md_styles = {
+                    "ins": ("[b][color=green]", "[/color][/b]"),
+                    "del": ("[s][color=red]", "[/color][/s]"),
+                }
+            elif style == "streamlit":
+                md_styles = {"ins": ("**:green[", "]** "), "del": ("~~:red[", "]~~ ")}
 
         for tag, i1, i2, j1, j2 in self.opcodes:
             if tag == "equal":
