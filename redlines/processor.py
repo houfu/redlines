@@ -102,6 +102,13 @@ class Redline:
 
 
 class RedlinesProcessor(ABC):
+    """
+    An abstract class that defines the interface for a redlines processor.
+    A redlines processor is a class that takes two documents and generates redlines from them.
+    Use this class as a base class if you want to create a custom redlines processor.
+    See `WholeDocumentProcessor` for an example of a redlines processor.
+    """
+
     @abstractmethod
     def process(
         self, source: Union[Document, str], test: Union[Document, str]
@@ -110,12 +117,22 @@ class RedlinesProcessor(ABC):
 
 
 class WholeDocumentProcessor(RedlinesProcessor):
+    """
+    A redlines processor that compares two documents. It compares the entire documents as a single chunk.
+    """
+
     source: str
     test: str
 
     def process(
         self, source: Union[Document, str], test: Union[Document, str]
     ) -> List[Redline]:
+        """
+        Compare two documents as a single chunk.
+        :param source: The source document to compare.
+        :param test: The test document to compare.
+        :return: A list of `Redline` that describe the differences between the two documents.
+        """
         self.source = source.text if isinstance(source, Document) else source
         self.test = test.text if isinstance(test, Document) else test
 
