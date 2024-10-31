@@ -107,6 +107,9 @@ def test_compare():
     expected_md = (
         "The quick brown fox <del>jumps over </del><ins>walks past </ins>the lazy dog."
     )
+    expected_rich = Text.from_markup(
+        "The quick brown fox [red strike]jumps over [/red strike][green]walks past [/green]the lazy dog."
+    )
     test = Redlines(test_string_1, markdown_style="none")
     assert test.compare(test_string_2) == expected_md
 
@@ -122,6 +125,9 @@ def test_compare():
     test = Redlines(test_string_1)
     with pytest.raises(ValueError):
         test.compare()
+
+    test = Redlines(test_string_1)
+    assert test.compare(test_string_2, output="rich") == expected_rich
 
 
 def test_opcodes_error():

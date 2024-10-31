@@ -313,7 +313,7 @@ class Redlines:
         Compare `test` with `source`, and produce a delta in a format specified by `output`.
 
         :param test: Optional test string to compare. If None, uses the test string provided during initialisation.
-        :param output: The format which the delta should be produced. Currently, only "markdown" is supported
+        :param output: The format which the delta should be produced. Currently, "markdown" and "rich" are supported. Defaults to "markdown".
         :return: The delta in the format specified by `output`.
         """
         if test:
@@ -331,3 +331,5 @@ class Redlines:
 
         if output == "markdown":
             return self.output_markdown
+        elif output == "rich":
+            return self.output_rich
