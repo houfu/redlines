@@ -6,12 +6,13 @@
 ![PyPI - License](https://img.shields.io/pypi/l/redlines)
 [![Chat on Matrix](https://matrix.to/img/matrix-badge.svg)](https://matrix.to/#/#redlines:matrix.esq.social)
 
-`Redlines` produces a Markdown text showing the differences between two strings/text. The changes are represented with
+`Redlines` produces a text showing the differences between two strings/text. The changes are represented with
 strike-throughs and underlines, which looks similar to Microsoft Word's track changes. This method of showing changes is
 more familiar to lawyers and is more compact for long series of characters.
 
 Redlines uses [SequenceMatcher](https://docs.python.org/3/library/difflib.html#difflib.SequenceMatcher)
 to find differences between words used.
+The output can be in HTML, Markdown, or `rich` format.
 
 ## Example
 
@@ -30,6 +31,9 @@ The library gives a result of:
 Which is rendered like this:
 
 > The quick brown fox <del>jumps over </del><ins>walks past </ins>the lazy dog.
+
+The library can also output the results in Markdown, HTML or `rich` format, and
+for a variety of environments like Streamlit, Jupyter Notebooks, Google Colab and the terminal.
 
 ## Install
 
@@ -78,6 +82,8 @@ Redlines also features a simple command line tool `redlines` to visualise the di
                                                                                                                                                                                                                                               
  Compares the strings SOURCE and TEST and produce a redline in the terminal. 
 ```
+
+You may also want to check out the demo project [redlines-textual](https://github.com/houfu/redlines-textual).
 
 ## Documentation
 
