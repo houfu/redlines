@@ -61,10 +61,11 @@ The documentation contains other information on common issues users have faced w
 * [Styling](redlines/redlines.html#styling-markdown)
 * [Ensuring styling appears in environments such as Jupyter Notebooks, Streamlit, CoLab etc](redlines/redlines.html#markdown-output-in-specific-environments)
 * [Using plain text files and others as input](redlines/document.html)
+* [Using the CLI](redlines/cli.html)
 
 """
 
 from .document import *
 from .redlines import Redlines
 
-__all__ = ["redlines", "document", "processor"]
+__all__ = ["redlines", "document", "processor", "cli"]
