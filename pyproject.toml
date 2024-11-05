@@ -1,6 +1,6 @@
 [project]
 name = "redlines"
-version = "0.5.0"
+version = "0.5.1"
 description = "Compare text, and produce human-readable differences or deltas which look like track changes in Microsoft Word."
 readme = "README.md"
 dependencies = [
@@ -24,7 +24,7 @@ redlines = 'redlines.cli:cli'
 
 [tool.poetry]
 name = "redlines"
-version = "0.5.0"
+version = "0.5.1"
 description = "Compare text, and produce human-readable differences or deltas which look like track changes in Microsoft Word."
 authors = ["houfu <houfu@outlook.sg>"]
 license = "MIT"
