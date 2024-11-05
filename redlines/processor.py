@@ -35,11 +35,11 @@ space_pattern = re.compile(r"(\s+)")
 """It is used to detect space."""
 
 
-def tokenize_text(text: str) -> list[str]:
+def tokenize_text(text: str) -> List[str]:
     return re.findall(tokenizer, text)
 
 
-def split_paragraphs(text: str) -> list[str]:
+def split_paragraphs(text: str) -> List[str]:
     """
     Splits a string into a list of paragraphs. One or more `\n` splits the paragraphs.
     For example, if the text is "Hello\nWorld\nThis is a test", the result will be:
