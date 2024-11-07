@@ -29,6 +29,11 @@ simple_text
 ```
 Compares the strings SOURCE and TEST and outputs the redline in the terminal.
 
+```sh
+markdown
+```
+Compares the strings SOURCE and TEST and outputs the redline as a markdown.
+
 ## OPTIONS
 ```sh
 -h, --help
@@ -140,3 +145,27 @@ def simple_text(source, test):
 
     redlines = Redlines(source, test)
     print(redlines.output_rich)
+
+
+@cli.command()
+@click.argument("source", required=True)
+@click.argument("test", required=True)
+@click.option(
+    "markdown_style",
+    "--markdown-style",
+    "-m",
+    type=click.Choice(["red_green", "none", "red", "ghfm", "bbcode", "streamlit"]),
+    default="red_green",
+    help="The markdown style to use.",
+)
+def markdown(source, test, markdown_style):
+    """
+    Compares the strings SOURCE and TEST and outputs the redline as a markdown.
+
+    \f
+    @private
+    """
+    from rich import print
+
+    redlines = Redlines(source, test, markdown_style=markdown_style)
+    print(redlines.output_markdown)
