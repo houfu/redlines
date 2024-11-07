@@ -13,8 +13,7 @@ jobs:
       - name: Convert files to Claude XML
         uses: jefftriplett/files-to-claude-xml-action@main
         with:
-          files: |
-            README.md redlines/* pyproject.toml
+          files: 'README.md redlines/__init__.py redlines/cli.py redlines/document.py redlines/processor.py redlines/redlines.py pyproject.toml'
           output: '_claude.xml'
           verbose: 'true'
       - name: Upload XML artifact
