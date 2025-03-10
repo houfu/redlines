@@ -138,10 +138,12 @@ class WholeDocumentProcessor(RedlinesProcessor):
 
         seq_source = tokenize_text(concatenate_paragraphs_and_add_chr_182(self.source))
         seq_test = tokenize_text(concatenate_paragraphs_and_add_chr_182(self.test))
+        seq_source_normalized = [token.strip() for token in seq_source]
+        seq_test_normalized = [token.strip() for token in seq_test]
 
         from difflib import SequenceMatcher
 
-        matcher = SequenceMatcher(None, seq_source, seq_test)
+        matcher = SequenceMatcher(None, seq_source_normalized, seq_test_normalized)
 
         return [
             Redline(
