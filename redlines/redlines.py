@@ -41,7 +41,11 @@ class Redlines:
         self._seq2 = tokenize_text(concatenate_paragraphs_and_add_chr_182(value))
 
     def __init__(
-        self, source: str | Document, test: str | Document | None = None, **options
+        self,
+        source: str | Document,
+        test: str | Document | None = None,
+        character_level_diffing: bool = True,
+        **options,
     ):
         """
         Redline is a class used to compare text, and producing human-readable differences or deltas
@@ -85,7 +89,10 @@ class Redlines:
         if test:
             self.test = test.text if isinstance(test, Document) else test
             # self.compare()
-        self.processor = WholeDocumentProcessor()
+        self.character_level_diffing = character_level_diffing
+        self.processor = WholeDocumentProcessor(
+            character_level_diffing=character_level_diffing
+        )
 
     @property
     def opcodes(self) -> list[tuple[str, int, int, int, int]]:
