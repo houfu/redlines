@@ -196,9 +196,15 @@ class WholeDocumentProcessor(RedlinesProcessor):
                     )
 
                     if refined_opcodes:
-                        # Replace the original redline with the refined one(s)
-                        refined_redlines.extend(refined_opcodes)
-                        continue
+                        # Skip refinements that only insert or delete trailing punctuation,
+                        # so that tokens like "weekend"->"weekend." are handled as full-token replacements
+                        if not (
+                            len(refined_opcodes) == 2
+                            and refined_opcodes[0].opcodes[0] == "equal"
+                            and refined_opcodes[1].opcodes[0] in ("insert", "delete")
+                        ):
+                            refined_redlines.extend(refined_opcodes)
+                            continue
 
             # If we didn't refine this redline, keep the original
             refined_redlines.append(redline)
@@ -235,6 +241,60 @@ class WholeDocumentProcessor(RedlinesProcessor):
             if source_token[-i] != test_token[-i]:
                 break
             suffix_len = i
+
+        # Special case for trailing punctuation differences
+        # Handle case where one token ends with punctuation and the other doesn't
+        if source_token.rstrip(".!?,;:") == test_token.rstrip(".!?,;:") and (
+            source_token[-1] in ".!?,;:" or test_token[-1] in ".!?,;:"
+        ):
+            # Create special handling for this case
+            base_token = source_token.rstrip(".!?,;:")
+            result = []
+            # Add the common part
+            if base_token:
+                result.append(
+                    Redline(
+                        source_chunk=source_chunk,
+                        test_chunk=test_chunk,
+                        opcodes=(
+                            "equal",
+                            i1,
+                            i1 + len(base_token),
+                            j1,
+                            j1 + len(base_token),
+                        ),
+                    )
+                )
+            # Handle the punctuation differences
+            if source_token != base_token:
+                result.append(
+                    Redline(
+                        source_chunk=source_chunk,
+                        test_chunk=test_chunk,
+                        opcodes=(
+                            "delete",
+                            i1 + len(base_token),
+                            i1 + len(source_token),
+                            j1 + len(base_token),
+                            j1 + len(base_token),
+                        ),
+                    )
+                )
+            if test_token != base_token:
+                result.append(
+                    Redline(
+                        source_chunk=source_chunk,
+                        test_chunk=test_chunk,
+                        opcodes=(
+                            "insert",
+                            i1 + len(base_token),
+                            i1 + len(base_token),
+                            j1 + len(base_token),
+                            j1 + len(test_token),
+                        ),
+                    )
+                )
+            return result
 
         # If either prefix or suffix is different (but not both), use character-level diffing
         is_prefix_change = prefix_len == 0 and suffix_len > 0
