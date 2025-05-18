@@ -124,6 +124,9 @@ class WholeDocumentProcessor(RedlinesProcessor):
     source: str
     test: str
 
+    def __init__(self, character_level_diffing: bool = True):
+        self.character_level_diffing = character_level_diffing
+
     def process(
         self, source: Union[Document, str], test: Union[Document, str]
     ) -> List[Redline]:
@@ -143,7 +146,7 @@ class WholeDocumentProcessor(RedlinesProcessor):
 
         matcher = SequenceMatcher(None, seq_source, seq_test)
 
-        return [
+        redlines = [
             Redline(
                 source_chunk=Chunk(text=seq_source, chunk_location=None),
                 test_chunk=Chunk(text=seq_test, chunk_location=None),
@@ -151,3 +154,151 @@ class WholeDocumentProcessor(RedlinesProcessor):
             )
             for opcode in matcher.get_opcodes()
         ]
+
+        if self.character_level_diffing:
+            return self._refine_single_token_replacements(redlines)
+        return redlines
+
+    def _refine_single_token_replacements(
+        self, redlines: List[Redline]
+    ) -> List[Redline]:
+        refined_redlines = []
+
+        for redline in redlines:
+            if redline.opcodes[0] == "replace":
+                tag, i1, i2, j1, j2 = redline.opcodes
+
+                # Check if this is a single token replacement
+                if i2 - i1 == 1 and j2 - j1 == 1:
+                    source_token = redline.source_chunk.text[i1].strip()
+                    test_token = redline.test_chunk.text[j1].strip()
+
+                    # Skip tokens containing paragraph markers
+                    if "¶" in source_token or "¶" in test_token:
+                        refined_redlines.append(redline)
+                        continue
+
+                    # Now check for prefix/suffix changes only
+                    refined_opcodes = self._character_level_diff_if_prefix_suffix(
+                        source_token,
+                        test_token,
+                        i1,
+                        i2,
+                        j1,
+                        j2,
+                        redline.source_chunk,
+                        redline.test_chunk,
+                    )
+
+                    if refined_opcodes:
+                        # Replace the original redline with the refined one(s)
+                        refined_redlines.extend(refined_opcodes)
+                        continue
+
+            # If we didn't refine this redline, keep the original
+            refined_redlines.append(redline)
+
+        return refined_redlines
+
+    def _character_level_diff_if_prefix_suffix(
+        self,
+        source_token: str,
+        test_token: str,
+        i1: int,
+        i2: int,
+        j1: int,
+        j2: int,
+        source_chunk: Chunk,
+        test_chunk: Chunk,
+    ) -> List[Redline]:
+        # If tokens are identical, no need for character diffing
+        if source_token == test_token:
+            return []
+
+        # Find the longest common prefix
+        prefix_len = 0
+        for i in range(min(len(source_token), len(test_token))):
+            if source_token[i] != test_token[i]:
+                break
+            prefix_len = i + 1
+
+        # Find the longest common suffix
+        suffix_len = 0
+        for i in range(
+            1, min(len(source_token) - prefix_len, len(test_token) - prefix_len) + 1
+        ):
+            if source_token[-i] != test_token[-i]:
+                break
+            suffix_len = i
+
+        # If either prefix or suffix is different (but not both), use character-level diffing
+        is_prefix_change = prefix_len == 0 and suffix_len > 0
+        is_suffix_change = prefix_len > 0 and suffix_len == 0
+        is_prefix_and_suffix_same = prefix_len > 0 and suffix_len > 0
+
+        if is_prefix_change or is_suffix_change or is_prefix_and_suffix_same:
+            # Create new redlines with character-level opcodes
+            result = []
+
+            # For prefix changes
+            if prefix_len > 0:
+                # Add the common prefix as 'equal'
+                result.append(
+                    Redline(
+                        source_chunk=source_chunk,
+                        test_chunk=test_chunk,
+                        opcodes=("equal", i1, i1 + prefix_len, j1, j1 + prefix_len),
+                    )
+                )
+
+            # Add the different middle part
+            if len(source_token) - prefix_len - suffix_len > 0:
+                result.append(
+                    Redline(
+                        source_chunk=source_chunk,
+                        test_chunk=test_chunk,
+                        opcodes=(
+                            "delete",
+                            i1 + prefix_len,
+                            i1 + len(source_token) - suffix_len,
+                            j1 + prefix_len,
+                            j1 + prefix_len,
+                        ),
+                    )
+                )
+
+            if len(test_token) - prefix_len - suffix_len > 0:
+                result.append(
+                    Redline(
+                        source_chunk=source_chunk,
+                        test_chunk=test_chunk,
+                        opcodes=(
+                            "insert",
+                            i1 + prefix_len,
+                            i1 + prefix_len,
+                            j1 + prefix_len,
+                            j1 + len(test_token) - suffix_len,
+                        ),
+                    )
+                )
+
+            # For suffix changes, add the common suffix as 'equal'
+            if suffix_len > 0:
+                result.append(
+                    Redline(
+                        source_chunk=source_chunk,
+                        test_chunk=test_chunk,
+                        opcodes=(
+                            "equal",
+                            i1 + len(source_token) - suffix_len,
+                            i1 + len(source_token),
+                            j1 + len(test_token) - suffix_len,
+                            j1 + len(test_token),
+                        ),
+                    )
+                )
+
+            return result
+
+        # If not a prefix/suffix change only, return empty list to indicate no refinement
+        return []
