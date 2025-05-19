@@ -3,6 +3,8 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import Tuple, List, Optional, Union
 
+from nupunkt import sent_tokenize
+
 from redlines.document import Document
 
 tokenizer = re.compile(r"((?:[^()\s]+|[().?!-])\s*)")
@@ -67,10 +69,10 @@ def concatenate_paragraphs_and_add_chr_182(text: str) -> str:
     :param text: The text to split.
     :return: a list of paragraphs.
     """
-    paragraphs = split_paragraphs(text)
+    sentences = sent_tokenize(text)
 
     result = []
-    for p in paragraphs:
+    for p in sentences:
         result.append(p)
         result.append(" ¶ ")
         # Add a string ' ¶ ' between paragraphs.
