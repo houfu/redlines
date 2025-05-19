@@ -32,7 +32,7 @@ community looks forward to your contributions. 🎉
 This project and everyone participating in it is governed by the
 [CONTRIBUTING.md Code of Conduct](Code_of_Conduct.md).
 By participating, you are expected to uphold this code. Please report unacceptable behavior
-to <houfu@lovelawrobots.com>.
+to <houfu@OUTLOOK dot sg>.
 
 ## I Have a Question
 
@@ -45,7 +45,7 @@ search the internet for answers first.
 
 If you then still feel the need to ask a question and need clarification, we recommend the following:
 
-- Open an [Issue](/issues/new) or join the [Matrix Chat](https://matrix.to/#/#redlines:matrix.esq.social).
+- Open an [Issue](/issues/new).
 - Provide as much context as you can about what you're running into.
 - Provide project and platform versions (python version, platform like streamlit, colab etc), depending on what seems
   relevant.
@@ -81,13 +81,11 @@ following steps in advance to help us fix any potential bug as fast as possible.
   - Possibly your input and the output
 - Can you reliably reproduce the issue? And can you also reproduce it with older versions?
 
-You can join the project's [matrix room](https://chat.matrix.esq.social/#/room/#redlines:matrix.esq.social) to ask about
-anything or get guidance.
 
 #### How Do I Submit a Good Bug Report?
 
 > You must never report security related issues, vulnerabilities or bugs including sensitive information to the issue
-> tracker, or elsewhere in public. Instead sensitive bugs must be sent by email to <houfu@lovelawrobots.com>.
+> tracker, or elsewhere in public. Instead sensitive bugs must be sent by email to <houfu@OUTLOOK dot sg>.
 
 
 We use GitHub issues to track bugs and errors. If you run into an issue with the project:
@@ -144,8 +142,7 @@ Enhancement suggestions are tracked as [GitHub issues](/issues).
 
 ### Your First Code Contribution
 
-Be relaxed and open to comments. Join the [Matrix Chat](https://matrix.to/#/#redlines:matrix.esq.social) to discuss or
-get guidance.
+Be relaxed and open to comments. We are all here to learn and grow together.
 
 ### Improving The Documentation
 
@@ -170,10 +167,8 @@ It's helpful to use a "verb" (like add, fix etc) and a short description of what
 
 ## Join The Project Team
 
-Please [email me](mailto:houfu@lovelawrobots.com) or file an [issue](/issues).
+Please [email me](mailto:houfu@OUTLOOK dot sg) or file an [issue](/issues).
 
-You can test the waters by joining the [Matrix Chat](https://matrix.to/#/#redlines:matrix.esq.social) and letting us
-know what you think.
 
 ## Attribution
 

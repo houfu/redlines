@@ -19,18 +19,17 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
 
-      - name: Install Poetry
-        uses: snok/install-poetry@v1
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
         with:
-          virtualenvs-create: false
-          virtualenvs-in-project: true
-          installer-parallel: true
-      - name: Install project
-        run: poetry install --no-interaction
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
+      - name: Install the project
+        run: uv sync --all-extras --dev
       - run: pdoc -o docs/ redlines
       - uses: actions/upload-pages-artifact@v2
         with:

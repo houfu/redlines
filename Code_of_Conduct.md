@@ -41,7 +41,7 @@ Examples of unacceptable behaviour by participants include:
 ## Enforcement
 
 Violations of the Code of Conduct may be reported by sending an email
-to [houfu@lovelawrobots.com](mailto:houfu@lovelawrobots.com).
+to [houfu@OUTLOOK dot sg](mailto:houfu@outlook.sg).
 All reports will be reviewed and investigated and will result in a response that is deemed necessary and appropriate to
 the circumstances. Further details of specific enforcement policies may be posted separately.
 
