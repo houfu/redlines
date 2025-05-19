@@ -4,7 +4,6 @@
 ![GitHub Release Date - Published_At](https://img.shields.io/github/release-date/houfu/redlines)
 ![GitHub last commit (by committer)](https://img.shields.io/github/last-commit/houfu/redlines)
 ![PyPI - License](https://img.shields.io/pypi/l/redlines)
-[![Chat on Matrix](https://matrix.to/img/matrix-badge.svg)](https://matrix.to/#/#redlines:matrix.esq.social)
 
 `Redlines` produces a text showing the differences between two strings/text. The changes are represented with
 strike-throughs and underlines, which looks similar to Microsoft Word's track changes. This method of showing changes is
