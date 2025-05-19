@@ -138,6 +138,9 @@ class WholeDocumentProcessor(RedlinesProcessor):
 
         seq_source = tokenize_text(concatenate_paragraphs_and_add_chr_182(self.source))
         seq_test = tokenize_text(concatenate_paragraphs_and_add_chr_182(self.test))
+        # Normalize tokens by stripping whitespace for comparison
+        # This allows the matcher to focus on content differences rather than whitespace variations
+        # while still preserving the original tokens (including whitespace) for display in the output
         seq_source_normalized = [token.strip() for token in seq_source]
         seq_test_normalized = [token.strip() for token in seq_test]
 
