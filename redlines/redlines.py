@@ -126,6 +126,7 @@ class Redlines:
 
         :param source: The source text to be used as a basis for comparison.
         :param test: Optional test text to compare with the source.
+        :param character_level_diffing: If True, uses character-level diffing for more precise differences.
         """
         self.processor = WholeDocumentProcessor(
             character_level_diffing=character_level_diffing
@@ -216,7 +217,7 @@ class Redlines:
 
         Try this:
 
-        * If streamlit version is >= 1.16.0, consider the markdown style "streamlit"
+        * If streamlit version is >= 1.16.0, consider the markdown style `streamlit`
         * If streamlit version is < 1.16.0, consider the markdown style `ghfm`
         * Enable parsing of HTML. In Streamlit, you need to set the `unsafe_allow_html` argument in `st.write` or
         `st.markdown` to `True`.
