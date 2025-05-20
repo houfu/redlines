@@ -6,33 +6,8 @@ from typing import Tuple, List, Optional, Union
 from redlines.document import Document
 
 tokenizer = re.compile(r"((?:[^()\s]+|[().?!-])\s*)")
-"""
-This regular expression matches a group of characters that can include any character except for parentheses
-and whitespace characters (which include spaces, tabs, and line breaks) or any character
-that is a parenthesis or punctuation mark (.?!-).
-The group can also include any whitespace characters that follow these characters.
-
-Breaking it down further:
-
-* `(` and `)` indicate a capturing group
-* `(?: )` is a non-capturing group, meaning it matches the pattern but doesn't capture the matched text
-* `[^()\s]+` matches one or more characters that are not parentheses or whitespace characters
-* `|` indicates an alternative pattern
-* `[().?!-]` matches any character that is a parenthesis or punctuation mark `(.?!-)`
-* `\s*` matches zero or more whitespace characters (spaces, tabs, or line breaks) that follow the previous pattern.
-"""
-# This pattern matches one or more newline characters `\n`, and any spaces between them.
-
 paragraph_pattern = re.compile(r"((?:\n *)+)")
-"""
-It is used to split the text into paragraphs.
-
-* `(?:\\n *)` is a non-capturing group that must start with a `\\n`   and be followed by zero or more spaces.
-* `((?:\\n *)+)` is the previous non-capturing group repeated one or more times.
-"""
-
 space_pattern = re.compile(r"(\s+)")
-"""It is used to detect space."""
 
 
 def tokenize_text(text: str) -> List[str]:
@@ -121,11 +96,13 @@ class WholeDocumentProcessor(RedlinesProcessor):
     A redlines processor that compares two documents. It compares the entire documents as a single chunk.
     """
 
-    source: str
-    test: str
-
     def __init__(self, character_level_diffing: bool = True):
         self.character_level_diffing = character_level_diffing
+        self.source_text = None
+        self.test_text = None
+        self.source_tokens = None
+        self.test_tokens = None
+        self._redlines = None
 
     def process(
         self, source: Union[Document, str], test: Union[Document, str]
@@ -136,33 +113,40 @@ class WholeDocumentProcessor(RedlinesProcessor):
         :param test: The test document to compare.
         :return: A list of `Redline` that describe the differences between the two documents.
         """
-        self.source = source.text if isinstance(source, Document) else source
-        self.test = test.text if isinstance(test, Document) else test
+        # Extract text from documents if needed
+        self.source_text = source.text if isinstance(source, Document) else source
+        self.test_text = test.text if isinstance(test, Document) else test
 
-        seq_source = tokenize_text(concatenate_paragraphs_and_add_chr_182(self.source))
-        seq_test = tokenize_text(concatenate_paragraphs_and_add_chr_182(self.test))
+        # Tokenize the texts
+        self.source_tokens = tokenize_text(
+            concatenate_paragraphs_and_add_chr_182(self.source_text)
+        )
+        self.test_tokens = tokenize_text(
+            concatenate_paragraphs_and_add_chr_182(self.test_text)
+        )
+
         # Normalize tokens by stripping whitespace for comparison
         # This allows the matcher to focus on content differences rather than whitespace variations
         # while still preserving the original tokens (including whitespace) for display in the output
-        seq_source_normalized = [token.strip() for token in seq_source]
-        seq_test_normalized = [token.strip() for token in seq_test]
+        seq_source_normalized = [token.strip() for token in self.source_tokens]
+        seq_test_normalized = [token.strip() for token in self.test_tokens]
 
         from difflib import SequenceMatcher
 
         matcher = SequenceMatcher(None, seq_source_normalized, seq_test_normalized)
 
-        redlines = [
+        self._redlines = [
             Redline(
-                source_chunk=Chunk(text=seq_source, chunk_location=None),
-                test_chunk=Chunk(text=seq_test, chunk_location=None),
+                source_chunk=Chunk(text=self.source_tokens, chunk_location=None),
+                test_chunk=Chunk(text=self.test_tokens, chunk_location=None),
                 opcodes=opcode,
             )
             for opcode in matcher.get_opcodes()
         ]
 
         if self.character_level_diffing:
-            return self._refine_single_token_replacements(redlines)
-        return redlines
+            self._redlines = self._refine_single_token_replacements(self._redlines)
+        return self._redlines
 
     def _refine_single_token_replacements(
         self, redlines: List[Redline]
