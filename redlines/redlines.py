@@ -30,7 +30,7 @@ class Redlines:
             self._redlines = self.processor.process(self._source, self._test)
 
     @property
-    def test(self):
+    def test(self) -> str:
         """:return: The text to be compared with the source."""
         return self._test
 
@@ -145,7 +145,7 @@ class Redlines:
         test = Redlines(
             "The quick brown fox jumps over the lazy dog.",
             "The quick brown fox walks past the lazy dog.",
-            markdown_style="red"  # This option specifies the style as red
+            markdown_style="red" # This option specifies the style as red
         )
 
         test.compare(markdown_style="none") # This option specifies the style as none
@@ -206,11 +206,11 @@ class Redlines:
 
         md_styles = {
             "ins": (
-                f"<span style='color:green;font-weight:700;'>",
+                "<span style='color:green;font-weight:700;'>",
                 "</span>",
             ),
             "del": (
-                f"<span style='color:red;font-weight:700;text-decoration:line-through;'>",
+                "<span style='color:red;font-weight:700;text-decoration:line-through;'>",
                 "</span>",
             ),
         }
@@ -223,11 +223,11 @@ class Redlines:
             elif style == "red":
                 md_styles = {
                     "ins": (
-                        f"<span style='color:red;font-weight:700;'>",
+                        "<span style='color:red;font-weight:700;'>",
                         "</span>",
                     ),
                     "del": (
-                        f"<span style='color:red;font-weight:700;text-decoration:line-through;'>",
+                        "<span style='color:red;font-weight:700;text-decoration:line-through;'>",
                         "</span>",
                     ),
                 }
