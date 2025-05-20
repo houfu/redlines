@@ -95,6 +95,34 @@ class Redlines:
         )
 
         ```
+        ## Character-level diffing
+
+        By default, Redlines employs character-level diffing to provide more precise and readable differences
+        when only parts of a word have changed. This is especially useful for:
+
+        - Words with minor spelling corrections (e.g., "recieve" → "receive")
+        - Words with added/removed suffixes (e.g., "weekend" → "weekend.")
+        - Words with changes in capitalization or formatting
+
+        For example, with character-level diffing enabled:
+        ```python
+        # With character-level diffing (default)
+        test = Redlines(
+            "The dog ran quickly.",
+            "The dogs ran quickly."
+        )
+        ```
+        Would show only the 's' as added instead of replacing the whole word.
+
+        You can disable this feature if you prefer whole-word replacements:
+        ```python
+        # Disable character-level diffing
+        test = Redlines(
+            "The dog ran quickly.",
+            "The dogs ran quickly.",
+            character_level_diffing=False
+        )
+        ```
 
         :param source: The source text to be used as a basis for comparison.
         :param test: Optional test text to compare with the source.
