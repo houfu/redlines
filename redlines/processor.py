@@ -1,6 +1,7 @@
 import re
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
+from difflib import SequenceMatcher
 from typing import Tuple, List, Optional, Union
 
 from redlines.document import Document
@@ -121,9 +122,6 @@ class WholeDocumentProcessor(RedlinesProcessor):
     A redlines processor that compares two documents. It compares the entire documents as a single chunk.
     """
 
-    source: str
-    test: str
-
     def process(
         self, source: Union[Document, str], test: Union[Document, str]
     ) -> List[Redline]:
@@ -133,25 +131,28 @@ class WholeDocumentProcessor(RedlinesProcessor):
         :param test: The test document to compare.
         :return: A list of `Redline` that describe the differences between the two documents.
         """
-        self.source = source.text if isinstance(source, Document) else source
-        self.test = test.text if isinstance(test, Document) else test
+        # Extract text from documents if needed
+        source_text = source.text if isinstance(source, Document) else source
+        test_text = test.text if isinstance(test, Document) else test
 
-        seq_source = tokenize_text(concatenate_paragraphs_and_add_chr_182(self.source))
-        seq_test = tokenize_text(concatenate_paragraphs_and_add_chr_182(self.test))
+        # Tokenize the texts
+        source_tokens = tokenize_text(
+            concatenate_paragraphs_and_add_chr_182(source_text)
+        )
+        test_tokens = tokenize_text(concatenate_paragraphs_and_add_chr_182(test_text))
+
         # Normalize tokens by stripping whitespace for comparison
         # This allows the matcher to focus on content differences rather than whitespace variations
         # while still preserving the original tokens (including whitespace) for display in the output
-        seq_source_normalized = [token.strip() for token in seq_source]
-        seq_test_normalized = [token.strip() for token in seq_test]
-
-        from difflib import SequenceMatcher
+        seq_source_normalized = [token.strip() for token in source_tokens]
+        seq_test_normalized = [token.strip() for token in test_tokens]
 
         matcher = SequenceMatcher(None, seq_source_normalized, seq_test_normalized)
 
         return [
             Redline(
-                source_chunk=Chunk(text=seq_source, chunk_location=None),
-                test_chunk=Chunk(text=seq_test, chunk_location=None),
+                source_chunk=Chunk(text=source_tokens, chunk_location=None),
+                test_chunk=Chunk(text=test_tokens, chunk_location=None),
                 opcodes=opcode,
             )
             for opcode in matcher.get_opcodes()
