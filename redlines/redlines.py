@@ -95,19 +95,13 @@ class Redlines:
         :param source: The source text to be used as a basis for comparison.
         :param test: Optional test text to compare with the source.
         """
-        self.processor = WholeDocumentProcessor(
-            character_level_diffing=character_level_diffing
-        )
+        self.processor = WholeDocumentProcessor()
         self.source = source.text if isinstance(source, Document) else source
         self.options = options
         self._redlines = None
         if test:
             self.test = test.text if isinstance(test, Document) else test
             # self.compare()
-        self.character_level_diffing = character_level_diffing
-        self.processor = WholeDocumentProcessor(
-            character_level_diffing=character_level_diffing
-        )
 
     @property
     def opcodes(self) -> list[tuple[str, int, int, int, int]]:
