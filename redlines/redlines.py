@@ -5,11 +5,7 @@ import re
 from rich.text import Text
 
 from redlines.document import Document
-from redlines.processor import (
-    tokenize_text,
-    concatenate_paragraphs_and_add_chr_182,
-    WholeDocumentProcessor,
-)
+from redlines.processor import WholeDocumentProcessor, Redline
 
 
 class Redlines:
@@ -27,21 +23,44 @@ class Redlines:
 
     @source.setter
     def source(self, value):
-        self._source = value
-        self._seq1 = tokenize_text(concatenate_paragraphs_and_add_chr_182(value))
+        self._source = value.text if isinstance(value, Document) else value
+
+        # If test is already set, process the new source against it
+        if self._test is not None:
+            self._redlines = self.processor.process(self._source, self._test)
 
     @property
-    def test(self):
+    def test(self) -> str:
         """:return: The text to be compared with the source."""
         return self._test
 
     @test.setter
     def test(self, value):
-        self._test = value
-        self._seq2 = tokenize_text(concatenate_paragraphs_and_add_chr_182(value))
+        self._test = value.text if isinstance(value, Document) else value
+
+        # Process the text against the source
+        if self._source is not None and self._test is not None:
+            self._redlines = self.processor.process(self._source, self._test)
+
+    @property
+    def redlines(self) -> list[Redline]:
+        """
+        Return the list of Redline objects representing the changes from source to test.
+
+        :return: List of Redline objects
+        """
+        if self._redlines is None:
+            raise ValueError(
+                "No test string was provided when the function was called, or during initialisation."
+            )
+        return self._redlines
 
     def __init__(
-        self, source: str | Document, test: str | Document | None = None, **options
+        self,
+        source: str | Document,
+        test: str | Document | None = None,
+        character_level_diffing: bool = True,
+        **options,
     ):
         """
         Redline is a class used to compare text, and producing human-readable differences or deltas
@@ -76,16 +95,53 @@ class Redlines:
         )
 
         ```
+        ## Character-level diffing
+
+        By default, Redlines employs character-level diffing to provide more precise and readable differences
+        when only parts of a word have changed. This is especially useful for:
+
+        - Words with minor spelling corrections (e.g., "recieve" → "receive")
+        - Words with added/removed suffixes (e.g., "weekend" → "weekend.")
+        - Words with changes in capitalization or formatting
+
+        For example, with character-level diffing enabled:
+        ```python
+        # With character-level diffing (default)
+        test = Redlines(
+            "The dog ran quickly.",
+            "The dogs ran quickly."
+        )
+        ```
+        Would show only the 's' as added instead of replacing the whole word.
+
+        You can disable this feature if you prefer whole-word replacements:
+        ```python
+        # Disable character-level diffing
+        test = Redlines(
+            "The dog ran quickly.",
+            "The dogs ran quickly.",
+            character_level_diffing=False
+        )
+        ```
 
         :param source: The source text to be used as a basis for comparison.
         :param test: Optional test text to compare with the source.
+        :param character_level_diffing: If True, uses character-level diffing for more precise differences.
         """
+        self.processor = WholeDocumentProcessor(
+            character_level_diffing=character_level_diffing
+        )
         self.source = source.text if isinstance(source, Document) else source
         self.options = options
+        self._redlines = None
         if test:
             self.test = test.text if isinstance(test, Document) else test
             # self.compare()
-        self.processor = WholeDocumentProcessor()
+        self.character_level_diffing = character_level_diffing
+
+        # Process immediately if both source and test are provided
+        if self._test is not None:
+            self._redlines = self.processor.process(self._source, self._test)
 
     @property
     def opcodes(self) -> list[tuple[str, int, int, int, int]]:
@@ -101,13 +157,7 @@ class Redlines:
         [('equal', 0, 4, 0, 4), ('replace', 4, 6, 4, 6), ('equal', 6, 9, 6, 9)]
         ```
         """
-        if self._seq2 is None:
-            raise ValueError(
-                "No test string was provided when the function was called, or during initialisation."
-            )
-
-        redlines = self.processor.process(self._source, self._test)
-        return [redline.opcodes for redline in redlines]
+        return [redline.opcodes for redline in self.redlines]
 
     @property
     def output_markdown(self) -> str:
@@ -124,7 +174,7 @@ class Redlines:
         test = Redlines(
             "The quick brown fox jumps over the lazy dog.",
             "The quick brown fox walks past the lazy dog.",
-            markdown_style="red"  # This option specifies the style as red
+            markdown_style="red" # This option specifies the style as red
         )
 
         test.compare(markdown_style="none") # This option specifies the style as none
@@ -167,7 +217,7 @@ class Redlines:
 
         Try this:
 
-        * If streamlit version is >= 1.16.0, consider the markdown style "streamlit"
+        * If streamlit version is >= 1.16.0, consider the markdown style `streamlit`
         * If streamlit version is < 1.16.0, consider the markdown style `ghfm`
         * Enable parsing of HTML. In Streamlit, you need to set the `unsafe_allow_html` argument in `st.write` or
         `st.markdown` to `True`.
@@ -185,11 +235,11 @@ class Redlines:
 
         md_styles = {
             "ins": (
-                f"<span style='color:green;font-weight:700;'>",
+                "<span style='color:green;font-weight:700;'>",
                 "</span>",
             ),
             "del": (
-                f"<span style='color:red;font-weight:700;text-decoration:line-through;'>",
+                "<span style='color:red;font-weight:700;text-decoration:line-through;'>",
                 "</span>",
             ),
         }
@@ -202,11 +252,11 @@ class Redlines:
             elif style == "red":
                 md_styles = {
                     "ins": (
-                        f"<span style='color:red;font-weight:700;'>",
+                        "<span style='color:red;font-weight:700;'>",
                         "</span>",
                     ),
                     "del": (
-                        f"<span style='color:red;font-weight:700;text-decoration:line-through;'>",
+                        "<span style='color:red;font-weight:700;text-decoration:line-through;'>",
                         "</span>",
                     ),
                 }
@@ -247,15 +297,19 @@ class Redlines:
             elif style == "streamlit":
                 md_styles = {"ins": ("**:green[", "]** "), "del": ("~~:red[", "]~~ ")}
 
-        for tag, i1, i2, j1, j2 in self.opcodes:
+        for redline in self.redlines:
+            tag, i1, i2, j1, j2 = redline.opcodes
+            source_tokens = redline.source_chunk.text
+            test_tokens = redline.test_chunk.text
+
             if tag == "equal":
-                temp_str = "".join(self._seq1[i1:i2])
+                temp_str = "".join(source_tokens[i1:i2])
                 temp_str = re.sub("¶ ", "\n\n", temp_str)
                 # here we use '¶ ' instead of ' ¶ ', because the leading space will be included in the previous token,
                 # according to tokenizer = re.compile(r"((?:[^()\s]+|[().?!-])\s*)")
                 result.append(temp_str)
             elif tag == "insert":
-                temp_str = "".join(self._seq2[j1:j2])
+                temp_str = "".join(test_tokens[j1:j2])
                 splits = re.split("¶ ", temp_str)
                 for split in splits:
                     result.append(f"{md_styles['ins'][0]}{split}{md_styles['ins'][1]}")
@@ -264,15 +318,15 @@ class Redlines:
                     result.pop()
             elif tag == "delete":
                 result.append(
-                    f"{md_styles['del'][0]}{''.join(self._seq1[i1:i2])}{md_styles['del'][1]}"
+                    f"{md_styles['del'][0]}{''.join(source_tokens[i1:i2])}{md_styles['del'][1]}"
                 )
                 # for 'delete', we make no change, because otherwise there will be two times '\n\n' than the original
                 # text.
             elif tag == "replace":
                 result.append(
-                    f"{md_styles['del'][0]}{''.join(self._seq1[i1:i2])}{md_styles['del'][1]}"
+                    f"{md_styles['del'][0]}{''.join(source_tokens[i1:i2])}{md_styles['del'][1]}"
                 )
-                temp_str = "".join(self._seq2[j1:j2])
+                temp_str = "".join(test_tokens[j1:j2])
                 splits = re.split("¶ ", temp_str)
                 for split in splits:
                     result.append(f"{md_styles['ins'][0]}{split}{md_styles['ins'][1]}")
@@ -287,21 +341,25 @@ class Redlines:
         """Returns the delta in text with colors/style for the console."""
         console_text = Text()
 
-        for tag, i1, i2, j1, j2 in self.opcodes:
+        for redline in self.redlines:
+            tag, i1, i2, j1, j2 = redline.opcodes
+            source_tokens = redline.source_chunk.text
+            test_tokens = redline.test_chunk.text
+
             if tag == "equal":
-                temp_str = "".join(self._seq1[i1:i2])
+                temp_str = "".join(source_tokens[i1:i2])
                 temp_str = re.sub("¶ ", "\n\n", temp_str)
                 console_text.append(temp_str)
             elif tag == "insert":
-                temp_str = "".join(self._seq2[j1:j2])
+                temp_str = "".join(test_tokens[j1:j2])
                 splits = re.split("¶ ", temp_str)
                 for split in splits:
                     console_text.append(split, "green")
             elif tag == "delete":
-                console_text.append("".join(self._seq1[i1:i2]), "strike red")
+                console_text.append("".join(source_tokens[i1:i2]), "strike red")
             elif tag == "replace":
-                console_text.append("".join(self._seq1[i1:i2]), "strike red")
-                temp_str = "".join(self._seq2[j1:j2])
+                console_text.append("".join(source_tokens[i1:i2]), "strike red")
+                temp_str = "".join(test_tokens[j1:j2])
                 splits = re.split("¶ ", temp_str)
                 for split in splits:
                     console_text.append(split, "green")
@@ -316,20 +374,22 @@ class Redlines:
         :param output: The format which the delta should be produced. Currently, "markdown" and "rich" are supported. Defaults to "markdown".
         :return: The delta in the format specified by `output`.
         """
+        if options:
+            self.options = options
+
         if test:
-            if self.test and test == self.test:
-                return self.output_markdown
+            if self._test and test == self._test:
+                # If we've already processed this test string, no need to reprocess
+                pass
             else:
                 self.test = test
-        elif self.test is None:
+        elif self._test is None:
             raise ValueError(
                 "No test string was provided when the function was called, or during initialisation."
             )
-
-        if options:
-            self.options = options
 
         if output == "markdown":
             return self.output_markdown
         elif output == "rich":
             return self.output_rich
+        return self.output_markdown

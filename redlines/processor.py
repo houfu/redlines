@@ -1,38 +1,14 @@
 import re
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
+from difflib import SequenceMatcher
 from typing import Tuple, List, Optional, Union
 
 from redlines.document import Document
 
 tokenizer = re.compile(r"((?:[^()\s]+|[().?!-])\s*)")
-"""
-This regular expression matches a group of characters that can include any character except for parentheses
-and whitespace characters (which include spaces, tabs, and line breaks) or any character
-that is a parenthesis or punctuation mark (.?!-).
-The group can also include any whitespace characters that follow these characters.
-
-Breaking it down further:
-
-* `(` and `)` indicate a capturing group
-* `(?: )` is a non-capturing group, meaning it matches the pattern but doesn't capture the matched text
-* `[^()\s]+` matches one or more characters that are not parentheses or whitespace characters
-* `|` indicates an alternative pattern
-* `[().?!-]` matches any character that is a parenthesis or punctuation mark `(.?!-)`
-* `\s*` matches zero or more whitespace characters (spaces, tabs, or line breaks) that follow the previous pattern.
-"""
-# This pattern matches one or more newline characters `\n`, and any spaces between them.
-
 paragraph_pattern = re.compile(r"((?:\n *)+)")
-"""
-It is used to split the text into paragraphs.
-
-* `(?:\\n *)` is a non-capturing group that must start with a `\\n`   and be followed by zero or more spaces.
-* `((?:\\n *)+)` is the previous non-capturing group repeated one or more times.
-"""
-
 space_pattern = re.compile(r"(\s+)")
-"""It is used to detect space."""
 
 
 def tokenize_text(text: str) -> List[str]:
@@ -121,8 +97,8 @@ class WholeDocumentProcessor(RedlinesProcessor):
     A redlines processor that compares two documents. It compares the entire documents as a single chunk.
     """
 
-    source: str
-    test: str
+    def __init__(self, character_level_diffing: bool = True):
+        self.character_level_diffing = character_level_diffing
 
     def process(
         self, source: Union[Document, str], test: Union[Document, str]
@@ -133,26 +109,237 @@ class WholeDocumentProcessor(RedlinesProcessor):
         :param test: The test document to compare.
         :return: A list of `Redline` that describe the differences between the two documents.
         """
-        self.source = source.text if isinstance(source, Document) else source
-        self.test = test.text if isinstance(test, Document) else test
+        # Extract text from documents if needed
+        source_text = source.text if isinstance(source, Document) else source
+        test_text = test.text if isinstance(test, Document) else test
 
-        seq_source = tokenize_text(concatenate_paragraphs_and_add_chr_182(self.source))
-        seq_test = tokenize_text(concatenate_paragraphs_and_add_chr_182(self.test))
+        # Tokenize the texts
+        source_tokens = tokenize_text(
+            concatenate_paragraphs_and_add_chr_182(source_text)
+        )
+        test_tokens = tokenize_text(concatenate_paragraphs_and_add_chr_182(test_text))
+
         # Normalize tokens by stripping whitespace for comparison
         # This allows the matcher to focus on content differences rather than whitespace variations
         # while still preserving the original tokens (including whitespace) for display in the output
-        seq_source_normalized = [token.strip() for token in seq_source]
-        seq_test_normalized = [token.strip() for token in seq_test]
-
-        from difflib import SequenceMatcher
+        seq_source_normalized = [token.strip() for token in source_tokens]
+        seq_test_normalized = [token.strip() for token in test_tokens]
 
         matcher = SequenceMatcher(None, seq_source_normalized, seq_test_normalized)
 
-        return [
+        redlines = [
             Redline(
-                source_chunk=Chunk(text=seq_source, chunk_location=None),
-                test_chunk=Chunk(text=seq_test, chunk_location=None),
+                source_chunk=Chunk(text=source_tokens, chunk_location=None),
+                test_chunk=Chunk(text=test_tokens, chunk_location=None),
                 opcodes=opcode,
             )
             for opcode in matcher.get_opcodes()
         ]
+
+        if self.character_level_diffing:
+            redlines = self._refine_single_token_replacements(redlines)
+        return redlines
+
+    def _refine_single_token_replacements(
+        self, redlines: List[Redline]
+    ) -> List[Redline]:
+        refined_redlines = []
+
+        for redline in redlines:
+            if redline.opcodes[0] == "replace":
+                tag, i1, i2, j1, j2 = redline.opcodes
+
+                # Check if this is a single token replacement
+                if i2 - i1 == 1 and j2 - j1 == 1:
+                    source_token = redline.source_chunk.text[i1].strip()
+                    test_token = redline.test_chunk.text[j1].strip()
+
+                    # Skip tokens containing paragraph markers
+                    if "¶" in source_token or "¶" in test_token:
+                        refined_redlines.append(redline)
+                        continue
+
+                    # Now check for prefix/suffix changes only
+                    refined_opcodes = self._character_level_diff_if_prefix_suffix(
+                        source_token,
+                        test_token,
+                        i1,
+                        i2,
+                        j1,
+                        j2,
+                        redline.source_chunk,
+                        redline.test_chunk,
+                    )
+
+                    if refined_opcodes:
+                        # Skip refinements that only insert or delete trailing punctuation,
+                        # so that tokens like "weekend"->"weekend." are handled as full-token replacements
+                        if not (
+                            len(refined_opcodes) == 2
+                            and refined_opcodes[0].opcodes[0] == "equal"
+                            and refined_opcodes[1].opcodes[0] in ("insert", "delete")
+                        ):
+                            refined_redlines.extend(refined_opcodes)
+                            continue
+
+            # If we didn't refine this redline, keep the original
+            refined_redlines.append(redline)
+
+        return refined_redlines
+
+    def _character_level_diff_if_prefix_suffix(
+        self,
+        source_token: str,
+        test_token: str,
+        i1: int,
+        i2: int,
+        j1: int,
+        j2: int,
+        source_chunk: Chunk,
+        test_chunk: Chunk,
+    ) -> List[Redline]:
+        # If tokens are identical, no need for character diffing
+        if source_token == test_token:
+            return []
+
+        # Find the longest common prefix
+        prefix_len = 0
+        for i in range(min(len(source_token), len(test_token))):
+            if source_token[i] != test_token[i]:
+                break
+            prefix_len = i + 1
+
+        # Find the longest common suffix
+        suffix_len = 0
+        for i in range(
+            1, min(len(source_token) - prefix_len, len(test_token) - prefix_len) + 1
+        ):
+            if source_token[-i] != test_token[-i]:
+                break
+            suffix_len = i
+
+        # Special case for trailing punctuation differences
+        # Handle case where one token ends with punctuation and the other doesn't
+        if source_token.rstrip(".!?,;:") == test_token.rstrip(".!?,;:") and (
+            source_token[-1] in ".!?,;:" or test_token[-1] in ".!?,;:"
+        ):
+            # Create special handling for this case
+            base_token = source_token.rstrip(".!?,;:")
+            result = []
+            # Add the common part
+            if base_token:
+                result.append(
+                    Redline(
+                        source_chunk=source_chunk,
+                        test_chunk=test_chunk,
+                        opcodes=(
+                            "equal",
+                            i1,
+                            i1 + len(base_token),
+                            j1,
+                            j1 + len(base_token),
+                        ),
+                    )
+                )
+            # Handle the punctuation differences
+            if source_token != base_token:
+                result.append(
+                    Redline(
+                        source_chunk=source_chunk,
+                        test_chunk=test_chunk,
+                        opcodes=(
+                            "delete",
+                            i1 + len(base_token),
+                            i1 + len(source_token),
+                            j1 + len(base_token),
+                            j1 + len(base_token),
+                        ),
+                    )
+                )
+            if test_token != base_token:
+                result.append(
+                    Redline(
+                        source_chunk=source_chunk,
+                        test_chunk=test_chunk,
+                        opcodes=(
+                            "insert",
+                            i1 + len(base_token),
+                            i1 + len(base_token),
+                            j1 + len(base_token),
+                            j1 + len(test_token),
+                        ),
+                    )
+                )
+            return result
+
+        # If either prefix or suffix is different (but not both), use character-level diffing
+        is_prefix_change = prefix_len == 0 and suffix_len > 0
+        is_suffix_change = prefix_len > 0 and suffix_len == 0
+        is_prefix_and_suffix_same = prefix_len > 0 and suffix_len > 0
+
+        if is_prefix_change or is_suffix_change or is_prefix_and_suffix_same:
+            # Create new redlines with character-level opcodes
+            result = []
+
+            # For prefix changes
+            if prefix_len > 0:
+                # Add the common prefix as 'equal'
+                result.append(
+                    Redline(
+                        source_chunk=source_chunk,
+                        test_chunk=test_chunk,
+                        opcodes=("equal", i1, i1 + prefix_len, j1, j1 + prefix_len),
+                    )
+                )
+
+            # Add the different middle part
+            if len(source_token) - prefix_len - suffix_len > 0:
+                result.append(
+                    Redline(
+                        source_chunk=source_chunk,
+                        test_chunk=test_chunk,
+                        opcodes=(
+                            "delete",
+                            i1 + prefix_len,
+                            i1 + len(source_token) - suffix_len,
+                            j1 + prefix_len,
+                            j1 + prefix_len,
+                        ),
+                    )
+                )
+
+            if len(test_token) - prefix_len - suffix_len > 0:
+                result.append(
+                    Redline(
+                        source_chunk=source_chunk,
+                        test_chunk=test_chunk,
+                        opcodes=(
+                            "insert",
+                            i1 + prefix_len,
+                            i1 + prefix_len,
+                            j1 + prefix_len,
+                            j1 + len(test_token) - suffix_len,
+                        ),
+                    )
+                )
+
+            # For suffix changes, add the common suffix as 'equal'
+            if suffix_len > 0:
+                result.append(
+                    Redline(
+                        source_chunk=source_chunk,
+                        test_chunk=test_chunk,
+                        opcodes=(
+                            "equal",
+                            i1 + len(source_token) - suffix_len,
+                            i1 + len(source_token),
+                            j1 + len(test_token) - suffix_len,
+                            j1 + len(test_token),
+                        ),
+                    )
+                )
+
+            return result
+
+        # If not a prefix/suffix change only, return empty list to indicate no refinement
+        return []

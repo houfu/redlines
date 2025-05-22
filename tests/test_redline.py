@@ -257,3 +257,92 @@ Sophia."""
     )
     test = Redlines(test_string_1, test_string_2, markdown_style="none")
     assert test.output_markdown == expected_md
+
+
+@pytest.mark.parametrize(
+    "source, test, expected_md, expected_diffing_disabled",
+    [
+        # Test 1: Adding a single character (suffix)
+        (
+            "The dog ran quickly.",
+            "The dogs ran quickly.",
+            "The dog<ins>s</ins> ran quickly.",
+            "The <del>dog</del><ins>dogs</ins> ran quickly.",
+        ),
+        # Test 2: Adding punctuation (suffix)
+        (
+            "The quick brown fox jumps over the lazy dog",
+            "The quick brown fox jumps over the lazy dog.",
+            "The quick brown fox jumps over the lazy dog<ins>.</ins>",
+            "The quick brown fox jumps over the lazy <del>dog</del><ins>dog.</ins>",
+        ),
+        # Test 3: Changing middle characters
+        (
+            "The quick brown fox recieved the award.",
+            "The quick brown fox received the award.",
+            "The quick brown fox rec<del>ie</del><ins>ei</ins>ved the award.",
+            "The quick brown fox <del>recieved</del><ins>received</ins> the award.",
+        ),
+        # Test 4: Prefix changes
+        (
+            "The dog is unhappy.",
+            "The dog is happy.",
+            "The dog is <del>un</del>happy.",
+            "The dog is <del>unhappy</del><ins>happy</ins>.",
+        ),
+        # Test 5: Suffix and prefix preserved, middle changed
+        (
+            "The implementation is fast.",
+            "The implementation is slow.",
+            "The implementation is <del>f</del><ins>sl</ins>a<del>st</del><ins>ow</ins>.",
+            "The implementation is <del>fast</del><ins>slow</ins>.",
+        ),
+        # Test 6: Multiple word changes that should be kept separate
+        (
+            "The cats plays outside. They are happy.",
+            "The cat plays outside. It is happy.",
+            "The <del>cats</del><ins>cat</ins> plays outside. <del>They</del><ins>It</ins> <del>are</del><ins>is</ins> happy.",
+            "The <del>cats</del><ins>cat</ins> plays outside. <del>They</del><ins>It</ins> <del>are</del><ins>is</ins> happy.",
+        ),
+        # Test 7: Capitalization changes
+        (
+            "The quick brown fox.",
+            "The Quick brown fox.",
+            "The <del>q</del><ins>Q</ins>uick brown fox.",
+            "The <del>quick</del><ins>Quick</ins> brown fox.",
+        ),
+    ],
+)
+def test_character_level_diffing(source, test, expected_md, expected_diffing_disabled):
+    """Test character-level diffing with various types of changes."""
+    # Test with character-level diffing enabled (default)
+    redlines_enabled = Redlines(source, test, markdown_style="none")
+    assert redlines_enabled.output_markdown == expected_md
+
+    # Test with character-level diffing disabled
+    redlines_disabled = Redlines(
+        source, test, character_level_diffing=False, markdown_style="none"
+    )
+    assert redlines_disabled.output_markdown == expected_diffing_disabled
+
+
+def test_special_punctuation_handling():
+    """Test special handling of trailing punctuation."""
+    source = "Thank you"
+    test = "Thank you."
+
+    # With character diffing enabled
+    redlines = Redlines(source, test, markdown_style="none")
+    assert redlines.output_markdown == "Thank you<ins>.</ins>"
+
+    # With character diffing disabled
+    redlines_disabled = Redlines(
+        source, test, character_level_diffing=False, markdown_style="none"
+    )
+    assert redlines_disabled.output_markdown == "Thank <del>you</del><ins>you.</ins>"
+
+    # Test multiple punctuation characters
+    source = "Wow"
+    test = "Wow!!!"
+    redlines = Redlines(source, test, markdown_style="none")
+    assert redlines.output_markdown == "Wow<ins>!!!</ins>"
