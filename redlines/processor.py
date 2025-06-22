@@ -7,7 +7,7 @@ from typing import Tuple, List, Optional, Union
 from redlines.document import Document
 
 tokenizer = re.compile(r"((?:[^()\s]+|[().?!-])\s*)")
-"""
+r"""
 This regular expression matches a group of characters that can include any character except for parentheses
 and whitespace characters (which include spaces, tabs, and line breaks) or any character
 that is a parenthesis or punctuation mark (.?!-).
@@ -25,7 +25,7 @@ Breaking it down further:
 # This pattern matches one or more newline characters `\n`, and any spaces between them.
 
 paragraph_pattern = re.compile(r"((?:\n *)+)")
-"""
+r"""
 It is used to split the text into paragraphs.
 
 * `(?:\\n *)` is a non-capturing group that must start with a `\\n`   and be followed by zero or more spaces.
