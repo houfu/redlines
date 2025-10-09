@@ -2,9 +2,16 @@ import re
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from difflib import SequenceMatcher
-from typing import Tuple, List, Optional, Union
 
-from redlines.document import Document
+from .document import Document
+
+__all__: tuple[str, ...] = (
+    "RedlinesProcessor",
+    "WholeDocumentProcessor",
+    "Redline",
+    "Chunk",
+)
+
 
 tokenizer = re.compile(r"((?:[^()\s]+|[().?!-])\s*)")
 r"""
@@ -36,22 +43,38 @@ space_pattern = re.compile(r"(\s+)")
 """It is used to detect space."""
 
 
-def tokenize_text(text: str) -> List[str]:
-    return re.findall(tokenizer, text)
+def tokenize_text(text: str) -> list[str]:
+    """
+    Tokenizes a string into a list of tokens. A token is defined as a group of characters that can include any character except for parentheses
+    and whitespace characters (which include spaces, tabs, and line breaks) or any character that is a parenthesis or punctuation mark (.?!-).
+    The group can also include any whitespace characters that follow these characters.
+    For example, if the text is "Hello, world! This is a test.", the result will be:
+    ['Hello, ', 'world! ', 'This ', 'is ', 'a ', 'test.']
+
+    :param text: The text to tokenize.
+    :type text: str
+    :return: a list of tokens.
+    :rtype: list[str]
+    """
+    # NOTE: Single capturing group hence findall returns list of strings
+    matches: list[str] = re.findall(tokenizer, text)
+    return matches
 
 
-def split_paragraphs(text: str) -> List[str]:
+def split_paragraphs(text: str) -> list[str]:
     """
     Splits a string into a list of paragraphs. One or more `\n` splits the paragraphs.
     For example, if the text is "Hello\nWorld\nThis is a test", the result will be:
     ['Hello', 'World', 'This is a test']
 
     :param text: The text to split.
+    :type text: str
     :return: a list of paragraphs.
+    :rtype: list[str]
     """
-
-    split_text = re.split(paragraph_pattern, text)
-    result = []
+    # NOTE: Single capturing group hence split returns list of strings
+    split_text: list[str] = re.split(paragraph_pattern, text)
+    result: list[str] = []
     for s in split_text:
         if s and not re.fullmatch(space_pattern, s):
             result.append(s.strip())
@@ -66,11 +89,13 @@ def concatenate_paragraphs_and_add_chr_182(text: str) -> str:
     "Hello¶World¶This is a test"
 
     :param text: The text to split.
+    :type text: str
     :return: a list of paragraphs.
+    :rtype: str
     """
     paragraphs = split_paragraphs(text)
 
-    result = []
+    result: list[str] = []
     for p in paragraphs:
         result.append(p)
         result.append(" ¶ ")
@@ -85,9 +110,9 @@ def concatenate_paragraphs_and_add_chr_182(text: str) -> str:
 class Chunk:
     """A chunk of text that is being compared. In some cases, it may be the whole document"""
 
-    text: List[str]
+    text: list[str]
     """The tokens of the chunk"""
-    chunk_location: Optional[str]
+    chunk_location: str | None
     """An optional string describing the location of the chunk in the document. For example, a PDF page number"""
 
 
@@ -98,7 +123,7 @@ class Redline:
     source_chunk: Chunk
     test_chunk: Chunk
     """The chunk of text that is being redlined"""
-    opcodes: Tuple[str, int, int, int, int]
+    opcodes: tuple[str, int, int, int, int]
     """The opcodes that describe the redline in the chunk. See the difflib documentation for more information"""
 
 
@@ -111,9 +136,7 @@ class RedlinesProcessor(ABC):
     """
 
     @abstractmethod
-    def process(
-        self, source: Union[Document, str], test: Union[Document, str]
-    ) -> List[Redline]:
+    def process(self, source: Document | str, test: Document | str) -> list[Redline]:
         pass
 
 
@@ -122,14 +145,16 @@ class WholeDocumentProcessor(RedlinesProcessor):
     A redlines processor that compares two documents. It compares the entire documents as a single chunk.
     """
 
-    def process(
-        self, source: Union[Document, str], test: Union[Document, str]
-    ) -> List[Redline]:
+    def process(self, source: Document | str, test: Document | str) -> list[Redline]:
         """
         Compare two documents as a single chunk.
+
         :param source: The source document to compare.
+        :type source: Document | str
         :param test: The test document to compare.
+        :type test: Document | str
         :return: A list of `Redline` that describe the differences between the two documents.
+        :rtype: list[Redline]
         """
         # Extract text from documents if needed
         source_text = source.text if isinstance(source, Document) else source
