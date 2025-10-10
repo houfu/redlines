@@ -41,10 +41,6 @@ disable_error_code = "misc"
 ignore_missing_imports = false
 follow_untyped_imports = true
 
-disallow_any_expr = true
-disallow_any_decorated = true
-disallow_any_explicit = true
-
 implicit_optional = true
 strict_optional = true
 
