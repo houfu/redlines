@@ -8,7 +8,7 @@ from typing_extensions import Unpack
 
 from .document import Document
 from .enums import MarkdownStyle, OutputType
-from .processor import Redline, WholeDocumentProcessor
+from .processor import DiffOperation, Redline, Stats, WholeDocumentProcessor
 
 __all__: tuple[str, ...] = (
     "Redlines",
@@ -34,7 +34,7 @@ class Redlines:
     _test: str | None = None
     _seq1: list[str] | None = None
     _seq2: list[str] | None = None
-    _redlines: list[Redline] | None = None
+    _diff_operations: list[DiffOperation] | None = None
 
     @property
     def source(self) -> str:
@@ -54,7 +54,7 @@ class Redlines:
 
         # If test is already set, process the new source against it
         if self._test is not None:
-            self._redlines = self.processor.process(self._source, self._test)
+            self._diff_operations = self.processor.process(self._source, self._test)
 
     @property
     def test(self) -> str:
@@ -74,21 +74,34 @@ class Redlines:
 
         # Process the text against the source
         if self._source is not None:
-            self._redlines = self.processor.process(self._source, self._test)
+            self._diff_operations = self.processor.process(self._source, self._test)
+
+    @property
+    def _diff_ops(self) -> list[DiffOperation]:
+        """
+        Internal property: Return the list of DiffOperation objects (includes 'equal' operations).
+        For internal rendering code.
+
+        :return: List of DiffOperation objects
+        """
+        if self._diff_operations is None:
+            raise ValueError(
+                "No test string was provided when the function was called, or during initialisation."
+            )
+        return self._diff_operations
 
     @property
     def redlines(self) -> list[Redline]:
         """
-        Return the list of Redline objects representing the changes from source to test.
+        Return the list of Redline objects representing actual changes between source and test.
+
+        This is an alias for the `changes` property and provides the same functionality.
+        Only actual changes are returned (equal operations are excluded).
 
         :return: List of Redline objects
         :rtype: list[Redline]
         """
-        if self._redlines is None:
-            raise ValueError(
-                "No test string was provided when the function was called, or during initialisation."
-            )
-        return self._redlines
+        return self.changes
 
     def __init__(
         self,
@@ -140,6 +153,7 @@ class Redlines:
         self.processor = WholeDocumentProcessor()
         self.source = source.text if isinstance(source, Document) else source
         self.options = options
+        self._diff_operations = None
         if test:
             self.test = test.text if isinstance(test, Document) else test
             # self.compare()
@@ -161,7 +175,150 @@ class Redlines:
         :return: List of 5-tuples describing how to turn `source` into `test`.
         :rtype: list[tuple[str, int, int, int, int]]
         """
-        return [redline.opcodes for redline in self.redlines]
+        return [diff_op.opcodes for diff_op in self._diff_ops]
+
+    @property
+    def changes(self) -> list[Redline]:
+        """
+        Return list of Redline objects representing the differences between source and test.
+
+        This provides a user-friendly interface for programmatically accessing changes,
+        with direct access to the changed text and position information. Only actual
+        changes are returned (equal operations are excluded).
+
+        ```python
+        from redlines import Redlines
+
+        test = Redlines(
+            "The quick brown fox jumps over the lazy dog.",
+            "The quick brown fox walks past the lazy dog."
+        )
+
+        for redline in test.changes:
+            print(f"{redline.operation}: {redline.source_text} -> {redline.test_text}")
+        # Output: replace: jumps over  -> walks past
+        ```
+
+        :return: List of Redline objects (only actual changes, no 'equal' operations)
+        """
+        result = []
+        for diff_op in self._diff_ops:
+            tag, i1, i2, j1, j2 = diff_op.opcodes
+
+            # Skip equal operations - only return actual changes
+            if tag == "equal":
+                continue
+
+            source_tokens = diff_op.source_chunk.text
+            test_tokens = diff_op.test_chunk.text
+
+            # Extract text and positions based on operation type
+            if tag == "delete":
+                redline = Redline(
+                    operation="delete",
+                    source_text="".join(source_tokens[i1:i2]),
+                    test_text=None,
+                    source_position=(i1, i2),
+                    test_position=None,
+                )
+            elif tag == "insert":
+                redline = Redline(
+                    operation="insert",
+                    source_text=None,
+                    test_text="".join(test_tokens[j1:j2]),
+                    source_position=None,
+                    test_position=(j1, j2),
+                )
+            elif tag == "replace":
+                redline = Redline(
+                    operation="replace",
+                    source_text="".join(source_tokens[i1:i2]),
+                    test_text="".join(test_tokens[j1:j2]),
+                    source_position=(i1, i2),
+                    test_position=(j1, j2),
+                )
+            else:
+                continue
+
+            result.append(redline)
+
+        return result
+
+    def get_changes(
+        self, operation: str | None = None
+    ) -> list[Redline]:
+        """
+        Get changes (redlines), optionally filtered by operation type.
+
+        ```python
+        from redlines import Redlines
+
+        test = Redlines(
+            "The quick brown fox jumps over the lazy dog.",
+            "The quick brown fox walks past the lazy dog."
+        )
+
+        # Get all changes
+        all_changes = test.get_changes()
+
+        # Get only replacements
+        replacements = test.get_changes(operation="replace")
+
+        # Get deletions
+        deletions = test.get_changes(operation="delete")
+
+        # Get insertions
+        insertions = test.get_changes(operation="insert")
+        ```
+
+        :param operation: Filter by operation type: "delete", "insert", or "replace". If None, returns all changes.
+        :return: List of Redline objects matching the filter
+        """
+        changes = self.changes
+
+        if operation is None:
+            return changes
+
+        if operation not in ("delete", "insert", "replace"):
+            raise ValueError(
+                f"Invalid operation '{operation}'. Must be 'delete', 'insert', or 'replace'."
+            )
+
+        return [r for r in changes if r.operation == operation]
+
+    def stats(self) -> Stats:
+        """
+        Get statistics about the changes between source and test.
+
+        ```python
+        from redlines import Redlines
+
+        test = Redlines(
+            "The quick brown fox jumps over the lazy dog.",
+            "The quick brown fox walks past the lazy dog."
+        )
+
+        stats = test.stats()
+        print(f"Total changes: {stats.total_changes}")
+        print(f"Deletions: {stats.deletions}")
+        print(f"Insertions: {stats.insertions}")
+        print(f"Replacements: {stats.replacements}")
+        ```
+
+        :return: Stats object with change counts
+        """
+        changes = self.changes
+
+        deletions = sum(1 for c in changes if c.operation == "delete")
+        insertions = sum(1 for c in changes if c.operation == "insert")
+        replacements = sum(1 for c in changes if c.operation == "replace")
+
+        return Stats(
+            total_changes=len(changes),
+            deletions=deletions,
+            insertions=insertions,
+            replacements=replacements,
+        )
 
     @property
     def output_markdown(self) -> str:
@@ -303,10 +460,10 @@ class Redlines:
             elif style == "streamlit":
                 md_styles = {"ins": ("**:green[", "]** "), "del": ("~~:red[", "]~~ ")}
 
-        for redline in self.redlines:
-            tag, i1, i2, j1, j2 = redline.opcodes
-            source_tokens = redline.source_chunk.text
-            test_tokens = redline.test_chunk.text
+        for diff_op in self._diff_ops:
+            tag, i1, i2, j1, j2 = diff_op.opcodes
+            source_tokens = diff_op.source_chunk.text
+            test_tokens = diff_op.test_chunk.text
 
             if tag == "equal":
                 temp_str = "".join(source_tokens[i1:i2])
@@ -352,10 +509,10 @@ class Redlines:
         """
         console_text = Text()
 
-        for redline in self.redlines:
-            tag, i1, i2, j1, j2 = redline.opcodes
-            source_tokens = redline.source_chunk.text
-            test_tokens = redline.test_chunk.text
+        for diff_op in self._diff_ops:
+            tag, i1, i2, j1, j2 = diff_op.opcodes
+            source_tokens = diff_op.source_chunk.text
+            test_tokens = diff_op.test_chunk.text
 
             if tag == "equal":
                 temp_str = "".join(source_tokens[i1:i2])
