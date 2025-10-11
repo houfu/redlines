@@ -1,8 +1,10 @@
+from __future__ import annotations
+
 import re
-import typing as t
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from difflib import SequenceMatcher
+from typing import Literal
 
 from .document import Document
 
@@ -138,7 +140,7 @@ class Redline:
     with direct access to the changed text and position information.
     """
 
-    operation: t.Literal["delete", "insert", "replace"]
+    operation: Literal["delete", "insert", "replace"]
     """The type of change: 'delete', 'insert', or 'replace'"""
 
     source_text: str | None

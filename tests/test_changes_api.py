@@ -5,7 +5,7 @@ from redlines import Redlines
 from redlines.processor import Redline, Stats
 
 
-def test_changes_property_replace():
+def test_changes_property_replace() -> None:
     """Test changes property with replacement operation."""
     test_string_1 = "The quick brown fox jumps over the lazy dog."
     test_string_2 = "The quick brown fox walks past the lazy dog."
@@ -21,7 +21,7 @@ def test_changes_property_replace():
     assert changes[0].test_position == (4, 6)
 
 
-def test_changes_property_insert():
+def test_changes_property_insert() -> None:
     """Test changes property with insertion operation."""
     test_string_1 = "The quick brown fox jumps over the dog."
     test_string_2 = "The quick brown fox jumps over the lazy dog."
@@ -37,7 +37,7 @@ def test_changes_property_insert():
     assert changes[0].test_position == (7, 8)
 
 
-def test_changes_property_delete():
+def test_changes_property_delete() -> None:
     """Test changes property with deletion operation."""
     test_string_1 = "The quick brown fox jumps over the lazy dog."
     test_string_2 = "The quick brown fox jumps over the dog."
@@ -53,7 +53,7 @@ def test_changes_property_delete():
     assert changes[0].test_position is None
 
 
-def test_changes_excludes_equal():
+def test_changes_excludes_equal() -> None:
     """Test that changes property excludes equal operations."""
     test_string_1 = "The quick brown fox"
     test_string_2 = "The quick brown fox"
@@ -65,7 +65,7 @@ def test_changes_excludes_equal():
     assert len(changes) == 0
 
 
-def test_changes_multiple_operations():
+def test_changes_multiple_operations() -> None:
     """Test changes with multiple different operations."""
     test_string_1 = "Hello world. This is a test."
     test_string_2 = "Hi world. This is an example."
@@ -79,7 +79,7 @@ def test_changes_multiple_operations():
     assert changes[1].operation == "replace"
 
 
-def test_get_changes_no_filter():
+def test_get_changes_no_filter() -> None:
     """Test get_changes with no filter returns all changes."""
     test_string_1 = "The quick brown fox jumps over the lazy dog."
     test_string_2 = "The quick brown fox walks past the lazy dog."
@@ -93,7 +93,7 @@ def test_get_changes_no_filter():
     assert all_changes == changes_from_property
 
 
-def test_get_changes_filter_replace():
+def test_get_changes_filter_replace() -> None:
     """Test get_changes filtering for replace operations."""
     test_string_1 = "Hello world"
     test_string_2 = "Hi earth"
@@ -105,7 +105,7 @@ def test_get_changes_filter_replace():
     assert all(c.operation == "replace" for c in replacements)
 
 
-def test_get_changes_filter_insert():
+def test_get_changes_filter_insert() -> None:
     """Test get_changes filtering for insert operations."""
     test_string_1 = "The quick brown fox"
     test_string_2 = "The very quick brown fox"
@@ -118,7 +118,7 @@ def test_get_changes_filter_insert():
     assert insertions[0].test_text == "very "
 
 
-def test_get_changes_filter_delete():
+def test_get_changes_filter_delete() -> None:
     """Test get_changes filtering for delete operations."""
     test_string_1 = "The very quick brown fox"
     test_string_2 = "The quick brown fox"
@@ -131,7 +131,7 @@ def test_get_changes_filter_delete():
     assert deletions[0].source_text == "very "
 
 
-def test_get_changes_invalid_operation():
+def test_get_changes_invalid_operation() -> None:
     """Test get_changes raises error for invalid operation."""
     test_string_1 = "Hello world"
     test_string_2 = "Hi world"
@@ -142,7 +142,7 @@ def test_get_changes_invalid_operation():
         r.get_changes(operation="invalid")
 
 
-def test_stats_basic():
+def test_stats_basic() -> None:
     """Test stats method with basic changes."""
     test_string_1 = "The quick brown fox jumps over the lazy dog."
     test_string_2 = "The quick brown fox walks past the lazy dog."
@@ -157,7 +157,7 @@ def test_stats_basic():
     assert stats.insertions == 0
 
 
-def test_stats_multiple_operations():
+def test_stats_multiple_operations() -> None:
     """Test stats with multiple types of operations."""
     # Create a scenario with insert, delete, and replace
     test_string_1 = "A B C D E"
@@ -171,7 +171,7 @@ def test_stats_multiple_operations():
     assert stats.deletions + stats.insertions + stats.replacements == stats.total_changes
 
 
-def test_stats_no_changes():
+def test_stats_no_changes() -> None:
     """Test stats when there are no changes."""
     test_string_1 = "Hello world"
     test_string_2 = "Hello world"
@@ -185,7 +185,7 @@ def test_stats_no_changes():
     assert stats.replacements == 0
 
 
-def test_redline_dataclass_attributes():
+def test_redline_dataclass_attributes() -> None:
     """Test that Redline dataclass has expected attributes."""
     test_string_1 = "Hello"
     test_string_2 = "Hi"
@@ -204,7 +204,7 @@ def test_redline_dataclass_attributes():
     assert hasattr(redline, "test_position")
 
 
-def test_stats_dataclass_attributes():
+def test_stats_dataclass_attributes() -> None:
     """Test that Stats dataclass has expected attributes."""
     test_string_1 = "Hello"
     test_string_2 = "Hi"
@@ -219,7 +219,7 @@ def test_stats_dataclass_attributes():
     assert hasattr(stats, "replacements")
 
 
-def test_changes_with_paragraphs():
+def test_changes_with_paragraphs() -> None:
     """Test changes API handles paragraphs correctly."""
     test_string_1 = """Hello world.
 
@@ -236,7 +236,7 @@ This is an example."""
     assert all(isinstance(r, Redline) for r in changes)
 
 
-def test_api_integration():
+def test_api_integration() -> None:
     """Integration test for the complete programmatic API."""
     source = "The quick brown fox jumps over the lazy dog."
     test = "The quick brown fox walks past the sleepy cat."
