@@ -1,7 +1,7 @@
 from redlines import Redlines
 
 
-def test_PlainTextFile_text():
+def test_PlainTextFile_text() -> None:
     from redlines import PlainTextFile
 
     source = PlainTextFile("tests/documents/PlainTextFile/source.txt")

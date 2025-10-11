@@ -1,4 +1,7 @@
+import os
 from abc import ABC, abstractmethod
+
+__all__: tuple[str, ...] = ("Document", "PlainTextFile")
 
 
 class Document(ABC):
@@ -47,11 +50,12 @@ class PlainTextFile(Document):
         """
         return self._text
 
-    def __init__(self, file_path):
+    def __init__(self, file_path: str | bytes | os.PathLike[str]) -> None:
         """
         Use this class so that Redlines can read plain text files.
 
         :param file_path: Path to the text file.
+        :type file_path: str | bytes | os.PathLike[str]
         """
         with open(file_path) as f:
             self._text = f.read()

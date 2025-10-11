@@ -1,28 +1,55 @@
 from __future__ import annotations
 
 import re
+import typing as t
 
 from rich.text import Text
+from typing_extensions import Unpack
 
-from redlines.document import Document
-from redlines.processor import WholeDocumentProcessor, Redline
+from .document import Document
+from .enums import MarkdownStyle, OutputType
+from .processor import Redline, WholeDocumentProcessor
+
+__all__: tuple[str, ...] = (
+    "Redlines",
+    "RedlinesOptions",
+)
+
+# Workaround for enum + literal support in type hints
+# See: https://github.com/python/typing/issues/781
+OutputTypeLike = OutputType | t.Literal["markdown", "rich"]
+
+
+class RedlinesOptions(t.TypedDict, total=False):
+    markdown_style: str | MarkdownStyle | None
+    """The style to use for markdown output. See `Redlines.output_markdown` for more information."""
+    ins_class: str
+    """The CSS class to use for insertions when `markdown_style` is set to `custom_css`. Defaults to 'redline-inserted'."""
+    del_class: str
+    """The CSS class to use for deletions when `markdown_style` is set to `custom_css`. Defaults to 'redline-deleted'."""
 
 
 class Redlines:
-    _source: str = None
-    _test: str = None
-    _seq1: list[str] = None
-    _seq2: list[str] = None
+    _source: str | None = None
+    _test: str | None = None
+    _seq1: list[str] | None = None
+    _seq2: list[str] | None = None
+    _redlines: list[Redline] | None = None
 
     @property
     def source(self) -> str:
         """
+        Get the source text to be used as a basis for comparison.
+
         :return: The source text to be used as a basis for comparison.
+        :rtype: str
         """
+        if self._source is None:
+            raise ValueError("No source string was provided.")
         return self._source
 
     @source.setter
-    def source(self, value):
+    def source(self, value: str | Document) -> None:
         self._source = value.text if isinstance(value, Document) else value
 
         # If test is already set, process the new source against it
@@ -30,16 +57,23 @@ class Redlines:
             self._redlines = self.processor.process(self._source, self._test)
 
     @property
-    def test(self):
-        """:return: The text to be compared with the source."""
+    def test(self) -> str:
+        """
+        Get the text to be compared with the source.
+
+        :return: The text to be compared with the source.
+        :rtype: str
+        """
+        if self._test is None:
+            raise ValueError("No test string was provided.")
         return self._test
 
     @test.setter
-    def test(self, value):
+    def test(self, value: str | Document) -> None:
         self._test = value.text if isinstance(value, Document) else value
 
         # Process the text against the source
-        if self._source is not None and self._test is not None:
+        if self._source is not None:
             self._redlines = self.processor.process(self._source, self._test)
 
     @property
@@ -48,6 +82,7 @@ class Redlines:
         Return the list of Redline objects representing the changes from source to test.
 
         :return: List of Redline objects
+        :rtype: list[Redline]
         """
         if self._redlines is None:
             raise ValueError(
@@ -56,7 +91,10 @@ class Redlines:
         return self._redlines
 
     def __init__(
-        self, source: str | Document, test: str | Document | None = None, **options
+        self,
+        source: str | Document,
+        test: str | Document | None = None,
+        **options: Unpack[RedlinesOptions],
     ):
         """
         Redline is a class used to compare text, and producing human-readable differences or deltas
@@ -93,12 +131,15 @@ class Redlines:
         ```
 
         :param source: The source text to be used as a basis for comparison.
+        :type source: str | Document
         :param test: Optional test text to compare with the source.
+        :type test: str | Document | None
+        :param options: Additional options for comparison and output formatting.
+        :type options: RedlinesOptions
         """
         self.processor = WholeDocumentProcessor()
         self.source = source.text if isinstance(source, Document) else source
         self.options = options
-        self._redlines = None
         if test:
             self.test = test.text if isinstance(test, Document) else test
             # self.compare()
@@ -116,6 +157,9 @@ class Redlines:
         ... s.opcodes
         [('equal', 0, 4, 0, 4), ('replace', 4, 6, 4, 6), ('equal', 6, 9, 6, 9)]
         ```
+
+        :return: List of 5-tuples describing how to turn `source` into `test`.
+        :rtype: list[tuple[str, int, int, int, int]]
         """
         return [redline.opcodes for redline in self.redlines]
 
@@ -188,8 +232,10 @@ class Redlines:
         * Use the markdown style `none` or `ghfm`
         * `Redlines.output_rich` has been reported to work in Colab
 
+        :return: The delta in Markdown format.
+        :rtype: str
         """
-        result = []
+        result: list[str] = []
 
         # default_style = "red_green"
 
@@ -298,7 +344,12 @@ class Redlines:
 
     @property
     def output_rich(self) -> Text:
-        """Returns the delta in text with colors/style for the console."""
+        """
+        Returns the delta in text with colors/style for the console.
+
+        :return: The delta in text with colors/style for the console.
+        :rtype: Text
+        """
         console_text = Text()
 
         for redline in self.redlines:
@@ -326,13 +377,23 @@ class Redlines:
 
         return console_text
 
-    def compare(self, test: str | None = None, output: str = "markdown", **options):
+    def compare(
+        self,
+        test: str | None = None,
+        output: OutputTypeLike = OutputType.MARKDOWN,
+        **options: Unpack[RedlinesOptions],
+    ) -> Text | str:
         """
         Compare `test` with `source`, and produce a delta in a format specified by `output`.
 
         :param test: Optional test string to compare. If None, uses the test string provided during initialisation.
+        :type test: str | None
         :param output: The format which the delta should be produced. Currently, "markdown" and "rich" are supported. Defaults to "markdown".
+        :type output: OutputTypeLike
+        :param options: Additional options for comparison and output formatting.
+        :type options: RedlinesOptions
         :return: The delta in the format specified by `output`.
+        :rtype: Text | str
         """
         if options:
             self.options = options
@@ -348,8 +409,8 @@ class Redlines:
                 "No test string was provided when the function was called, or during initialisation."
             )
 
-        if output == "markdown":
+        if output == OutputType.MARKDOWN:
             return self.output_markdown
-        elif output == "rich":
+        elif output == OutputType.RICH:
             return self.output_rich
         return self.output_markdown

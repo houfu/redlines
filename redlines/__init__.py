@@ -66,6 +66,6 @@ The documentation contains other information on common issues users have faced w
 """
 
 from .document import *
-from .redlines import Redlines
-
-__all__ = ["redlines", "document", "processor", "cli"]
+from .enums import *
+from .processor import *
+from .redlines import *
