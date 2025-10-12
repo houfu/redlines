@@ -29,6 +29,11 @@ jobs:
           cache-dependency-glob: "uv.lock"
       - name: Install the project
         run: uv sync --all-extras --dev
+      - name: Extract version from tag
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/}
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+          echo "Building docs for version: $VERSION"
       - run: uv run pdoc -o docs/ redlines
       - uses: actions/upload-pages-artifact@v3
         with:
