@@ -594,7 +594,7 @@ class Redlines:
         cleaned_test_tokens = test_tokens
 
         # Build changes array with both character and token positions
-        changes = []
+        changes: list[dict[str, t.Any]] = []
         source_char_offset = 0
         test_char_offset = 0
 
@@ -610,6 +610,7 @@ class Redlines:
             test_text = re.sub("¶ ", "\n\n", test_text)
 
             # Build change object based on operation type
+            change: dict[str, t.Any]
             if tag == "equal":
                 change = {
                     "type": "equal",
