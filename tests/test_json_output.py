@@ -282,7 +282,7 @@ def test_json_output_multiple_changes() -> None:
     data = json.loads(json_output)
 
     # Count operation types
-    operation_counts = {}
+    operation_counts: dict[str, int] = {}
     for change in data["changes"]:
         op_type = change["type"]
         operation_counts[op_type] = operation_counts.get(op_type, 0) + 1
