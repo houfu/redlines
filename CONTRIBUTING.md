@@ -152,6 +152,37 @@ and respectful in your tone.
 To preview documentation, you can clone the project, install development dependencies, and then run `pdoc redlines` to
 see your changes.
 
+## Documentation
+
+Our documentation is automatically generated from source code using `pdoc`.
+
+### How It Works
+- Documentation builds automatically **when a new release is published**.
+- The release tag (for example `v1.2.3`) is extracted by the CI workflow and exposed to the build as the `VERSION` environment variable.
+- The version number is displayed in the published documentation.
+
+### To Update Documentation
+1. Make code changes and update docstrings as needed.
+2. Create and publish a new release on GitHub (use tags like `vMAJOR.MINOR.PATCH`).
+3. The documentation workflow will run automatically and rebuild the docs for that release.
+4. Check the deployed docs to verify the version banner and content.
+
+### Manual Documentation Build (for testing)
+To build docs locally before releasing:
+
+```bash
+# install pdoc locally
+pip install pdoc
+```
+
+# generate HTML into docs/
+pdoc --html --output-dir docs/ your_package_name
+
+# preview locally
+cd docs
+python -m http.server 8000
+# then open http://localhost:8000 in your browser
+
 ## Styleguides
 
 For code, we use the [Black formatter](https://black.readthedocs.io/en/stable/index.html). Please be encouraged to use
