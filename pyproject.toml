@@ -7,11 +7,12 @@ authors = [
     { name = "houfu", email = "houfu@outlook.sg" }
 ]
 license = { text = "MIT" }
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 dependencies = [
     "click>=8.1.7",
     "rich-click>=1.6.1",
     "rich>=13.3.5",
+    "nupunkt>=0.6.0",
 ]
 urls = { homepage = "https://houfu.github.io/redlines/", repository = "https://github.com/houfu/redlines" }
 
@@ -34,7 +35,7 @@ build-backend = "hatchling.build"
 
 
 [tool.mypy]
-python_version = "3.10"
+python_version = "3.11"
 strict = true
 disable_error_code = "misc"
 
