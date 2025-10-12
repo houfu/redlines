@@ -212,11 +212,16 @@ def test_stats_dataclass_attributes() -> None:
     r = Redlines(test_string_1, test_string_2)
     stats = r.stats()
 
-    # Check all attributes are accessible
-    assert hasattr(stats, "total_changes")
-    assert hasattr(stats, "deletions")
-    assert hasattr(stats, "insertions")
-    assert hasattr(stats, "replacements")
+    # Check all attributes are accessible (both old and new)
+    expected_attrs = [
+        "total_changes", "deletions", "insertions", "replacements",
+        "longest_change_length", "shortest_change_length", "average_change_length",
+        "change_ratio", "chars_added", "chars_deleted", "chars_net_change",
+        "levenshtein_distance"
+    ]
+
+    for attr in expected_attrs:
+        assert hasattr(stats, attr), f"Stats missing attribute: {attr}"
 
 
 def test_changes_with_paragraphs() -> None:
@@ -265,3 +270,238 @@ def test_api_integration() -> None:
     assert stats.replacements == manual_replacements
     assert stats.insertions == manual_insertions
     assert stats.deletions == manual_deletions
+
+
+def test_advanced_stats_basic_replace() -> None:
+    """Test advanced stats with basic replacement operation."""
+    source = "The quick brown fox jumps over the lazy dog."
+    test = "The quick brown fox walks past the lazy dog."
+    r = Redlines(source, test)
+    stats = r.stats()
+
+    # Basic operation counts
+    assert stats.total_changes == 1
+    assert stats.replacements == 1
+    assert stats.deletions == 0
+    assert stats.insertions == 0
+
+    # Change length metrics
+    assert stats.longest_change_length == 11  # "jumps over " (11 chars)
+    assert stats.shortest_change_length == 11
+    assert stats.average_change_length == 11.0
+
+    # Change ratio (11 changed chars out of 44 total)
+    assert abs(stats.change_ratio - 11/44) < 0.001
+
+    # Character-level statistics
+    assert stats.chars_added == 11  # "walks past " (11 chars)
+    assert stats.chars_deleted == 11  # "jumps over " (11 chars)
+    assert stats.chars_net_change == 0  # Same length
+
+    # Levenshtein distance should be available
+    assert stats.levenshtein_distance is not None
+    assert stats.levenshtein_distance >= 1  # At least some distance
+
+
+def test_advanced_stats_insert() -> None:
+    """Test advanced stats with insertion operation."""
+    source = "Hello world"
+    test = "Hello beautiful world"
+    r = Redlines(source, test)
+    stats = r.stats()
+
+    assert stats.total_changes == 1
+    assert stats.insertions == 1
+    assert stats.replacements == 0
+    assert stats.deletions == 0
+
+    assert stats.longest_change_length == 10  # "beautiful "
+    assert stats.shortest_change_length == 10
+    assert stats.average_change_length == 10.0
+
+    # Change ratio (10 changed chars out of 11 total)
+    assert abs(stats.change_ratio - 10/11) < 0.001
+
+    assert stats.chars_added == 10
+    assert stats.chars_deleted == 0
+    assert stats.chars_net_change == 10
+
+
+def test_advanced_stats_delete() -> None:
+    """Test advanced stats with deletion operation."""
+    source = "Hello beautiful world"
+    test = "Hello world"
+    r = Redlines(source, test)
+    stats = r.stats()
+
+    assert stats.total_changes == 1
+    assert stats.deletions == 1
+    assert stats.insertions == 0
+    assert stats.replacements == 0
+
+    assert stats.longest_change_length == 10  # "beautiful "
+    assert stats.shortest_change_length == 10
+    assert stats.average_change_length == 10.0
+
+    # Change ratio (10 changed chars out of 21 total)
+    assert abs(stats.change_ratio - 10/21) < 0.001
+
+    assert stats.chars_added == 0
+    assert stats.chars_deleted == 10
+    assert stats.chars_net_change == -10
+
+
+def test_advanced_stats_multiple_operations() -> None:
+    """Test advanced stats with multiple different operations."""
+    source = "A B C D E"
+    test = "A X C E F"
+    # B->X (replace), D deleted, F inserted
+
+    r = Redlines(source, test)
+    stats = r.stats()
+
+    # Should have 3 changes: replace, delete, insert
+    assert stats.total_changes == 3
+    assert stats.replacements == 1  # B -> X
+    assert stats.deletions == 1     # D deleted
+    assert stats.insertions == 1    # F inserted
+
+    # Change lengths: "X " (2), "D " (2), "F" (1)
+    assert stats.longest_change_length == 2
+    assert stats.shortest_change_length == 1
+    assert stats.average_change_length == (2+2+1)/3  # 1.666...
+
+    # Character counts: added "X "+"F" (3), deleted "B "+"D " (4), net -1
+    assert stats.chars_added == 3  # "X " + "F"
+    assert stats.chars_deleted == 4  # "B " + "D "
+    assert stats.chars_net_change == -1
+
+
+def test_advanced_stats_no_changes() -> None:
+    """Test advanced stats when there are no changes."""
+    source = "Hello world"
+    test = "Hello world"
+
+    r = Redlines(source, test)
+    stats = r.stats()
+
+    assert stats.total_changes == 0
+    assert stats.longest_change_length == 0
+    assert stats.shortest_change_length is None
+    assert stats.average_change_length == 0.0
+    assert stats.change_ratio == 0.0
+    assert stats.chars_added == 0
+    assert stats.chars_deleted == 0
+    assert stats.chars_net_change == 0
+    assert stats.levenshtein_distance == 0  # Identical strings
+
+
+def test_advanced_stats_empty_strings() -> None:
+    """Test advanced stats with empty strings."""
+    source = ""
+    test = ""
+
+    r = Redlines(source, test)
+    stats = r.stats()
+
+    # Empty identical strings
+    assert stats.total_changes == 0
+    assert stats.longest_change_length == 0
+    assert stats.shortest_change_length is None
+    assert stats.average_change_length == 0.0
+    assert stats.change_ratio == 0.0
+    assert stats.chars_added == 0
+    assert stats.chars_deleted == 0
+    assert stats.chars_net_change == 0
+    assert stats.levenshtein_distance == 0
+
+
+def test_advanced_stats_unicode() -> None:
+    """Test advanced stats with unicode characters."""
+    source = "Hello 世界"
+    test = "Hi 世界🌍"
+
+    r = Redlines(source, test)
+    stats = r.stats()
+
+    # Should handle unicode correctly
+    assert stats.total_changes >= 1
+    assert stats.levenshtein_distance is not None
+    assert isinstance(stats.change_ratio, float)
+    assert 0.0 <= stats.change_ratio <= 1.0
+
+
+def test_advanced_stats_levenshtein_fallback() -> None:
+    """Test that Levenshtein distance gracefully handles missing library."""
+    # We'll test this by temporarily mocking the import failure
+    import sys
+    from unittest.mock import patch
+
+    source = "Hello world"
+    test = "Hi world"
+
+    # Mock import failure
+    with patch.dict('sys.modules', {'Levenshtein': None}):
+        with patch('builtins.__import__', side_effect=ImportError("No module named 'Levenshtein'")):
+            r = Redlines(source, test)
+            stats = r.stats()
+
+            # All other stats should still work
+            assert stats.total_changes >= 1
+            assert stats.change_ratio > 0
+            # Levenshtein should be None when library unavailable
+            assert stats.levenshtein_distance is None
+
+
+def test_advanced_stats_dataclass_attributes() -> None:
+    """Test that extended Stats dataclass has all expected attributes."""
+    source = "Hello world"
+    test = "Hi world"
+
+    r = Redlines(source, test)
+    stats = r.stats()
+
+    # Check all new attributes are accessible
+    required_attrs = [
+        "total_changes", "deletions", "insertions", "replacements",
+        "longest_change_length", "shortest_change_length", "average_change_length",
+        "change_ratio", "chars_added", "chars_deleted", "chars_net_change",
+        "levenshtein_distance"
+    ]
+
+    for attr in required_attrs:
+        assert hasattr(stats, attr), f"Stats missing attribute: {attr}"
+
+
+def test_advanced_stats_integration() -> None:
+    """Integration test for complete advanced statistics functionality."""
+    source = "The quick brown fox jumps over the lazy dog."
+    test = "The quick brown fox walks past the sleepy cat."
+
+    r = Redlines(source, test)
+    stats = r.stats()
+
+    # Verify all fields are present and reasonable
+    assert isinstance(stats.total_changes, int)
+    assert isinstance(stats.longest_change_length, int)
+    assert isinstance(stats.average_change_length, float)
+    assert isinstance(stats.change_ratio, float)
+    assert isinstance(stats.chars_added, int)
+    assert isinstance(stats.chars_deleted, int)
+    assert isinstance(stats.chars_net_change, int)
+
+    # Verify constraints
+    assert stats.total_changes >= 0
+    assert stats.longest_change_length >= 0
+    assert stats.average_change_length >= 0.0
+    assert 0.0 <= stats.change_ratio <= 1.0
+    assert stats.chars_added >= 0
+    assert stats.chars_deleted >= 0
+
+    # Verify consistency: net change = added - deleted
+    assert stats.chars_net_change == stats.chars_added - stats.chars_deleted
+
+    # Levenshtein should be available (since we installed the library)
+    assert stats.levenshtein_distance is not None
+    assert isinstance(stats.levenshtein_distance, int)
+    assert stats.levenshtein_distance >= 0

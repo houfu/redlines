@@ -161,7 +161,8 @@ class Stats:
     """
     Statistics about the changes between source and test text.
 
-    Provides a summary of all changes including counts by operation type.
+    Provides a comprehensive summary of all changes including counts by operation type,
+    change size metrics, character-level statistics, and optional Levenshtein distance.
     """
 
     total_changes: int
@@ -176,6 +177,31 @@ class Stats:
     replacements: int
     """Number of replacement operations"""
 
+    # Advanced analytics fields
+    longest_change_length: int
+    """Length of the longest change in characters"""
+
+    shortest_change_length: int | None
+    """Length of the shortest change in characters (None if no changes)"""
+
+    average_change_length: float
+    """Average length of all changes in characters"""
+
+    change_ratio: float
+    """Ratio of changed characters to total characters (0.0 to 1.0)"""
+
+    chars_added: int
+    """Total number of characters added"""
+
+    chars_deleted: int
+    """Total number of characters deleted"""
+
+    chars_net_change: int
+    """Net change in characters (added - deleted)"""
+
+    levenshtein_distance: int | None = None
+    """Levenshtein distance between source and test text (None if library not available)"""
+
 
 class RedlinesProcessor(ABC):
     """
@@ -186,7 +212,9 @@ class RedlinesProcessor(ABC):
     """
 
     @abstractmethod
-    def process(self, source: Document | str, test: Document | str) -> list[DiffOperation]:
+    def process(
+        self, source: Document | str, test: Document | str
+    ) -> list[DiffOperation]:
         pass
 
 
@@ -195,7 +223,9 @@ class WholeDocumentProcessor(RedlinesProcessor):
     A redlines processor that compares two documents. It compares the entire documents as a single chunk.
     """
 
-    def process(self, source: Document | str, test: Document | str) -> list[DiffOperation]:
+    def process(
+        self, source: Document | str, test: Document | str
+    ) -> list[DiffOperation]:
         """
         Compare two documents as a single chunk.
 
