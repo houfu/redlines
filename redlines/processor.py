@@ -131,6 +131,41 @@ class WholeDocumentProcessor(RedlinesProcessor):
         :param test: The test document to compare.
         :return: A list of `Redline` that describe the differences between the two documents.
         """
+                # --- Input validation with actionable error messages ---
+        if not isinstance(source, (Document, str)):
+            raise ValueError(
+                "Invalid input type for 'source'. "
+                f"Expected a 'Document' or 'str', but got '{type(source).__name__}'. "
+                "Why it went wrong: The comparison process requires readable text content. "
+                "How to fix: Pass either a text string or a 'Document' object.\n\n"
+                "Example:\n"
+                "    processor.process('text1', 'text2')\n"
+                "    or\n"
+                "    processor.process(Document('file1.txt'), Document('file2.txt'))"
+            )
+
+        if not isinstance(test, (Document, str)):
+            raise ValueError(
+                "Invalid input type for 'test'. "
+                f"Expected a 'Document' or 'str', but got '{type(test).__name__}'. "
+                "Why it went wrong: The comparison target must be text-based. "
+                "How to fix: Pass either a text string or a 'Document' object."
+            )
+
+        if isinstance(source, str) and source.strip() == "":
+            raise ValueError(
+                "Empty 'source' text detected. "
+                "Why it went wrong: The source document has no content to compare. "
+                "How to fix: Provide valid text content for comparison."
+            )
+
+        if isinstance(test, str) and test.strip() == "":
+            raise ValueError(
+                "Empty 'test' text detected. "
+                "Why it went wrong: The test document has no content to compare. "
+                "How to fix: Provide valid text content for comparison."
+            )
+
         # Extract text from documents if needed
         source_text = source.text if isinstance(source, Document) else source
         test_text = test.text if isinstance(test, Document) else test
