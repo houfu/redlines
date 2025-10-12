@@ -1,0 +1,328 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/houfu/redlines/blob/main/redlines/json_schema.json",
+  "title": "Redlines JSON Output",
+  "description": "Schema for the JSON output format of the Redlines library",
+  "type": "object",
+  "required": ["source", "test", "source_tokens", "test_tokens", "changes", "stats"],
+  "properties": {
+    "source": {
+      "type": "string",
+      "description": "The original source text used as the basis for comparison"
+    },
+    "test": {
+      "type": "string",
+      "description": "The test text compared against the source"
+    },
+    "source_tokens": {
+      "type": "array",
+      "description": "Array of tokens from the source text as parsed by the tokenizer",
+      "items": {
+        "type": "string"
+      }
+    },
+    "test_tokens": {
+      "type": "array",
+      "description": "Array of tokens from the test text as parsed by the tokenizer",
+      "items": {
+        "type": "string"
+      }
+    },
+    "changes": {
+      "type": "array",
+      "description": "Array of all diff operations including both changes and unchanged sections",
+      "items": {
+        "oneOf": [
+          {
+            "$ref": "#/definitions/equalChange"
+          },
+          {
+            "$ref": "#/definitions/deleteChange"
+          },
+          {
+            "$ref": "#/definitions/insertChange"
+          },
+          {
+            "$ref": "#/definitions/replaceChange"
+          }
+        ]
+      }
+    },
+    "stats": {
+      "type": "object",
+      "description": "Statistics about the changes",
+      "required": ["deletions", "insertions", "replacements", "unchanged", "total_changes"],
+      "properties": {
+        "deletions": {
+          "type": "integer",
+          "description": "Number of deletion operations",
+          "minimum": 0
+        },
+        "insertions": {
+          "type": "integer",
+          "description": "Number of insertion operations",
+          "minimum": 0
+        },
+        "replacements": {
+          "type": "integer",
+          "description": "Number of replacement operations",
+          "minimum": 0
+        },
+        "unchanged": {
+          "type": "integer",
+          "description": "Number of equal (unchanged) sections",
+          "minimum": 0
+        },
+        "total_changes": {
+          "type": "integer",
+          "description": "Total number of changes (deletions + insertions + replacements)",
+          "minimum": 0
+        }
+      }
+    }
+  },
+  "definitions": {
+    "equalChange": {
+      "type": "object",
+      "description": "Represents an unchanged section of text",
+      "required": ["type", "text", "source_position", "test_position", "source_token_position", "test_token_position"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "const": "equal"
+        },
+        "text": {
+          "type": "string",
+          "description": "The unchanged text"
+        },
+        "source_position": {
+          "type": "array",
+          "description": "Character position in source text as [start, end]",
+          "items": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "minItems": 2,
+          "maxItems": 2
+        },
+        "test_position": {
+          "type": "array",
+          "description": "Character position in test text as [start, end]",
+          "items": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "minItems": 2,
+          "maxItems": 2
+        },
+        "source_token_position": {
+          "type": "array",
+          "description": "Token position in source tokens as [start, end]",
+          "items": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "minItems": 2,
+          "maxItems": 2
+        },
+        "test_token_position": {
+          "type": "array",
+          "description": "Token position in test tokens as [start, end]",
+          "items": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "minItems": 2,
+          "maxItems": 2
+        }
+      }
+    },
+    "deleteChange": {
+      "type": "object",
+      "description": "Represents text deleted from the source",
+      "required": ["type", "text", "source_position", "test_position", "source_token_position", "test_token_position"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "const": "delete"
+        },
+        "text": {
+          "type": "string",
+          "description": "The deleted text from source"
+        },
+        "source_position": {
+          "type": "array",
+          "description": "Character position in source text as [start, end]",
+          "items": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "minItems": 2,
+          "maxItems": 2
+        },
+        "test_position": {
+          "type": "null",
+          "description": "Always null for delete operations"
+        },
+        "source_token_position": {
+          "type": "array",
+          "description": "Token position in source tokens as [start, end]",
+          "items": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "minItems": 2,
+          "maxItems": 2
+        },
+        "test_token_position": {
+          "type": "null",
+          "description": "Always null for delete operations"
+        }
+      }
+    },
+    "insertChange": {
+      "type": "object",
+      "description": "Represents text inserted into the test",
+      "required": ["type", "text", "source_position", "test_position", "source_token_position", "test_token_position"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "const": "insert"
+        },
+        "text": {
+          "type": "string",
+          "description": "The inserted text in test"
+        },
+        "source_position": {
+          "type": "null",
+          "description": "Always null for insert operations"
+        },
+        "test_position": {
+          "type": "array",
+          "description": "Character position in test text as [start, end]",
+          "items": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "minItems": 2,
+          "maxItems": 2
+        },
+        "source_token_position": {
+          "type": "null",
+          "description": "Always null for insert operations"
+        },
+        "test_token_position": {
+          "type": "array",
+          "description": "Token position in test tokens as [start, end]",
+          "items": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "minItems": 2,
+          "maxItems": 2
+        }
+      }
+    },
+    "replaceChange": {
+      "type": "object",
+      "description": "Represents text replaced between source and test",
+      "required": ["type", "source_text", "test_text", "source_position", "test_position", "source_token_position", "test_token_position"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "const": "replace"
+        },
+        "source_text": {
+          "type": "string",
+          "description": "The original text from source"
+        },
+        "test_text": {
+          "type": "string",
+          "description": "The replacement text in test"
+        },
+        "source_position": {
+          "type": "array",
+          "description": "Character position in source text as [start, end]",
+          "items": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "minItems": 2,
+          "maxItems": 2
+        },
+        "test_position": {
+          "type": "array",
+          "description": "Character position in test text as [start, end]",
+          "items": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "minItems": 2,
+          "maxItems": 2
+        },
+        "source_token_position": {
+          "type": "array",
+          "description": "Token position in source tokens as [start, end]",
+          "items": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "minItems": 2,
+          "maxItems": 2
+        },
+        "test_token_position": {
+          "type": "array",
+          "description": "Token position in test tokens as [start, end]",
+          "items": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "minItems": 2,
+          "maxItems": 2
+        }
+      }
+    }
+  },
+  "examples": [
+    {
+      "source": "The quick brown fox jumps over the lazy dog.",
+      "test": "The quick brown fox walks past the lazy dog.",
+      "source_tokens": ["The ", "quick ", "brown ", "fox ", "jumps ", "over ", "the ", "lazy ", "dog."],
+      "test_tokens": ["The ", "quick ", "brown ", "fox ", "walks ", "past ", "the ", "lazy ", "dog."],
+      "changes": [
+        {
+          "type": "equal",
+          "text": "The quick brown fox ",
+          "source_position": [0, 20],
+          "test_position": [0, 20],
+          "source_token_position": [0, 4],
+          "test_token_position": [0, 4]
+        },
+        {
+          "type": "replace",
+          "source_text": "jumps over ",
+          "test_text": "walks past ",
+          "source_position": [20, 31],
+          "test_position": [20, 31],
+          "source_token_position": [4, 6],
+          "test_token_position": [4, 6]
+        },
+        {
+          "type": "equal",
+          "text": "the lazy dog.",
+          "source_position": [31, 45],
+          "test_position": [31, 45],
+          "source_token_position": [6, 9],
+          "test_token_position": [6, 9]
+        }
+      ],
+      "stats": {
+        "deletions": 0,
+        "insertions": 0,
+        "replacements": 1,
+        "unchanged": 2,
+        "total_changes": 1
+      }
+    }
+  ]
+}

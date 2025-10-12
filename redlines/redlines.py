@@ -534,6 +534,160 @@ class Redlines:
 
         return console_text
 
+    def output_json(self, pretty: bool = False) -> str:
+        """
+        Return the diff as a JSON string with complete structural information.
+
+        This method provides a machine-readable representation of the diff that includes:
+        - Original source and test texts
+        - Token lists showing how the text was parsed
+        - All changes with both character and token positions
+        - Statistics about the changes
+
+        The JSON output is designed for programmatic access by AI agents, automation tools,
+        and other applications that need to process diff information.
+
+        ```python
+        from redlines import Redlines
+        import json
+
+        test = Redlines(
+            "The quick brown fox jumps over the lazy dog.",
+            "The quick brown fox walks past the lazy dog."
+        )
+
+        # Get JSON output
+        json_output = test.output_json()
+        data = json.loads(json_output)
+
+        # Access changes programmatically
+        for change in data["changes"]:
+            if change["type"] == "replace":
+                print(f"Changed '{change['source_text']}' to '{change['test_text']}'")
+
+        # Pretty-printed output
+        pretty_json = test.output_json(pretty=True)
+        ```
+
+        :param pretty: If True, format the JSON with indentation for readability. Defaults to False.
+        :type pretty: bool
+        :return: A JSON string representing the complete diff structure
+        :rtype: str
+        """
+        import json
+
+        # Get the first diff operation to access token lists
+        # All operations share the same source and test tokens
+        if not self._diff_ops:
+            # Handle edge case of empty diff (e.g., both texts are empty or whitespace-only)
+            source_tokens = []
+            test_tokens = []
+        else:
+            first_op = self._diff_ops[0]
+            source_tokens = first_op.source_chunk.text
+            test_tokens = first_op.test_chunk.text
+
+        # Don't clean tokens individually - we need to join them first then replace ¶
+        # This matches the approach in output_markdown (line 470)
+        # The pattern is: join tokens -> replace '¶ ' with '\n\n'
+        cleaned_source_tokens = source_tokens
+        cleaned_test_tokens = test_tokens
+
+        # Build changes array with both character and token positions
+        changes: list[dict[str, t.Any]] = []
+        source_char_offset = 0
+        test_char_offset = 0
+
+        for diff_op in self._diff_ops:
+            tag, i1, i2, j1, j2 = diff_op.opcodes
+
+            # Get text for this operation, following output_markdown's approach:
+            # Join tokens first, then replace paragraph markers
+            source_text = "".join(cleaned_source_tokens[i1:i2]) if i1 < i2 else ""
+            source_text = re.sub("¶ ", "\n\n", source_text)
+
+            test_text = "".join(cleaned_test_tokens[j1:j2]) if j1 < j2 else ""
+            test_text = re.sub("¶ ", "\n\n", test_text)
+
+            # Build change object based on operation type
+            change: dict[str, t.Any]
+            if tag == "equal":
+                change = {
+                    "type": "equal",
+                    "text": source_text,
+                    "source_position": [source_char_offset, source_char_offset + len(source_text)],
+                    "test_position": [test_char_offset, test_char_offset + len(test_text)],
+                    "source_token_position": [i1, i2],
+                    "test_token_position": [j1, j2]
+                }
+                source_char_offset += len(source_text)
+                test_char_offset += len(test_text)
+            elif tag == "delete":
+                change = {
+                    "type": "delete",
+                    "text": source_text,
+                    "source_position": [source_char_offset, source_char_offset + len(source_text)],
+                    "test_position": None,
+                    "source_token_position": [i1, i2],
+                    "test_token_position": None
+                }
+                source_char_offset += len(source_text)
+            elif tag == "insert":
+                change = {
+                    "type": "insert",
+                    "text": test_text,
+                    "source_position": None,
+                    "test_position": [test_char_offset, test_char_offset + len(test_text)],
+                    "source_token_position": None,
+                    "test_token_position": [j1, j2]
+                }
+                test_char_offset += len(test_text)
+            elif tag == "replace":
+                change = {
+                    "type": "replace",
+                    "source_text": source_text,
+                    "test_text": test_text,
+                    "source_position": [source_char_offset, source_char_offset + len(source_text)],
+                    "test_position": [test_char_offset, test_char_offset + len(test_text)],
+                    "source_token_position": [i1, i2],
+                    "test_token_position": [j1, j2]
+                }
+                source_char_offset += len(source_text)
+                test_char_offset += len(test_text)
+            else:
+                continue
+
+            changes.append(change)
+
+        # Get statistics
+        stats_obj = self.stats()
+
+        # Count unchanged (equal) operations
+        unchanged_count = sum(1 for diff_op in self._diff_ops if diff_op.opcodes[0] == "equal")
+
+        # Build final JSON structure
+        # Clean tokens for output by replacing paragraph markers
+        output_source_tokens = [token.replace("¶ ", "\n\n") for token in cleaned_source_tokens]
+        output_test_tokens = [token.replace("¶ ", "\n\n") for token in cleaned_test_tokens]
+
+        result = {
+            "source": self.source,
+            "test": self.test,
+            "source_tokens": output_source_tokens,
+            "test_tokens": output_test_tokens,
+            "changes": changes,
+            "stats": {
+                "deletions": stats_obj.deletions,
+                "insertions": stats_obj.insertions,
+                "replacements": stats_obj.replacements,
+                "unchanged": unchanged_count,
+                "total_changes": stats_obj.total_changes
+            }
+        }
+
+        # Serialize to JSON
+        return json.dumps(result, ensure_ascii=False, indent=2 if pretty else None)
+
     def compare(
         self,
         test: str | None = None,
