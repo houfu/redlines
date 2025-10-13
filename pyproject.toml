@@ -15,6 +15,9 @@ dependencies = [
 ]
 urls = { homepage = "https://houfu.github.io/redlines/", repository = "https://github.com/houfu/redlines" }
 
+[project.optional-dependencies]
+levenshtein = ["Levenshtein>=0.27.1"]
+
 [project.scripts]
 redlines = 'redlines.cli:cli'
 

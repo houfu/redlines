@@ -210,7 +210,9 @@ def test_json_output_pretty_print() -> None:
 
     # Pretty version should have newlines
     assert "\n" in pretty_json
-    assert "\n" not in compact_json or compact_json.count("\n") < pretty_json.count("\n")
+    assert "\n" not in compact_json or compact_json.count("\n") < pretty_json.count(
+        "\n"
+    )
 
 
 def test_json_output_unicode() -> None:
@@ -289,7 +291,12 @@ def test_json_output_multiple_changes() -> None:
 
     # Should have multiple types
     assert "equal" in operation_counts
-    assert operation_counts.get("replace", 0) + operation_counts.get("delete", 0) + operation_counts.get("insert", 0) > 1
+    assert (
+        operation_counts.get("replace", 0)
+        + operation_counts.get("delete", 0)
+        + operation_counts.get("insert", 0)
+        > 1
+    )
 
 
 def test_json_output_empty_strings() -> None:
@@ -400,8 +407,10 @@ def test_json_output_long_text() -> None:
     assert len(data["changes"]) > 1
 
     # Verify we have multiple paragraphs represented
-    has_newlines = any("\n\n" in str(change.get("text", "") or change.get("source_text", ""))
-                      for change in data["changes"])
+    has_newlines = any(
+        "\n\n" in str(change.get("text", "") or change.get("source_text", ""))
+        for change in data["changes"]
+    )
     assert has_newlines, "Should preserve paragraph breaks"
 
     # Verify stats show actual changes

@@ -154,7 +154,7 @@ class Redlines:
         self.source = source.text if isinstance(source, Document) else source
         self.options = options
         self._diff_operations = None
-        if test:
+        if test is not None:
             self.test = test.text if isinstance(test, Document) else test
             # self.compare()
 
@@ -244,9 +244,7 @@ class Redlines:
 
         return result
 
-    def get_changes(
-        self, operation: str | None = None
-    ) -> list[Redline]:
+    def get_changes(self, operation: str | None = None) -> list[Redline]:
         """
         Get changes (redlines), optionally filtered by operation type.
 
@@ -288,7 +286,14 @@ class Redlines:
 
     def stats(self) -> Stats:
         """
-        Get statistics about the changes between source and test.
+        Get comprehensive statistics about the changes between source and test.
+
+        Returns detailed analytics including:
+        - Operation counts (deletions, insertions, replacements)
+        - Change size metrics (longest, shortest, average lengths)
+        - Change ratio (percentage of text modified)
+        - Character-level statistics (added, deleted, net change)
+        - Levenshtein distance (if python-Levenshtein available)
 
         ```python
         from redlines import Redlines
@@ -303,21 +308,99 @@ class Redlines:
         print(f"Deletions: {stats.deletions}")
         print(f"Insertions: {stats.insertions}")
         print(f"Replacements: {stats.replacements}")
+        print(f"Change ratio: {stats.change_ratio:.1%}")
+        print(f"Longest change: {stats.longest_change_length} chars")
+        print(f"Levenshtein distance: {stats.levenshtein_distance}")
         ```
 
-        :return: Stats object with change counts
+        :return: Stats object with comprehensive change statistics
         """
+        # Handle case where source and test are identical (including empty strings)
+        if self._test is not None and self.source == self._test:
+            levenshtein_distance: int | None = 0
+            try:
+                import Levenshtein
+
+                levenshtein_distance = Levenshtein.distance(self.source, self.test)
+            except ImportError:
+                levenshtein_distance = None
+
+            return Stats(
+                total_changes=0,
+                deletions=0,
+                insertions=0,
+                replacements=0,
+                longest_change_length=0,
+                shortest_change_length=0,
+                average_change_length=0.0,
+                change_ratio=0.0,
+                chars_added=0,
+                chars_deleted=0,
+                chars_net_change=0,
+                levenshtein_distance=levenshtein_distance,
+            )
+
         changes = self.changes
 
+        # Basic operation counts
         deletions = sum(1 for c in changes if c.operation == "delete")
         insertions = sum(1 for c in changes if c.operation == "insert")
         replacements = sum(1 for c in changes if c.operation == "replace")
+
+        # Change length calculations
+        change_lengths = []
+        for change in changes:
+            text = change.source_text or change.test_text or ""
+            change_lengths.append(len(text))
+
+        longest_change_length = max(change_lengths) if change_lengths else 0
+        shortest_change_length = min(change_lengths) if change_lengths else 0
+        average_change_length = (
+            sum(change_lengths) / len(change_lengths) if change_lengths else 0.0
+        )
+
+        # Change ratio calculation
+        total_chars = max(len(self.source), len(self.test))
+        changed_chars = sum(
+            len(change.source_text or change.test_text or "") for change in changes
+        )
+        change_ratio = changed_chars / total_chars if total_chars > 0 else 0.0
+
+        # Character-level statistics
+        chars_added = sum(
+            len(change.test_text) if change.test_text is not None else 0
+            for change in changes
+            if change.operation in ["insert", "replace"]
+        )
+        chars_deleted = sum(
+            len(change.source_text) if change.source_text is not None else 0
+            for change in changes
+            if change.operation in ["delete", "replace"]
+        )
+        chars_net_change = chars_added - chars_deleted
+
+        # Levenshtein distance (optional)
+        levenshtein_distance = None
+        try:
+            import Levenshtein
+
+            levenshtein_distance = Levenshtein.distance(self.source, self.test)
+        except ImportError:
+            pass
 
         return Stats(
             total_changes=len(changes),
             deletions=deletions,
             insertions=insertions,
             replacements=replacements,
+            longest_change_length=longest_change_length,
+            shortest_change_length=shortest_change_length,
+            average_change_length=average_change_length,
+            change_ratio=change_ratio,
+            chars_added=chars_added,
+            chars_deleted=chars_deleted,
+            chars_net_change=chars_net_change,
+            levenshtein_distance=levenshtein_distance,
         )
 
     @property
@@ -615,10 +698,16 @@ class Redlines:
                 change = {
                     "type": "equal",
                     "text": source_text,
-                    "source_position": [source_char_offset, source_char_offset + len(source_text)],
-                    "test_position": [test_char_offset, test_char_offset + len(test_text)],
+                    "source_position": [
+                        source_char_offset,
+                        source_char_offset + len(source_text),
+                    ],
+                    "test_position": [
+                        test_char_offset,
+                        test_char_offset + len(test_text),
+                    ],
                     "source_token_position": [i1, i2],
-                    "test_token_position": [j1, j2]
+                    "test_token_position": [j1, j2],
                 }
                 source_char_offset += len(source_text)
                 test_char_offset += len(test_text)
@@ -626,10 +715,13 @@ class Redlines:
                 change = {
                     "type": "delete",
                     "text": source_text,
-                    "source_position": [source_char_offset, source_char_offset + len(source_text)],
+                    "source_position": [
+                        source_char_offset,
+                        source_char_offset + len(source_text),
+                    ],
                     "test_position": None,
                     "source_token_position": [i1, i2],
-                    "test_token_position": None
+                    "test_token_position": None,
                 }
                 source_char_offset += len(source_text)
             elif tag == "insert":
@@ -637,9 +729,12 @@ class Redlines:
                     "type": "insert",
                     "text": test_text,
                     "source_position": None,
-                    "test_position": [test_char_offset, test_char_offset + len(test_text)],
+                    "test_position": [
+                        test_char_offset,
+                        test_char_offset + len(test_text),
+                    ],
                     "source_token_position": None,
-                    "test_token_position": [j1, j2]
+                    "test_token_position": [j1, j2],
                 }
                 test_char_offset += len(test_text)
             elif tag == "replace":
@@ -647,10 +742,16 @@ class Redlines:
                     "type": "replace",
                     "source_text": source_text,
                     "test_text": test_text,
-                    "source_position": [source_char_offset, source_char_offset + len(source_text)],
-                    "test_position": [test_char_offset, test_char_offset + len(test_text)],
+                    "source_position": [
+                        source_char_offset,
+                        source_char_offset + len(source_text),
+                    ],
+                    "test_position": [
+                        test_char_offset,
+                        test_char_offset + len(test_text),
+                    ],
                     "source_token_position": [i1, i2],
-                    "test_token_position": [j1, j2]
+                    "test_token_position": [j1, j2],
                 }
                 source_char_offset += len(source_text)
                 test_char_offset += len(test_text)
@@ -663,12 +764,18 @@ class Redlines:
         stats_obj = self.stats()
 
         # Count unchanged (equal) operations
-        unchanged_count = sum(1 for diff_op in self._diff_ops if diff_op.opcodes[0] == "equal")
+        unchanged_count = sum(
+            1 for diff_op in self._diff_ops if diff_op.opcodes[0] == "equal"
+        )
 
         # Build final JSON structure
         # Clean tokens for output by replacing paragraph markers
-        output_source_tokens = [token.replace("¶ ", "\n\n") for token in cleaned_source_tokens]
-        output_test_tokens = [token.replace("¶ ", "\n\n") for token in cleaned_test_tokens]
+        output_source_tokens = [
+            token.replace("¶ ", "\n\n") for token in cleaned_source_tokens
+        ]
+        output_test_tokens = [
+            token.replace("¶ ", "\n\n") for token in cleaned_test_tokens
+        ]
 
         result = {
             "source": self.source,
@@ -681,8 +788,16 @@ class Redlines:
                 "insertions": stats_obj.insertions,
                 "replacements": stats_obj.replacements,
                 "unchanged": unchanged_count,
-                "total_changes": stats_obj.total_changes
-            }
+                "total_changes": stats_obj.total_changes,
+                "longest_change_length": stats_obj.longest_change_length,
+                "shortest_change_length": stats_obj.shortest_change_length,
+                "average_change_length": stats_obj.average_change_length,
+                "change_ratio": stats_obj.change_ratio,
+                "chars_added": stats_obj.chars_added,
+                "chars_deleted": stats_obj.chars_deleted,
+                "chars_net_change": stats_obj.chars_net_change,
+                "levenshtein_distance": stats_obj.levenshtein_distance,
+            },
         }
 
         # Serialize to JSON
