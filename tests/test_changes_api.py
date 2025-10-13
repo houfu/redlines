@@ -168,7 +168,9 @@ def test_stats_multiple_operations() -> None:
     stats = r.stats()
 
     assert stats.total_changes >= 1  # At least one change
-    assert stats.deletions + stats.insertions + stats.replacements == stats.total_changes
+    assert (
+        stats.deletions + stats.insertions + stats.replacements == stats.total_changes
+    )
 
 
 def test_stats_no_changes() -> None:
@@ -214,10 +216,18 @@ def test_stats_dataclass_attributes() -> None:
 
     # Check all attributes are accessible (both old and new)
     expected_attrs = [
-        "total_changes", "deletions", "insertions", "replacements",
-        "longest_change_length", "shortest_change_length", "average_change_length",
-        "change_ratio", "chars_added", "chars_deleted", "chars_net_change",
-        "levenshtein_distance"
+        "total_changes",
+        "deletions",
+        "insertions",
+        "replacements",
+        "longest_change_length",
+        "shortest_change_length",
+        "average_change_length",
+        "change_ratio",
+        "chars_added",
+        "chars_deleted",
+        "chars_net_change",
+        "levenshtein_distance",
     ]
 
     for attr in expected_attrs:
@@ -263,7 +273,9 @@ def test_api_integration() -> None:
     assert stats.total_changes == len(changes)
 
     # Verify stats match the actual changes
-    manual_replacements = sum(1 for redline in changes if redline.operation == "replace")
+    manual_replacements = sum(
+        1 for redline in changes if redline.operation == "replace"
+    )
     manual_insertions = sum(1 for redline in changes if redline.operation == "insert")
     manual_deletions = sum(1 for redline in changes if redline.operation == "delete")
 
@@ -291,7 +303,7 @@ def test_advanced_stats_basic_replace() -> None:
     assert stats.average_change_length == 11.0
 
     # Change ratio (11 changed chars out of 44 total)
-    assert abs(stats.change_ratio - 11/44) < 0.001
+    assert abs(stats.change_ratio - 11 / 44) < 0.001
 
     # Character-level statistics
     assert stats.chars_added == 11  # "walks past " (11 chars)
@@ -319,8 +331,8 @@ def test_advanced_stats_insert() -> None:
     assert stats.shortest_change_length == 10
     assert stats.average_change_length == 10.0
 
-    # Change ratio (10 changed chars out of 11 total)
-    assert abs(stats.change_ratio - 10/11) < 0.001
+    # Change ratio (10 changed chars out of 21 total - max of source/test lengths)
+    assert abs(stats.change_ratio - 10 / 21) < 0.001
 
     assert stats.chars_added == 10
     assert stats.chars_deleted == 0
@@ -344,7 +356,7 @@ def test_advanced_stats_delete() -> None:
     assert stats.average_change_length == 10.0
 
     # Change ratio (10 changed chars out of 21 total)
-    assert abs(stats.change_ratio - 10/21) < 0.001
+    assert abs(stats.change_ratio - 10 / 21) < 0.001
 
     assert stats.chars_added == 0
     assert stats.chars_deleted == 10
@@ -363,13 +375,13 @@ def test_advanced_stats_multiple_operations() -> None:
     # Should have 3 changes: replace, delete, insert
     assert stats.total_changes == 3
     assert stats.replacements == 1  # B -> X
-    assert stats.deletions == 1     # D deleted
-    assert stats.insertions == 1    # F inserted
+    assert stats.deletions == 1  # D deleted
+    assert stats.insertions == 1  # F inserted
 
     # Change lengths: "X " (2), "D " (2), "F" (1)
     assert stats.longest_change_length == 2
     assert stats.shortest_change_length == 1
-    assert stats.average_change_length == (2+2+1)/3  # 1.666...
+    assert stats.average_change_length == (2 + 2 + 1) / 3  # 1.666...
 
     # Character counts: added "X "+"F" (3), deleted "B "+"D " (4), net -1
     assert stats.chars_added == 3  # "X " + "F"
@@ -387,7 +399,7 @@ def test_advanced_stats_no_changes() -> None:
 
     assert stats.total_changes == 0
     assert stats.longest_change_length == 0
-    assert stats.shortest_change_length is None
+    assert stats.shortest_change_length == 0
     assert stats.average_change_length == 0.0
     assert stats.change_ratio == 0.0
     assert stats.chars_added == 0
@@ -407,7 +419,7 @@ def test_advanced_stats_empty_strings() -> None:
     # Empty identical strings
     assert stats.total_changes == 0
     assert stats.longest_change_length == 0
-    assert stats.shortest_change_length is None
+    assert stats.shortest_change_length == 0
     assert stats.average_change_length == 0.0
     assert stats.change_ratio == 0.0
     assert stats.chars_added == 0
@@ -441,8 +453,11 @@ def test_advanced_stats_levenshtein_fallback() -> None:
     test = "Hi world"
 
     # Mock import failure
-    with patch.dict('sys.modules', {'Levenshtein': None}):
-        with patch('builtins.__import__', side_effect=ImportError("No module named 'Levenshtein'")):
+    with patch.dict("sys.modules", {"Levenshtein": None}):
+        with patch(
+            "builtins.__import__",
+            side_effect=ImportError("No module named 'Levenshtein'"),
+        ):
             r = Redlines(source, test)
             stats = r.stats()
 
@@ -463,10 +478,18 @@ def test_advanced_stats_dataclass_attributes() -> None:
 
     # Check all new attributes are accessible
     required_attrs = [
-        "total_changes", "deletions", "insertions", "replacements",
-        "longest_change_length", "shortest_change_length", "average_change_length",
-        "change_ratio", "chars_added", "chars_deleted", "chars_net_change",
-        "levenshtein_distance"
+        "total_changes",
+        "deletions",
+        "insertions",
+        "replacements",
+        "longest_change_length",
+        "shortest_change_length",
+        "average_change_length",
+        "change_ratio",
+        "chars_added",
+        "chars_deleted",
+        "chars_net_change",
+        "levenshtein_distance",
     ]
 
     for attr in required_attrs:

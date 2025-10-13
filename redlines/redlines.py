@@ -331,7 +331,7 @@ class Redlines:
                 insertions=0,
                 replacements=0,
                 longest_change_length=0,
-                shortest_change_length=None,
+                shortest_change_length=0,
                 average_change_length=0.0,
                 change_ratio=0.0,
                 chars_added=0,
@@ -354,13 +354,13 @@ class Redlines:
             change_lengths.append(len(text))
 
         longest_change_length = max(change_lengths) if change_lengths else 0
-        shortest_change_length = min(change_lengths) if change_lengths else None
+        shortest_change_length = min(change_lengths) if change_lengths else 0
         average_change_length = (
             sum(change_lengths) / len(change_lengths) if change_lengths else 0.0
         )
 
         # Change ratio calculation
-        total_chars = len(self.source)
+        total_chars = max(len(self.source), len(self.test))
         changed_chars = sum(
             len(change.source_text or change.test_text or "") for change in changes
         )
