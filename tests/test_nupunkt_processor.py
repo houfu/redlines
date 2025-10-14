@@ -39,8 +39,8 @@ class TestNupunktProcessor:
 
         # Should correctly identify the change without splitting on abbreviations
         assert len(changes) == 1
-        assert "visited" in changes[0].source_text
-        assert "met" in changes[0].test_text
+        assert changes[0].source_text is not None and "visited" in changes[0].source_text
+        assert changes[0].test_text is not None and "met" in changes[0].test_text
 
     def test_decimals(self) -> None:
         """Test handling of decimal numbers."""
@@ -53,8 +53,8 @@ class TestNupunktProcessor:
 
         # Should not split on decimal point
         assert len(changes) == 1
-        assert "$3.50" in changes[0].source_text
-        assert "$4.50" in changes[0].test_text
+        assert changes[0].source_text is not None and "$3.50" in changes[0].source_text
+        assert changes[0].test_text is not None and "$4.50" in changes[0].test_text
 
     def test_urls_and_emails(self) -> None:
         """Test handling of URLs and email addresses."""
@@ -67,8 +67,8 @@ class TestNupunktProcessor:
 
         # Should not split on dots in URLs
         assert len(changes) == 1
-        assert "example.com" in changes[0].source_text
-        assert "example.org" in changes[0].test_text
+        assert changes[0].source_text is not None and "example.com" in changes[0].source_text
+        assert changes[0].test_text is not None and "example.org" in changes[0].test_text
 
     def test_legal_citations(self) -> None:
         """Test handling of legal citations with abbreviations."""
@@ -81,8 +81,8 @@ class TestNupunktProcessor:
 
         # Should correctly handle legal abbreviations
         assert len(changes) == 1
-        assert "2020" in changes[0].source_text
-        assert "2021" in changes[0].test_text
+        assert changes[0].source_text is not None and "2020" in changes[0].source_text
+        assert changes[0].test_text is not None and "2021" in changes[0].test_text
 
     def test_initials_and_acronyms(self) -> None:
         """Test handling of initials and acronyms with periods."""
@@ -95,8 +95,8 @@ class TestNupunktProcessor:
 
         # Should not split on periods in initials/acronyms
         assert len(changes) == 1
-        assert "U.S.A." in changes[0].source_text
-        assert "U.K." in changes[0].test_text
+        assert changes[0].source_text is not None and "U.S.A." in changes[0].source_text
+        assert changes[0].test_text is not None and "U.K." in changes[0].test_text
 
     def test_multiple_sentences(self) -> None:
         """Test correct handling of multiple sentences."""
@@ -109,8 +109,8 @@ class TestNupunktProcessor:
 
         # Should detect change in second sentence
         assert len(changes) == 1
-        assert "Second" in changes[0].source_text
-        assert "Modified" in changes[0].test_text
+        assert changes[0].source_text is not None and "Second" in changes[0].source_text
+        assert changes[0].test_text is not None and "Modified" in changes[0].test_text
 
     def test_complex_punctuation(self) -> None:
         """Test handling of complex punctuation."""
@@ -123,8 +123,8 @@ class TestNupunktProcessor:
 
         # Should handle quotes and punctuation correctly
         assert len(changes) == 1
-        assert "sure" in changes[0].source_text
-        assert "certain" in changes[0].test_text
+        assert changes[0].source_text is not None and "sure" in changes[0].source_text
+        assert changes[0].test_text is not None and "certain" in changes[0].test_text
 
     def test_ellipsis(self) -> None:
         """Test handling of ellipsis."""
@@ -137,8 +137,8 @@ class TestNupunktProcessor:
 
         # Should not split on ellipsis
         assert len(changes) == 1
-        assert "well" in changes[0].source_text
-        assert "um" in changes[0].test_text
+        assert changes[0].source_text is not None and "well" in changes[0].source_text
+        assert changes[0].test_text is not None and "um" in changes[0].test_text
 
     def test_paragraph_boundaries(self) -> None:
         """Test that paragraph boundaries are respected."""
@@ -151,8 +151,8 @@ class TestNupunktProcessor:
 
         # Should detect change in second paragraph
         assert len(changes) == 1
-        assert "paragraph" in changes[0].source_text
-        assert "modified" in changes[0].test_text
+        assert changes[0].source_text is not None and "paragraph" in changes[0].source_text
+        assert changes[0].test_text is not None and "modified" in changes[0].test_text
 
     def test_no_changes(self) -> None:
         """Test when there are no changes."""
@@ -188,8 +188,8 @@ class TestNupunktProcessor:
 
         # Both should detect same change
         assert nupunkt_changes[0].operation == whole_changes[0].operation
-        assert "brown" in nupunkt_changes[0].source_text
-        assert "red" in nupunkt_changes[0].test_text
+        assert nupunkt_changes[0].source_text is not None and "brown" in nupunkt_changes[0].source_text
+        assert nupunkt_changes[0].test_text is not None and "red" in nupunkt_changes[0].test_text
 
 
 class TestNupunktProcessorWithoutImport:

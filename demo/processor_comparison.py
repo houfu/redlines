@@ -12,7 +12,9 @@ The comparison focuses on:
 """
 
 import time
-from typing import Literal
+from typing import Any, Literal, TypedDict
+
+from redlines.processor import Redline
 
 try:
     from redlines import Redlines
@@ -25,6 +27,24 @@ except ImportError:
     sys.path.insert(0, str(Path(__file__).parent.parent))
     from redlines import Redlines
     from redlines.processor import NupunktProcessor, WholeDocumentProcessor
+
+
+class EdgeCaseResult(TypedDict):
+    """Result structure for edge case comparisons."""
+    whole_changes: list[Redline]
+    nupunkt_changes: list[Redline]
+    whole_output: str | None
+    nupunkt_output: str | None
+    match: bool
+
+
+class PerformanceResult(TypedDict):
+    """Result structure for performance comparisons."""
+    size: str
+    whole_time: float | None
+    whole_changes: int
+    nupunkt_time: float | None
+    nupunkt_changes: int
 
 
 # Edge case test texts
@@ -157,7 +177,7 @@ def benchmark_processor(
     return avg_time, num_changes
 
 
-def run_edge_case_comparison(case_name: str, case_data: dict) -> dict:
+def run_edge_case_comparison(case_name: str, case_data: dict[str, str]) -> EdgeCaseResult:
     """Run comparison for a single edge case and return results."""
     print(f"\n{'='*70}")
     print(f"Edge Case: {case_name}")
@@ -170,7 +190,7 @@ def run_edge_case_comparison(case_name: str, case_data: dict) -> dict:
     print(f"\nSource: {source}")
     print(f"Test:   {test}")
 
-    results = {
+    results: EdgeCaseResult = {
         "whole_changes": [],
         "nupunkt_changes": [],
         "whole_output": None,
@@ -236,21 +256,23 @@ def run_edge_case_comparison(case_name: str, case_data: dict) -> dict:
         print(f"Error: {e}")
 
     # Compare outputs
-    if results["whole_output"] and results["nupunkt_output"]:
-        results["match"] = results["whole_output"] == results["nupunkt_output"]
+    whole_out = results["whole_output"]
+    nupunkt_out = results["nupunkt_output"]
+    if whole_out and nupunkt_out and isinstance(whole_out, str) and isinstance(nupunkt_out, str):
+        results["match"] = whole_out == nupunkt_out
         if results["match"]:
             print("\n✓ Both processors produced IDENTICAL output")
         else:
             print("\n✗ Processors produced DIFFERENT outputs")
             print("\nWholeDocument output:")
-            print(f"  {results['whole_output'][:200]}...")
+            print(f"  {whole_out[:200]}...")
             print("\nNupunkt output:")
-            print(f"  {results['nupunkt_output'][:200]}...")
+            print(f"  {nupunkt_out[:200]}...")
 
     return results
 
 
-def run_performance_comparison() -> dict:
+def run_performance_comparison() -> dict[str, PerformanceResult]:
     """Run performance benchmarks across different text sizes and return results."""
     print("\n" + "="*70)
     print("PERFORMANCE COMPARISON")
@@ -259,7 +281,7 @@ def run_performance_comparison() -> dict:
     print(f"\n{'Size':<15} {'Processor':<20} {'Avg Time':<15} {'Changes':<10} {'Speedup'}")
     print("-" * 75)
 
-    results = {}
+    results: dict[str, PerformanceResult] = {}
 
     for size_name, text_data in PERFORMANCE_TEXTS.items():
         source = text_data["source"]
@@ -311,7 +333,7 @@ def run_performance_comparison() -> dict:
     return results
 
 
-def print_comparison_table(results: dict) -> None:
+def print_comparison_table(results: dict[str, PerformanceResult]) -> None:
     """Print a comprehensive comparison table of the results."""
     print("\n" + "="*80)
     print("DETAILED PERFORMANCE COMPARISON TABLE")
@@ -333,7 +355,7 @@ def print_comparison_table(results: dict) -> None:
         print(f"{size_name:<15} {'Size':<25} {size:<20} {size:<20} {'-':<15}")
 
         # Processing time
-        if whole_time is not None and nupunkt_time is not None:
+        if whole_time is not None and nupunkt_time is not None and isinstance(whole_time, float) and isinstance(nupunkt_time, float):
             whole_time_str = f"{whole_time*1000:.2f} ms"
             nupunkt_time_str = f"{nupunkt_time*1000:.2f} ms"
             ratio = f"{nupunkt_time/whole_time:.2f}x slower"
@@ -346,7 +368,7 @@ def print_comparison_table(results: dict) -> None:
         print(f"{'':15} {'Changes Detected':<25} {whole_changes:<20} {nupunkt_changes:<20} {'-':<15}")
 
         # Throughput (chars/sec)
-        if whole_time is not None and nupunkt_time is not None:
+        if whole_time is not None and nupunkt_time is not None and isinstance(whole_time, float) and isinstance(nupunkt_time, float) and isinstance(size, str):
             # Estimate char count from size description
             char_count = int(size.replace("~", "").replace(",", "").split()[0])
             whole_throughput = int(char_count / whole_time)
@@ -364,11 +386,13 @@ def print_comparison_table(results: dict) -> None:
     print()
 
     # Calculate averages and ranges
-    all_ratios = []
+    all_ratios: list[float] = []
     for data in results.values():
-        if data["whole_time"] is not None and data["nupunkt_time"] is not None:
-            ratio = data["nupunkt_time"] / data["whole_time"]
-            all_ratios.append(ratio)
+        whole_t = data["whole_time"]
+        nupunkt_t = data["nupunkt_time"]
+        if whole_t is not None and nupunkt_t is not None and isinstance(whole_t, float) and isinstance(nupunkt_t, float):
+            ratio_val: float = nupunkt_t / whole_t
+            all_ratios.append(ratio_val)
 
     if all_ratios:
         avg_ratio = sum(all_ratios) / len(all_ratios)
@@ -383,7 +407,7 @@ def print_comparison_table(results: dict) -> None:
         print()
 
 
-def print_accuracy_table(accuracy_results: dict) -> None:
+def print_accuracy_table(accuracy_results: dict[str, EdgeCaseResult]) -> None:
     """Print a comprehensive accuracy comparison table."""
     print("\n" + "="*80)
     print("ACCURACY COMPARISON TABLE")
@@ -453,7 +477,7 @@ based on their tokenization strategy (paragraph-level vs sentence-level).
     print()
 
 
-def main():
+def main() -> None:
     """Run all comparisons."""
     print("="*70)
     print("PROCESSOR COMPARISON DEMO")
