@@ -59,6 +59,8 @@ You may also want to consider a related textual project if you want to use redli
 [redlines-textual](https://github.com/houfu/redlines-textual).
 """
 
+import sys
+import typing as t
 from importlib.metadata import version
 
 import rich_click as click
@@ -67,15 +69,22 @@ from rich.layout import Layout
 from rich.panel import Panel
 from rich.text import Text
 
-from redlines import Redlines
+from .enums import MarkdownStyle
+from .redlines import Redlines
 
 # Use Rich markup
 click.rich_click.USE_RICH_MARKUP = True
 click.rich_click.SHOW_ARGUMENTS = True
 
 
+if sys.version_info < (3, 10):
+    raise RuntimeError(
+        "redlines requires Python 3.10 or higher. Please upgrade your Python version."
+    )
+
+
 @group()
-def print_intro():
+def print_intro() -> t.Generator[Text, None, None]:
     """@private"""
     yield Text.from_markup(
         f"\n[bold red]--__--[/] [b]Redlines CLI[/b] [magenta]v{version('redlines')}[/] [bold red]--__--[/]\n\n"
@@ -86,7 +95,7 @@ def print_intro():
 
 
 @click.group()
-def cli():
+def cli() -> None:
     """
     [red on black]Redlines[/] shows the differences between two strings/text.
 
@@ -104,7 +113,7 @@ def cli():
 @cli.command()
 @click.argument("source", required=True)
 @click.argument("test", required=True)
-def text(source, test):
+def text(source: str, test: str) -> None:
     """
     Compares the strings SOURCE and TEST and produce a redline in the terminal in a display that shows the original, new and redlined text.
 
@@ -134,7 +143,7 @@ def text(source, test):
 @cli.command()
 @click.argument("source", required=True)
 @click.argument("test", required=True)
-def simple_text(source, test):
+def simple_text(source: str, test: str) -> None:
     """
     Compares the strings SOURCE and TEST and outputs the redline in the terminal.
 
@@ -154,11 +163,11 @@ def simple_text(source, test):
     "markdown_style",
     "--markdown-style",
     "-m",
-    type=click.Choice(["red_green", "none", "red", "ghfm", "bbcode", "streamlit"]),
+    type=click.Choice(list(MarkdownStyle), case_sensitive=False),
     default="red_green",
     help="The markdown style to use.",
 )
-def markdown(source, test, markdown_style):
+def markdown(source: str, test: str, markdown_style: MarkdownStyle) -> None:
     """
     Compares the strings SOURCE and TEST and outputs the redline as a markdown.
 

@@ -7,7 +7,7 @@ authors = [
     { name = "houfu", email = "houfu@outlook.sg" }
 ]
 license = { text = "MIT" }
-requires-python = ">=3.8"
+requires-python = ">=3.10"
 dependencies = [
     "click>=8.1.7",
     "rich-click>=1.6.1",
@@ -15,11 +15,15 @@ dependencies = [
 ]
 urls = { homepage = "https://houfu.github.io/redlines/", repository = "https://github.com/houfu/redlines" }
 
+[project.optional-dependencies]
+levenshtein = ["Levenshtein>=0.27.1"]
+
 [project.scripts]
 redlines = 'redlines.cli:cli'
 
 [tool.uv]
 dev-dependencies = [
+    "mypy>=1.14.1",
     "pdoc>=14.1.0",
     "pytest>=7.4.2",
     "pytest-cov>=3.0.0",
@@ -30,3 +34,19 @@ dev-dependencies = [
 [build-system]
 requires = ["hatchling>=1.18.0"]
 build-backend = "hatchling.build"
+
+
+[tool.mypy]
+python_version = "3.10"
+strict = true
+disable_error_code = "misc"
+
+ignore_missing_imports = false
+follow_untyped_imports = true
+
+implicit_optional = true
+strict_optional = true
+
+show_error_context = true
+show_error_code_links = true
+pretty = true

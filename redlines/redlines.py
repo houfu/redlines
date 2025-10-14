@@ -1,9 +1,13 @@
 from __future__ import annotations
 
 import re
+import typing as t
 from rich.text import Text
-from redlines.document import Document
-from redlines.processor import WholeDocumentProcessor, Redline
+from typing_extensions import Unpack
+
+from .document import Document
+from .enums import MarkdownStyle, OutputType
+from .processor import DiffOperation, Redline, Stats, WholeDocumentProcessor
 
 __all__ = ["Redlines"]
 
@@ -20,15 +24,9 @@ class Redlines:
     _seq1: list[str] | None = None
     _seq2: list[str] | None = None
 
-    def __init__(
-        self, source: str | Document, test: str | Document | None = None, **options
-    ):
+    def __init__(self, source: str | Document, test: str | Document | None = None, **options):
         """
         Initialize a Redlines object with a source and optional test text.
-
-        :param source: The source text to compare from.
-        :param test: The test text to compare to.
-        :param options: Optional display or formatting options.
         """
         self.processor = WholeDocumentProcessor()
         self.source = source.text if isinstance(source, Document) else source
@@ -45,10 +43,18 @@ class Redlines:
     @property
     def source(self) -> str:
         """The source text used as the comparison baseline."""
+        if self._source is None:
+            raise ValueError(
+                "Cannot access 'source' property: No source text was provided.\n"
+                "Why it went wrong: The Redlines object was created without a source parameter.\n"
+                "How to fix: Pass a source string when creating the Redlines object.\n\n"
+                "Example:\n"
+                "    redlines = Redlines('source text', 'test text')"
+            )
         return self._source
 
     @source.setter
-    def source(self, value):
+    def source(self, value: str | Document) -> None:
         self._source = value.text if isinstance(value, Document) else value
         if self._test is not None:
             self._redlines = self.processor.process(self._source, self._test)
@@ -56,10 +62,18 @@ class Redlines:
     @property
     def test(self) -> str:
         """The text to be compared against the source."""
+        if self._test is None:
+            raise ValueError(
+                "Cannot access 'test' property: No test text was provided.\n"
+                "Why it went wrong: The Redlines object was created without a test parameter.\n"
+                "How to fix: Pass a test string when creating the Redlines object.\n\n"
+                "Example:\n"
+                "    redlines = Redlines('source text', 'test text')"
+            )
         return self._test
 
     @test.setter
-    def test(self, value):
+    def test(self, value: str | Document) -> None:
         self._test = value.text if isinstance(value, Document) else value
         if self._source is not None and self._test is not None:
             self._redlines = self.processor.process(self._source, self._test)
@@ -68,15 +82,14 @@ class Redlines:
     def redlines(self) -> list[Redline]:
         """List of Redline objects describing differences between source and test."""
         if self._redlines is None:
-    raise ValueError(
-        "Comparison failed: No test string was provided when the function was called or during initialization.\n"
-        "Why it went wrong: The Redlines object has no test text to compare against.\n"
-        "How to fix: Provide both a source and a test string when creating or comparing.\n\n"
-        "Example:\n"
-        "    redlines = Redlines('source text', 'test text')\n"
-        "    result = redlines.output_markdown"
-    )
-
+            raise ValueError(
+                "Comparison failed: No test string was provided when the function was called or during initialization.\n"
+                "Why it went wrong: The Redlines object has no test text to compare against.\n"
+                "How to fix: Provide both a source and a test string when creating or comparing.\n\n"
+                "Example:\n"
+                "    redlines = Redlines('source text', 'test text')\n"
+                "    result = redlines.output_markdown"
+            )
         return self._redlines
 
     # --------------------------------------------------
@@ -98,31 +111,18 @@ class Redlines:
         result = []
 
         md_styles = {
-            "ins": (
-                "<span style='color:green;font-weight:700;'>",
-                "</span>",
-            ),
-            "del": (
-                "<span style='color:red;font-weight:700;text-decoration:line-through;'>",
-                "</span>",
-            ),
+            "ins": ("<span style='color:green;font-weight:700;'>", "</span>"),
+            "del": ("<span style='color:red;font-weight:700;text-decoration:line-through;'>", "</span>"),
         }
 
-        # Apply optional markdown style
         style = self.options.get("markdown_style") if hasattr(self, "options") else None
 
         if style == "none" or style is None:
             md_styles = {"ins": ("<ins>", "</ins>"), "del": ("<del>", "</del>")}
         elif style == "red":
             md_styles = {
-                "ins": (
-                    "<span style='color:red;font-weight:700;'>",
-                    "</span>",
-                ),
-                "del": (
-                    "<span style='color:red;font-weight:700;text-decoration:line-through;'>",
-                    "</span>",
-                ),
+                "ins": ("<span style='color:red;font-weight:700;'>", "</span>"),
+                "del": ("<span style='color:red;font-weight:700;text-decoration:line-through;'>", "</span>"),
             }
         elif style == "custom_css":
             ins_class = self.options.get("ins_class", "redline-inserted")
@@ -141,7 +141,6 @@ class Redlines:
         elif style == "streamlit":
             md_styles = {"ins": ("**:green[", "]** "), "del": ("~~:red[", "]~~ ")}
 
-        # Build formatted markdown
         for redline in self.redlines:
             tag, i1, i2, j1, j2 = redline.opcodes
             source_tokens = redline.source_chunk.text
@@ -155,15 +154,11 @@ class Redlines:
                 for part in re.split("¶ ", temp):
                     result.append(f"{md_styles['ins'][0]}{part}{md_styles['ins'][1]}\n\n")
                 if len(result) > 0:
-                    result.pop()  # remove trailing newlines
+                    result.pop()
             elif tag == "delete":
-                result.append(
-                    f"{md_styles['del'][0]}{''.join(source_tokens[i1:i2])}{md_styles['del'][1]}"
-                )
+                result.append(f"{md_styles['del'][0]}{''.join(source_tokens[i1:i2])}{md_styles['del'][1]}")
             elif tag == "replace":
-                result.append(
-                    f"{md_styles['del'][0]}{''.join(source_tokens[i1:i2])}{md_styles['del'][1]}"
-                )
+                result.append(f"{md_styles['del'][0]}{''.join(source_tokens[i1:i2])}{md_styles['del'][1]}")
                 temp = "".join(test_tokens[j1:j2])
                 for part in re.split("¶ ", temp):
                     result.append(f"{md_styles['ins'][0]}{part}{md_styles['ins'][1]}\n\n")
@@ -181,10 +176,10 @@ class Redlines:
         """Return the differences as colored text for console output."""
         console_text = Text()
 
-        for redline in self.redlines:
-            tag, i1, i2, j1, j2 = redline.opcodes
-            source_tokens = redline.source_chunk.text
-            test_tokens = redline.test_chunk.text
+        for diff_op in self._redlines:
+            tag, i1, i2, j1, j2 = diff_op.opcodes
+            source_tokens = diff_op.source_chunk.text
+            test_tokens = diff_op.test_chunk.text
 
             if tag == "equal":
                 console_text.append(re.sub("¶ ", "\n\n", "".join(source_tokens[i1:i2])))
@@ -200,18 +195,9 @@ class Redlines:
 
         return console_text
 
-    # --------------------------------------------------
-    # Compare Function
-    # --------------------------------------------------
-
     def compare(self, test: str | None = None, output: str = "markdown", **options):
         """
         Compare `test` with `source` and return the delta in the specified format.
-
-        :param test: Optional test string to compare with.
-        :param output: Format of output ("markdown" or "rich").
-        :param options: Extra formatting options.
-        :return: The formatted diff result.
         """
         if options:
             self.options = options
@@ -219,15 +205,15 @@ class Redlines:
         if test:
             if not (self._test and test == self._test):
                 self.test = test
-       elif self._test is None:
-    raise ValueError(
-        "Cannot perform comparison: No test string was provided.\n"
-        "Why it went wrong: The Redlines object is missing the test text.\n"
-        "How to fix: Add a test string either during initialization or when calling compare().\n\n"
-        "Example:\n"
-        "    redlines = Redlines('source', 'test')\n"
-        "    print(redlines.compare())"
-    )
+        elif self._test is None:
+            raise ValueError(
+                "Cannot perform comparison: No test string was provided.\n"
+                "Why it went wrong: The Redlines object is missing the test text.\n"
+                "How to fix: Add a test string either during initialization or when calling compare().\n\n"
+                "Example:\n"
+                "    redlines = Redlines('source', 'test')\n"
+                "    print(redlines.compare())"
+            )
 
         if output == "markdown":
             return self.output_markdown
