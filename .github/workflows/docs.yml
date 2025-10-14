@@ -3,7 +3,7 @@ name: website
 # build the documentation whenever there are new commits on main
 on:
   release:
-      - published
+      types:  [published]
     # Alternative: only build for tags.
     # tags:
     #   - '*'
