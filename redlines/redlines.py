@@ -68,9 +68,15 @@ class Redlines:
     def redlines(self) -> list[Redline]:
         """List of Redline objects describing differences between source and test."""
         if self._redlines is None:
-            raise ValueError(
-                "No test string was provided when the function was called or during initialization."
-            )
+    raise ValueError(
+        "Comparison failed: No test string was provided when the function was called or during initialization.\n"
+        "Why it went wrong: The Redlines object has no test text to compare against.\n"
+        "How to fix: Provide both a source and a test string when creating or comparing.\n\n"
+        "Example:\n"
+        "    redlines = Redlines('source text', 'test text')\n"
+        "    result = redlines.output_markdown"
+    )
+
         return self._redlines
 
     # --------------------------------------------------
@@ -213,8 +219,15 @@ class Redlines:
         if test:
             if not (self._test and test == self._test):
                 self.test = test
-        elif self._test is None:
-            raise ValueError("No test string provided to compare.")
+       elif self._test is None:
+    raise ValueError(
+        "Cannot perform comparison: No test string was provided.\n"
+        "Why it went wrong: The Redlines object is missing the test text.\n"
+        "How to fix: Add a test string either during initialization or when calling compare().\n\n"
+        "Example:\n"
+        "    redlines = Redlines('source', 'test')\n"
+        "    print(redlines.compare())"
+    )
 
         if output == "markdown":
             return self.output_markdown
