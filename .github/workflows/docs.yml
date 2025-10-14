@@ -2,9 +2,8 @@ name: website
 
 # build the documentation whenever there are new commits on main
 on:
-  push:
-    branches:
-      - main
+  release:
+      types:  [published]
     # Alternative: only build for tags.
     # tags:
     #   - '*'
@@ -30,6 +29,34 @@ jobs:
           cache-dependency-glob: "uv.lock"
       - name: Install the project
         run: uv sync --all-extras --dev
+      - name: Extract version from tag
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/}
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+          echo "Building docs for version: $VERSION"
+      - name: Create version wrapper
+        run: |
+          mv docs generated-docs
+          mkdir -p docs
+          cat > docs/index.html << 'EOF'
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <meta charset="utf-8">
+            <title>Documentation</title>
+            <meta http-equiv="refresh" content="0; url=./generated-docs/index.html">
+          </head>
+          <body>
+            <div style="background: #e3f2fd; padding: 12px; text-align: center; border-bottom: 2px solid #2196f3; font-weight: bold;">
+              Documentation for version $VERSION
+            </div>
+            <h1>Documentation for version $VERSION</h1>
+            <p>Redirecting to <a href="./generated-docs/index.html">documentation</a>...</p>
+          </body>
+          </html>
+          EOF
+          mv generated-docs docs/
+
       - run: uv run pdoc -o docs/ redlines
       - uses: actions/upload-pages-artifact@v3
         with:
