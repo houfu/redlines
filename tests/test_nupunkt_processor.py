@@ -2,14 +2,7 @@
 import pytest
 
 from redlines import Redlines
-
-# Check if nupunkt is available
-try:
-    from redlines.processor import NupunktProcessor
-
-    NUPUNKT_AVAILABLE = True
-except ImportError:
-    NUPUNKT_AVAILABLE = False
+from redlines.processor import NUPUNKT_AVAILABLE, NupunktProcessor
 
 
 @pytest.mark.skipif(not NUPUNKT_AVAILABLE, reason="nupunkt not installed")
