@@ -4,13 +4,30 @@ import re
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from difflib import SequenceMatcher
-from typing import Literal
+from typing import TYPE_CHECKING, Any, Literal
+
+if TYPE_CHECKING:
+    from typing import Callable
+
+try:
+    from nupunkt import sent_tokenize
+    NUPUNKT_AVAILABLE = True
+except ImportError:
+    NUPUNKT_AVAILABLE = False
+    sent_tokenize: Callable[[str], Any] = lambda x: []  # type: ignore[no-redef]
+
+try:
+    import Levenshtein
+    LEVENSHTEIN_AVAILABLE = True
+except ImportError:
+    LEVENSHTEIN_AVAILABLE = False
 
 from .document import Document
 
 __all__: tuple[str, ...] = (
     "RedlinesProcessor",
     "WholeDocumentProcessor",
+    "NupunktProcessor",
     "Redline",
     "Stats",
     "DiffOperation",
@@ -105,6 +122,52 @@ def concatenate_paragraphs_and_add_chr_182(text: str) -> str:
         result.append(" ¶ ")
         # Add a string ' ¶ ' between paragraphs.
     if len(paragraphs) > 0:
+        result.pop()
+
+    return "".join(result)
+
+
+def concatenate_sentences_and_add_chr_182(text: str) -> str:
+    """
+    Split text into sentences using nupunkt and mark boundaries with '¶'.
+
+    Uses intelligent sentence boundary detection that handles:
+    - Abbreviations (Dr., Mr., etc.)
+    - Decimals and numbers (3.14, $5.99)
+    - URLs and email addresses
+    - Complex punctuation
+
+    For example: "Dr. Smith said hello. Mr. Jones replied."
+    Returns: "Dr. Smith said hello. ¶ Mr. Jones replied."
+
+    Note: Requires nupunkt to be installed (Python 3.11+)
+
+    :param text: The text to split into sentences.
+    :type text: str
+    :return: Text with sentences separated by ' ¶ ' markers.
+    :rtype: str
+    :raises ImportError: If nupunkt is not installed.
+    """
+    if not NUPUNKT_AVAILABLE:
+        raise ImportError(
+            "nupunkt is required for sentence tokenization. "
+            "Install it with: pip install nupunkt>=0.6.0 "
+            "(requires Python 3.11+)"
+        )
+
+    sentences = sent_tokenize(text)
+
+    result: list[str] = []
+    for sentence in sentences:
+        # sent_tokenize can return either strings or tuples (text, score)
+        # We only care about the text
+        if isinstance(sentence, tuple):
+            text_part = sentence[0]
+        else:
+            text_part = sentence
+        result.append(text_part.strip())
+        result.append(" ¶ ")
+    if len(sentences) > 0:
         result.pop()
 
     return "".join(result)
@@ -245,6 +308,72 @@ class WholeDocumentProcessor(RedlinesProcessor):
             concatenate_paragraphs_and_add_chr_182(source_text)
         )
         test_tokens = tokenize_text(concatenate_paragraphs_and_add_chr_182(test_text))
+
+        # Normalize tokens by stripping whitespace for comparison
+        # This allows the matcher to focus on content differences rather than whitespace variations
+        # while still preserving the original tokens (including whitespace) for display in the output
+        seq_source_normalized = [token.strip() for token in source_tokens]
+        seq_test_normalized = [token.strip() for token in test_tokens]
+
+        matcher = SequenceMatcher(None, seq_source_normalized, seq_test_normalized)
+
+        return [
+            DiffOperation(
+                source_chunk=Chunk(text=source_tokens, chunk_location=None),
+                test_chunk=Chunk(text=test_tokens, chunk_location=None),
+                opcodes=opcode,
+            )
+            for opcode in matcher.get_opcodes()
+        ]
+
+
+class NupunktProcessor(RedlinesProcessor):
+    """
+    A redlines processor that uses nupunkt for intelligent sentence boundary detection.
+
+    This processor splits documents into sentences using nupunkt's advanced tokenization,
+    which better handles:
+    - Abbreviations (Dr., Mr., etc.)
+    - Decimals and numbers (3.14, $5.99)
+    - URLs and email addresses
+    - Complex punctuation
+
+    The result is sentence-level granularity in diffs, providing more precise change detection
+    compared to paragraph-level comparison.
+
+    Note: Requires nupunkt>=0.6.0 (Python 3.11+)
+
+    Example:
+        ```python
+        from redlines import Redlines
+        from redlines.processor import NupunktProcessor
+
+        processor = NupunktProcessor()
+        r = Redlines(source, test, processor=processor)
+        ```
+    """
+
+    def process(self, source: Document | str, test: Document | str) -> list[DiffOperation]:
+        """
+        Compare two documents using sentence-level tokenization.
+
+        :param source: The source document to compare.
+        :type source: Document | str
+        :param test: The test document to compare.
+        :type test: Document | str
+        :return: A list of `DiffOperation` that describe the differences between the two documents.
+        :rtype: list[DiffOperation]
+        :raises ImportError: If nupunkt is not installed.
+        """
+        # Extract text from documents if needed
+        source_text = source.text if isinstance(source, Document) else source
+        test_text = test.text if isinstance(test, Document) else test
+
+        # Tokenize the texts using nupunkt sentence boundaries
+        source_tokens = tokenize_text(
+            concatenate_sentences_and_add_chr_182(source_text)
+        )
+        test_tokens = tokenize_text(concatenate_sentences_and_add_chr_182(test_text))
 
         # Normalize tokens by stripping whitespace for comparison
         # This allows the matcher to focus on content differences rather than whitespace variations

@@ -16,6 +16,9 @@ dependencies = [
 urls = { homepage = "https://houfu.github.io/redlines/", repository = "https://github.com/houfu/redlines" }
 
 [project.optional-dependencies]
+nupunkt = [
+    "nupunkt>=0.6.0; python_version>='3.11'",
+]
 levenshtein = ["Levenshtein>=0.27.1"]
 
 [project.scripts]
@@ -37,7 +40,7 @@ build-backend = "hatchling.build"
 
 
 [tool.mypy]
-python_version = "3.10"
+python_version = "3.11"
 strict = true
 disable_error_code = "misc"
 
@@ -50,3 +53,11 @@ strict_optional = true
 show_error_context = true
 show_error_code_links = true
 pretty = true
+
+[[tool.mypy.overrides]]
+module = "nupunkt"
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "Levenshtein"
+ignore_missing_imports = true

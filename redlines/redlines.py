@@ -8,7 +8,7 @@ from typing_extensions import Unpack
 
 from .document import Document
 from .enums import MarkdownStyle, OutputType
-from .processor import DiffOperation, Redline, Stats, WholeDocumentProcessor
+from .processor import DiffOperation, Redline, RedlinesProcessor, Stats, WholeDocumentProcessor
 
 __all__: tuple[str, ...] = (
     "Redlines",
@@ -107,6 +107,7 @@ class Redlines:
         self,
         source: str | Document,
         test: str | Document | None = None,
+        processor: RedlinesProcessor | None = None,
         **options: Unpack[RedlinesOptions],
     ):
         """
@@ -143,14 +144,31 @@ class Redlines:
 
         ```
 
+        For advanced use cases, you can specify a custom processor for different tokenization strategies:
+
+        ```python
+        from redlines import Redlines
+        from redlines.processor import NupunktProcessor
+
+        # Use sentence-level tokenization (requires nupunkt, Python 3.11+)
+        processor = NupunktProcessor()
+        test = Redlines(
+            "Dr. Smith said hello. Mr. Jones replied.",
+            "Dr. Smith said hi. Mr. Jones replied.",
+            processor=processor
+        )
+        ```
+
         :param source: The source text to be used as a basis for comparison.
         :type source: str | Document
         :param test: Optional test text to compare with the source.
         :type test: str | Document | None
+        :param processor: Optional custom processor for tokenization. Defaults to WholeDocumentProcessor (paragraph-level).
+        :type processor: RedlinesProcessor | None
         :param options: Additional options for comparison and output formatting.
         :type options: RedlinesOptions
         """
-        self.processor = WholeDocumentProcessor()
+        self.processor = processor if processor is not None else WholeDocumentProcessor()
         self.source = source.text if isinstance(source, Document) else source
         self.options = options
         self._diff_operations = None

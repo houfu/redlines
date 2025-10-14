@@ -40,6 +40,22 @@ for a variety of environments like Streamlit, Jupyter Notebooks, Google Colab an
 pip install redlines
 ```
 
+### Optional: Install with NupunktProcessor support
+
+For advanced sentence boundary detection (requires Python 3.11+):
+
+```shell
+pip install redlines[nupunkt]
+```
+
+The NupunktProcessor provides intelligent sentence tokenization that handles:
+- Abbreviations (Dr., Mr., etc.)
+- Decimals and numbers (3.14, $5.99)
+- URLs and email addresses
+- Legal citations and complex punctuation
+
+See the [Usage](#advanced-custom-processors) section below for more details.
+
 ## Usage
 
 The library contains one class: `Redlines`, which is used to compare text.
@@ -74,12 +90,48 @@ assert (
 )
 ```
 
+### Advanced: Custom Processors
+
+Redlines supports custom processors for different tokenization strategies. By default, it uses `WholeDocumentProcessor` which tokenizes at the paragraph level.
+
+#### Using NupunktProcessor
+
+For sentence-level tokenization with intelligent boundary detection (requires `pip install redlines[nupunkt]`):
+
+```python
+from redlines import Redlines
+from redlines.processor import NupunktProcessor
+
+# Use NupunktProcessor for better handling of abbreviations and complex punctuation
+processor = NupunktProcessor()
+test = Redlines(
+    "Dr. Smith said hello. Mr. Jones replied.",
+    "Dr. Smith said hi. Mr. Jones replied.",
+    processor=processor
+)
+```
+
+**When to use NupunktProcessor:**
+- Legal or technical documents with many abbreviations
+- Text with URLs, emails, or complex citations
+- When you need sentence-level granularity
+- Documents with decimal numbers that shouldn't be treated as sentence boundaries
+
+**When to use WholeDocumentProcessor (default):**
+- Simple documents without complex sentence structures
+- When speed is critical (5-6x faster than NupunktProcessor)
+- When paragraph-level granularity is sufficient
+
+See the [demo comparison](demo/README.md) for detailed performance and accuracy benchmarks.
+
+### Command Line Tool
+
 Redlines also features a simple command line tool `redlines` to visualise the differences in text in the terminal.
 
 ```
- Usage: redlines text [OPTIONS] SOURCE TEST                                                                                                                                                                                                   
-                                                                                                                                                                                                                                              
- Compares the strings SOURCE and TEST and produce a redline in the terminal. 
+ Usage: redlines text [OPTIONS] SOURCE TEST
+
+ Compares the strings SOURCE and TEST and produce a redline in the terminal.
 ```
 
 You may also want to check out the demo project [redlines-textual](https://github.com/houfu/redlines-textual).
