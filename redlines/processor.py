@@ -4,13 +4,17 @@ import re
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from difflib import SequenceMatcher
-from typing import Literal
+from typing import TYPE_CHECKING, Any, Literal
+
+if TYPE_CHECKING:
+    from typing import Callable
 
 try:
     from nupunkt import sent_tokenize
     NUPUNKT_AVAILABLE = True
 except ImportError:
     NUPUNKT_AVAILABLE = False
+    sent_tokenize: Callable[[str], Any] = lambda x: []  # type: ignore[no-redef]
 
 from .document import Document
 

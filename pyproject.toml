@@ -52,3 +52,7 @@ strict_optional = true
 show_error_context = true
 show_error_code_links = true
 pretty = true
+
+[[tool.mypy.overrides]]
+module = "nupunkt"
+ignore_missing_imports = true
