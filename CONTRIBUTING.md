@@ -181,6 +181,8 @@ pdoc --html --output-dir docs/ your_package_name
 cd docs
 python -m http.server 8000
 # then open http://localhost:8000 in your browser
+```
+
 ## Styleguides
 
 For code, we use the [Black formatter](https://black.readthedocs.io/en/stable/index.html). Please be encouraged to use
