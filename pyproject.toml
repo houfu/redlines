@@ -12,9 +12,13 @@ dependencies = [
     "click>=8.1.7",
     "rich-click>=1.6.1",
     "rich>=13.3.5",
-    "nupunkt>=0.6.0",
 ]
 urls = { homepage = "https://houfu.github.io/redlines/", repository = "https://github.com/houfu/redlines" }
+
+[project.optional-dependencies]
+nupunkt = [
+    "nupunkt>=0.6.0",
+]
 
 [project.scripts]
 redlines = 'redlines.cli:cli'
