@@ -2,7 +2,7 @@
 
 import pytest
 from redlines import Redlines
-from redlines.processor import Redline, Stats
+from redlines.processor import LEVENSHTEIN_AVAILABLE, Redline, Stats
 
 
 def test_changes_property_replace() -> None:
@@ -310,9 +310,12 @@ def test_advanced_stats_basic_replace() -> None:
     assert stats.chars_deleted == 11  # "jumps over " (11 chars)
     assert stats.chars_net_change == 0  # Same length
 
-    # Levenshtein distance should be available
-    assert stats.levenshtein_distance is not None
-    assert stats.levenshtein_distance >= 1  # At least some distance
+    # Levenshtein distance should be available if library installed
+    if LEVENSHTEIN_AVAILABLE:
+        assert stats.levenshtein_distance is not None
+        assert stats.levenshtein_distance >= 1  # At least some distance
+    else:
+        assert stats.levenshtein_distance is None
 
 
 def test_advanced_stats_insert() -> None:
@@ -405,7 +408,10 @@ def test_advanced_stats_no_changes() -> None:
     assert stats.chars_added == 0
     assert stats.chars_deleted == 0
     assert stats.chars_net_change == 0
-    assert stats.levenshtein_distance == 0  # Identical strings
+    if LEVENSHTEIN_AVAILABLE:
+        assert stats.levenshtein_distance == 0  # Identical strings
+    else:
+        assert stats.levenshtein_distance is None
 
 
 def test_advanced_stats_empty_strings() -> None:
@@ -425,7 +431,10 @@ def test_advanced_stats_empty_strings() -> None:
     assert stats.chars_added == 0
     assert stats.chars_deleted == 0
     assert stats.chars_net_change == 0
-    assert stats.levenshtein_distance == 0
+    if LEVENSHTEIN_AVAILABLE:
+        assert stats.levenshtein_distance == 0
+    else:
+        assert stats.levenshtein_distance is None
 
 
 def test_advanced_stats_unicode() -> None:
@@ -438,7 +447,10 @@ def test_advanced_stats_unicode() -> None:
 
     # Should handle unicode correctly
     assert stats.total_changes >= 1
-    assert stats.levenshtein_distance is not None
+    if LEVENSHTEIN_AVAILABLE:
+        assert stats.levenshtein_distance is not None
+    else:
+        assert stats.levenshtein_distance is None
     assert isinstance(stats.change_ratio, float)
     assert 0.0 <= stats.change_ratio <= 1.0
 
@@ -524,7 +536,10 @@ def test_advanced_stats_integration() -> None:
     # Verify consistency: net change = added - deleted
     assert stats.chars_net_change == stats.chars_added - stats.chars_deleted
 
-    # Levenshtein should be available (since we installed the library)
-    assert stats.levenshtein_distance is not None
-    assert isinstance(stats.levenshtein_distance, int)
-    assert stats.levenshtein_distance >= 0
+    # Levenshtein may or may not be available depending on installation
+    if LEVENSHTEIN_AVAILABLE:
+        assert stats.levenshtein_distance is not None
+        assert isinstance(stats.levenshtein_distance, int)
+        assert stats.levenshtein_distance >= 0
+    else:
+        assert stats.levenshtein_distance is None

@@ -16,6 +16,12 @@ except ImportError:
     NUPUNKT_AVAILABLE = False
     sent_tokenize: Callable[[str], Any] = lambda x: []  # type: ignore[no-redef]
 
+try:
+    import Levenshtein
+    LEVENSHTEIN_AVAILABLE = True
+except ImportError:
+    LEVENSHTEIN_AVAILABLE = False
+
 from .document import Document
 
 __all__: tuple[str, ...] = (
