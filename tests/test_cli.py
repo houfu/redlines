@@ -2,6 +2,7 @@
 
 import json
 from pathlib import Path
+from typing import Any
 
 import pytest
 from click.testing import CliRunner
@@ -10,13 +11,13 @@ from redlines.cli import cli
 
 
 @pytest.fixture
-def runner():
+def runner() -> CliRunner:
     """Create a CLI runner for testing."""
     return CliRunner()
 
 
 @pytest.fixture
-def temp_files(tmp_path):
+def temp_files(tmp_path: Path) -> dict[str, Path]:
     """Create temporary test files."""
     source = tmp_path / "source.txt"
     test = tmp_path / "test.txt"
@@ -30,7 +31,7 @@ def temp_files(tmp_path):
 class TestTextCommand:
     """Tests for the text command."""
 
-    def test_text_with_strings(self, runner):
+    def test_text_with_strings(self, runner: CliRunner) -> None:
         """Test text command with string arguments."""
         result = runner.invoke(
             cli,
@@ -45,7 +46,7 @@ class TestTextCommand:
         # Should contain the redline text
         assert "jumps over" in result.output or "walks past" in result.output
 
-    def test_text_with_files(self, runner, temp_files):
+    def test_text_with_files(self, runner: CliRunner, temp_files: dict[str, Path]) -> None:
         """Test text command with file inputs."""
         result = runner.invoke(
             cli,
@@ -53,19 +54,19 @@ class TestTextCommand:
         )
         assert result.exit_code == 0
 
-    def test_text_no_changes(self, runner):
+    def test_text_no_changes(self, runner: CliRunner) -> None:
         """Test text command with no changes (exit code 1)."""
         result = runner.invoke(cli, ["text", "Hello world", "Hello world", "--quiet"])
         assert result.exit_code == 1
 
-    def test_text_with_changes(self, runner):
+    def test_text_with_changes(self, runner: CliRunner) -> None:
         """Test text command with changes (exit code 0)."""
         result = runner.invoke(
             cli, ["text", "Hello world", "Hello there", "--quiet"]
         )
         assert result.exit_code == 0
 
-    def test_text_file_not_found(self, runner):
+    def test_text_file_not_found(self, runner: CliRunner) -> None:
         """Test text command with non-existent file."""
         # Should treat non-existent path as a string literal, not fail
         result = runner.invoke(cli, ["text", "nonexistent.txt", "test", "--quiet"])
@@ -75,7 +76,7 @@ class TestTextCommand:
 class TestSimpleTextCommand:
     """Tests for the simple_text command."""
 
-    def test_simple_text_with_strings(self, runner):
+    def test_simple_text_with_strings(self, runner: CliRunner) -> None:
         """Test simple_text command with string arguments."""
         result = runner.invoke(
             cli,
@@ -87,19 +88,19 @@ class TestSimpleTextCommand:
         )
         assert result.exit_code == 0
 
-    def test_simple_text_with_files(self, runner, temp_files):
+    def test_simple_text_with_files(self, runner: CliRunner, temp_files: dict[str, Path]) -> None:
         """Test simple_text command with file inputs."""
         result = runner.invoke(
             cli, ["simple-text", str(temp_files["source"]), str(temp_files["test"])]
         )
         assert result.exit_code == 0
 
-    def test_simple_text_no_changes(self, runner):
+    def test_simple_text_no_changes(self, runner: CliRunner) -> None:
         """Test simple_text command with no changes (exit code 1)."""
         result = runner.invoke(cli, ["simple-text", "Hello world", "Hello world"])
         assert result.exit_code == 1
 
-    def test_simple_text_with_changes(self, runner):
+    def test_simple_text_with_changes(self, runner: CliRunner) -> None:
         """Test simple_text command with changes (exit code 0)."""
         result = runner.invoke(cli, ["simple-text", "Hello world", "Hello there"])
         assert result.exit_code == 0
@@ -108,7 +109,7 @@ class TestSimpleTextCommand:
 class TestMarkdownCommand:
     """Tests for the markdown command."""
 
-    def test_markdown_with_strings(self, runner):
+    def test_markdown_with_strings(self, runner: CliRunner) -> None:
         """Test markdown command with string arguments."""
         result = runner.invoke(
             cli,
@@ -122,14 +123,14 @@ class TestMarkdownCommand:
         # Should contain markdown-style output
         assert "jumps over" in result.output or "walks past" in result.output
 
-    def test_markdown_with_files(self, runner, temp_files):
+    def test_markdown_with_files(self, runner: CliRunner, temp_files: dict[str, Path]) -> None:
         """Test markdown command with file inputs."""
         result = runner.invoke(
             cli, ["markdown", str(temp_files["source"]), str(temp_files["test"])]
         )
         assert result.exit_code == 0
 
-    def test_markdown_style_option(self, runner):
+    def test_markdown_style_option(self, runner: CliRunner) -> None:
         """Test markdown command with different style options."""
         for style in ["none", "red", "red_green", "ghfm", "bbcode", "streamlit"]:
             result = runner.invoke(
@@ -144,19 +145,19 @@ class TestMarkdownCommand:
             )
             assert result.exit_code == 0
 
-    def test_markdown_quiet_flag(self, runner):
+    def test_markdown_quiet_flag(self, runner: CliRunner) -> None:
         """Test markdown command with quiet flag."""
         result = runner.invoke(
             cli, ["markdown", "Hello world", "Hello there", "--quiet"]
         )
         assert result.exit_code == 0
 
-    def test_markdown_no_changes(self, runner):
+    def test_markdown_no_changes(self, runner: CliRunner) -> None:
         """Test markdown command with no changes (exit code 1)."""
         result = runner.invoke(cli, ["markdown", "Hello world", "Hello world"])
         assert result.exit_code == 1
 
-    def test_markdown_with_changes(self, runner):
+    def test_markdown_with_changes(self, runner: CliRunner) -> None:
         """Test markdown command with changes (exit code 0)."""
         result = runner.invoke(cli, ["markdown", "Hello world", "Hello there"])
         assert result.exit_code == 0
@@ -165,7 +166,7 @@ class TestMarkdownCommand:
 class TestJsonCommand:
     """Tests for the json command."""
 
-    def test_json_with_strings(self, runner):
+    def test_json_with_strings(self, runner: CliRunner) -> None:
         """Test json command with string arguments."""
         result = runner.invoke(
             cli,
@@ -184,7 +185,7 @@ class TestJsonCommand:
         assert "changes" in data
         assert "stats" in data
 
-    def test_json_with_files(self, runner, temp_files):
+    def test_json_with_files(self, runner: CliRunner, temp_files: dict[str, Path]) -> None:
         """Test json command with file inputs."""
         result = runner.invoke(
             cli, ["json", str(temp_files["source"]), str(temp_files["test"])]
@@ -194,7 +195,7 @@ class TestJsonCommand:
         data = json.loads(result.output)
         assert "The quick brown fox" in data["source"]
 
-    def test_json_pretty_flag(self, runner):
+    def test_json_pretty_flag(self, runner: CliRunner) -> None:
         """Test json command with pretty flag."""
         result_compact = runner.invoke(cli, ["json", "Hello world", "Hello there"])
         result_pretty = runner.invoke(
@@ -208,7 +209,7 @@ class TestJsonCommand:
         assert len(result_pretty.output) > len(result_compact.output)
         assert "\n" in result_pretty.output
 
-    def test_json_structure(self, runner):
+    def test_json_structure(self, runner: CliRunner) -> None:
         """Test json output structure."""
         result = runner.invoke(cli, ["json", "Hello world", "Hello there"])
         data = json.loads(result.output)
@@ -230,7 +231,7 @@ class TestJsonCommand:
         assert "chars_added" in stats
         assert "chars_deleted" in stats
 
-    def test_json_no_changes(self, runner):
+    def test_json_no_changes(self, runner: CliRunner) -> None:
         """Test json command with no changes (exit code 1)."""
         result = runner.invoke(cli, ["json", "Hello world", "Hello world"])
         assert result.exit_code == 1
@@ -238,7 +239,7 @@ class TestJsonCommand:
         data = json.loads(result.output)
         assert data["stats"]["total_changes"] == 0
 
-    def test_json_with_changes(self, runner):
+    def test_json_with_changes(self, runner: CliRunner) -> None:
         """Test json command with changes (exit code 0)."""
         result = runner.invoke(cli, ["json", "Hello world", "Hello there"])
         assert result.exit_code == 0
@@ -250,7 +251,7 @@ class TestJsonCommand:
 class TestStatsCommand:
     """Tests for the stats command."""
 
-    def test_stats_with_strings(self, runner):
+    def test_stats_with_strings(self, runner: CliRunner) -> None:
         """Test stats command with string arguments."""
         result = runner.invoke(
             cli,
@@ -269,7 +270,7 @@ class TestStatsCommand:
         assert "Insertions:" in result.output
         assert "Replacements:" in result.output
 
-    def test_stats_with_files(self, runner, temp_files):
+    def test_stats_with_files(self, runner: CliRunner, temp_files: dict[str, Path]) -> None:
         """Test stats command with file inputs."""
         result = runner.invoke(
             cli,
@@ -277,7 +278,7 @@ class TestStatsCommand:
         )
         assert result.exit_code == 0
 
-    def test_stats_quiet_output(self, runner):
+    def test_stats_quiet_output(self, runner: CliRunner) -> None:
         """Test stats quiet output format."""
         result = runner.invoke(
             cli, ["stats", "Hello world", "Hello there", "--quiet"]
@@ -290,7 +291,7 @@ class TestStatsCommand:
         assert any("Replacements:" in line for line in lines)
         assert any("Change Ratio:" in line for line in lines)
 
-    def test_stats_no_changes(self, runner):
+    def test_stats_no_changes(self, runner: CliRunner) -> None:
         """Test stats command with no changes (exit code 1)."""
         result = runner.invoke(
             cli, ["stats", "Hello world", "Hello world", "--quiet"]
@@ -298,7 +299,7 @@ class TestStatsCommand:
         assert result.exit_code == 1
         assert "Total Changes: 0" in result.output
 
-    def test_stats_with_changes(self, runner):
+    def test_stats_with_changes(self, runner: CliRunner) -> None:
         """Test stats command with changes (exit code 0)."""
         result = runner.invoke(
             cli, ["stats", "Hello world", "Hello there", "--quiet"]
@@ -311,7 +312,7 @@ class TestStatsCommand:
 class TestFileInputHandling:
     """Tests for file input handling across commands."""
 
-    def test_file_vs_string_detection(self, runner, temp_files):
+    def test_file_vs_string_detection(self, runner: CliRunner, temp_files: dict[str, Path]) -> None:
         """Test that files are properly detected and read."""
         # With file path
         result_file = runner.invoke(
@@ -338,7 +339,7 @@ class TestFileInputHandling:
         assert "The quick brown fox" in data_file["source"]
         assert "The quick brown fox" in data_string["source"]
 
-    def test_utf8_file_encoding(self, runner, tmp_path):
+    def test_utf8_file_encoding(self, runner: CliRunner, tmp_path: Path) -> None:
         """Test that UTF-8 files are handled correctly."""
         source = tmp_path / "source_utf8.txt"
         test = tmp_path / "test_utf8.txt"
@@ -353,7 +354,7 @@ class TestFileInputHandling:
         assert "世界" in data["source"]
         assert "🌍" in data["test"]
 
-    def test_non_utf8_file_error(self, runner, tmp_path):
+    def test_non_utf8_file_error(self, runner: CliRunner, tmp_path: Path) -> None:
         """Test error handling for non-UTF-8 files."""
         source = tmp_path / "source_latin1.txt"
         source.write_bytes(b"\xe9\xe8")  # Latin-1 encoded bytes
@@ -368,17 +369,17 @@ class TestFileInputHandling:
 class TestExitCodes:
     """Tests for exit code handling."""
 
-    def test_exit_code_with_changes(self, runner):
+    def test_exit_code_with_changes(self, runner: CliRunner) -> None:
         """Test exit code 0 when changes are detected."""
         result = runner.invoke(cli, ["json", "Hello world", "Hello there"])
         assert result.exit_code == 0
 
-    def test_exit_code_no_changes(self, runner):
+    def test_exit_code_no_changes(self, runner: CliRunner) -> None:
         """Test exit code 1 when no changes are detected."""
         result = runner.invoke(cli, ["json", "Hello world", "Hello world"])
         assert result.exit_code == 1
 
-    def test_exit_code_consistency_across_commands(self, runner):
+    def test_exit_code_consistency_across_commands(self, runner: CliRunner) -> None:
         """Test that exit codes are consistent across all commands."""
         commands = [
             ["text", "Hello world", "Hello there", "--quiet"],
@@ -409,7 +410,7 @@ class TestExitCodes:
 class TestQuietFlag:
     """Tests for the --quiet flag."""
 
-    def test_quiet_suppresses_formatting(self, runner):
+    def test_quiet_suppresses_formatting(self, runner: CliRunner) -> None:
         """Test that quiet flag suppresses rich formatting."""
         result_normal = runner.invoke(cli, ["stats", "Hello world", "Hello there"])
         result_quiet = runner.invoke(
@@ -424,7 +425,7 @@ class TestQuietFlag:
         # Normal might have ANSI codes or rich formatting
         assert len(result_quiet.output) <= len(result_normal.output) * 2
 
-    def test_quiet_in_markdown(self, runner):
+    def test_quiet_in_markdown(self, runner: CliRunner) -> None:
         """Test quiet flag in markdown command."""
         result = runner.invoke(
             cli, ["markdown", "Hello world", "Hello there", "--quiet"]
@@ -433,7 +434,7 @@ class TestQuietFlag:
         # Should output raw markdown
         assert "<" in result.output  # HTML tags in markdown
 
-    def test_quiet_in_text(self, runner):
+    def test_quiet_in_text(self, runner: CliRunner) -> None:
         """Test quiet flag in text command."""
         result = runner.invoke(cli, ["text", "Hello world", "Hello there", "--quiet"])
         assert result.exit_code == 0
