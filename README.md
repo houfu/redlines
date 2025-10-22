@@ -40,6 +40,17 @@ for a variety of environments like Streamlit, Jupyter Notebooks, Google Colab an
 pip install redlines
 ```
 
+### Supported Python Versions
+This project supports the following Python versions:
+
+- Python 3.10
+- Python 3.11
+- Python 3.12
+- Python 3.13
+- Python 3.14
+
+Support for Python 3.8 and 3.9 has been dropped as they have reached their end-of-life.
+
 ### Optional: Install with NupunktProcessor support
 
 For advanced sentence boundary detection (requires Python 3.11+):
