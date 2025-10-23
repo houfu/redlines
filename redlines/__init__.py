@@ -1,67 +1,75 @@
 """
 # Redlines
 
-`Redlines` produces a text showing the differences between two strings/text. The changes are represented with
-strike-throughs and underlines, which looks similar to Microsoft Word's track changes. This method of showing changes is
-more familiar to lawyers and is more compact for long series of characters.
+`Redlines` compares two strings/text and shows their differences. The changes are represented with
+strike-throughs and highlights, similar to Microsoft Word's track changes.
 
-Redlines uses [SequenceMatcher](https://docs.python.org/3/library/difflib.html#difflib.SequenceMatcher)
-to find differences between words used.
-The output can be in HTML, Markdown, or `rich` format.
+The output can be in JSON, Markdown, HTML, or `rich` format. JSON is the default for CLI and automation use.
 
-## Example
-
-Given an original string:
-
-    The quick brown fox jumps over the lazy dog.
-
-And the string to be tested with:
-
-    The quick brown fox walks past the lazy dog.
-
-The library gives a result of:
-
-    "The quick brown fox <span style='color:red;font-weight:700;text-decoration:line-through;'>jumps over </span><span style='color:green;font-weight:700;'>walks past </span>the lazy dog."
-
-
-Which is rendered like this:
-
-The quick brown fox <span style='color:red;font-weight:700;text-decoration:line-through;'>jumps over </span><span style='color:green;font-weight:700;'>walks past </span>the lazy dog.
-
-## Install
-
-Use your regular package manager to install the library in your python environment.
-
-```terminal
-pip install redlines
-```
-
-## Quickstart
-
-This is the most direct way to produce the example.
+## Quick Start
 
 ```python
-# import the class
 from redlines import Redlines
 
-# Create a Redlines object using the two strings to compare
+# Create a Redlines object
 test = Redlines(
     "The quick brown fox jumps over the lazy dog.",
     "The quick brown fox walks past the lazy dog.",
 )
 
-# This produces an output in markdown format
-test.output_markdown
+# Get markdown output with <del>/<ins> tags
+print(test.compare(markdown_style="none"))
+# Output: The quick brown fox <del>jumps over </del><ins>walks past </ins>the lazy dog.
+
+# Get JSON output (structured data)
+print(test.output_json())
+
+# Get rich output (terminal display)
+print(test.output_rich)
 ```
 
-## Common Issues
+## Installation
 
-The documentation contains other information on common issues users have faced while using this library:
+```bash
+pip install redlines
 
-* [Styling](redlines/redlines.html#styling-markdown)
-* [Ensuring styling appears in environments such as Jupyter Notebooks, Streamlit, CoLab etc](redlines/redlines.html#markdown-output-in-specific-environments)
-* [Using plain text files and others as input](redlines/document.html)
-* [Using the CLI](redlines/cli.html)
+# Optional: Advanced sentence detection (Python 3.11+)
+pip install redlines[nupunkt]
+
+# Optional: Levenshtein distance statistics
+pip install redlines[levenshtein]
+```
+
+## For AI Agents & Automation
+
+**🤖 Using with AI coding agents?**
+
+See the [Agent Integration Guide](https://github.com/houfu/redlines/blob/main/AGENT_GUIDE.md) for:
+- JSON schema documentation
+- CLI automation patterns
+- Error handling cookbook
+- Performance guidelines
+- [Runnable examples](https://github.com/houfu/redlines/tree/main/examples)
+
+Quick CLI usage:
+```bash
+# Outputs JSON by default
+redlines "old text" "new text"
+
+# Pretty-print JSON
+redlines file1.txt file2.txt --pretty
+
+# Other formats
+redlines text "source" "test"       # Rich terminal display
+redlines markdown file1.txt file2.txt  # Markdown output
+```
+
+## API Documentation
+
+* [Redlines](redlines/redlines.html) - Main comparison class
+* [Document](redlines/document.html) - File input support
+* [Processor](redlines/processor.html) - Custom tokenization
+* [CLI](redlines/cli.html) - Command-line interface
 
 """
 

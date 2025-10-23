@@ -31,6 +31,21 @@ print(test.output_json())
 
 Supports multiple output formats for different environments: JSON (default for automation), Markdown, HTML, and `rich` (terminal).
 
+## Quick Start
+
+```bash
+# Install
+pip install redlines
+
+# CLI: Compare two texts (outputs JSON)
+redlines "old text" "new text"
+
+# Python: Compare and get markdown
+from redlines import Redlines
+test = Redlines("old text", "new text", markdown_style="none")
+print(test.output_markdown)
+```
+
 ## Install
 
 ```shell
@@ -40,6 +55,8 @@ pip install redlines
 **Supported:** Python 3.10 - 3.14 (Python 3.8 and 3.9 support dropped)
 
 **Optional:** `pip install redlines[nupunkt]` for advanced sentence boundary detection (Python 3.11+, handles abbreviations, citations, URLs)
+
+**Optional:** `pip install redlines[levenshtein]` for additional statistics)
 
 ## For AI Agents & Automation
 
