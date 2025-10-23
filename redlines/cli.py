@@ -138,6 +138,7 @@ from importlib.metadata import version
 from pathlib import Path
 
 import rich_click as click
+from click_default_group import DefaultGroup
 from rich.console import Console, group
 from rich.layout import Layout
 from rich.panel import Panel
@@ -242,7 +243,7 @@ def _set_exit_code(ctx: click.Context, redlines: Redlines) -> None:
     # Otherwise, normal exit (0) will occur
 
 
-@click.group()
+@click.group(cls=DefaultGroup, default="compare")
 def cli() -> None:
     """
     [red on black]Redlines[/] shows the differences between two strings/text.
@@ -251,6 +252,8 @@ def cli() -> None:
     track changes. This method of showing changes is more familiar to lawyers and is more compact for
     long series of characters.
 
+    [dim]🤖 For AI agents & automation: run[/] [b]redlines guide[/b] [dim]or see AGENT_GUIDE.md[/]
+
     [b][link=https://github.com/houfu/redlines]Homepage[/][/]
     \f
     @private
@@ -258,7 +261,44 @@ def cli() -> None:
     pass
 
 
-@cli.command()
+@cli.command()  # type: ignore[no-untyped-call]
+@click.argument("source", required=True)
+@click.argument("test", required=True)
+@click.option(
+    "--pretty",
+    "-p",
+    is_flag=True,
+    help="Format JSON output with indentation for readability",
+)
+@click.pass_context
+def compare(ctx: click.Context, source: str, test: str, pretty: bool) -> None:
+    """
+    Compare SOURCE and TEST and output the comparison as JSON.
+
+    This is the default command when no command is specified.
+
+    SOURCE and TEST can be either literal strings or file paths. If a file path is provided, the file content will be read and used.
+
+    \f
+    @private
+    """
+    # Print helpful message to stderr only if running in a TTY (not piped/redirected)
+    if sys.stderr.isatty():
+        sys.stderr.write(
+            "💡 Tip: Use 'redlines --help' for all commands or 'redlines guide' for the agent integration guide\n\n"
+        )
+        sys.stderr.flush()
+
+    source_content = _read_input(source)
+    test_content = _read_input(test)
+
+    redlines = Redlines(source_content, test_content)
+    print(redlines.output_json(pretty=pretty))
+
+    _set_exit_code(ctx, redlines)
+
+
+@cli.command()  # type: ignore[no-untyped-call]
 @click.argument("source", required=True)
 @click.argument("test", required=True)
 @click.option(
@@ -310,7 +350,7 @@ def text(ctx: click.Context, source: str, test: str, quiet: bool) -> None:
     _set_exit_code(ctx, redlines)
 
 
-@cli.command()
+@cli.command()  # type: ignore[no-untyped-call]
 @click.argument("source", required=True)
 @click.argument("test", required=True)
 @click.pass_context
@@ -334,7 +374,7 @@ def simple_text(ctx: click.Context, source: str, test: str) -> None:
     _set_exit_code(ctx, redlines)
 
 
-@cli.command()
+@cli.command()  # type: ignore[no-untyped-call]
 @click.argument("source", required=True)
 @click.argument("test", required=True)
 @click.option(
@@ -381,7 +421,7 @@ def markdown(
     _set_exit_code(ctx, redlines)
 
 
-@cli.command()
+@cli.command()  # type: ignore[no-untyped-call]
 @click.argument("source", required=True)
 @click.argument("test", required=True)
 @click.option(
@@ -415,7 +455,7 @@ def json(ctx: click.Context, source: str, test: str, pretty: bool) -> None:
     _set_exit_code(ctx, redlines)
 
 
-@cli.command()
+@cli.command()  # type: ignore[no-untyped-call]
 @click.argument("source", required=True)
 @click.argument("test", required=True)
 @click.option(
@@ -464,3 +504,59 @@ def stats(ctx: click.Context, source: str, test: str, quiet: bool) -> None:
         console.print(_format_stats_panel(stats_obj))
 
     _set_exit_code(ctx, redlines)
+
+
+@cli.command()  # type: ignore[no-untyped-call]
+@click.option(
+    "--open",
+    "-o",
+    is_flag=True,
+    help="Open the guide in your default browser (GitHub)",
+)
+def guide(open: bool) -> None:
+    """
+    Display the Agent Integration Guide for AI agents and automation.
+
+    This guide contains:
+    - Copy-paste ready code examples
+    - JSON schema documentation
+    - CLI automation patterns
+    - Error handling cookbook
+    - Performance guidelines
+    - Real-world integration examples
+
+    Use --open to view the guide on GitHub in your browser.
+
+    \f
+    @private
+    """
+    if open:
+        import webbrowser
+
+        url = "https://github.com/houfu/redlines/blob/main/AGENT_GUIDE.md"
+        console = Console()
+        console.print(f"[green]Opening Agent Guide in browser:[/] {url}")
+        webbrowser.open(url)
+    else:
+        # Try to read the local AGENT_GUIDE.md file
+        guide_path = Path(__file__).parent.parent / "AGENT_GUIDE.md"
+
+        if guide_path.exists():
+            console = Console()
+            try:
+                guide_content = guide_path.read_text(encoding="utf-8")
+                from rich.markdown import Markdown
+
+                console.print(Markdown(guide_content))
+            except Exception as e:
+                console.print(
+                    f"[yellow]Could not display guide:[/] {e}\n\n"
+                    "[dim]View online:[/] https://github.com/houfu/redlines/blob/main/AGENT_GUIDE.md"
+                )
+        else:
+            console = Console()
+            console.print(
+                "[yellow]Agent Guide not found locally.[/]\n\n"
+                "[b]View online:[/] https://github.com/houfu/redlines/blob/main/AGENT_GUIDE.md\n\n"
+                "[dim]Or use[/] [b]redlines guide --open[/b] [dim]to open in your browser.[/]"
+            )

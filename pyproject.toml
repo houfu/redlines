@@ -19,10 +19,11 @@ classifiers = [
 
 dependencies = [
     "click>=8.1.7",
+    "click-default-group>=1.2.4",
     "rich-click>=1.6.1",
     "rich>=13.3.5",
 ]
-urls = { homepage = "https://houfu.github.io/redlines/", repository = "https://github.com/houfu/redlines" }
+urls = { homepage = "https://houfu.github.io/redlines/", repository = "https://github.com/houfu/redlines", "Agent Guide" = "https://github.com/houfu/redlines/blob/main/AGENT_GUIDE.md" }
 
 [project.optional-dependencies]
 nupunkt = [
@@ -69,4 +70,8 @@ ignore_missing_imports = true
 
 [[tool.mypy.overrides]]
 module = "Levenshtein"
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "click_default_group"
 ignore_missing_imports = true
