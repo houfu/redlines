@@ -5,34 +5,31 @@
 ![GitHub last commit (by committer)](https://img.shields.io/github/last-commit/houfu/redlines)
 ![PyPI - License](https://img.shields.io/pypi/l/redlines)
 
-`Redlines` produces a text showing the differences between two strings/text. The changes are represented with
-strike-throughs and underlines, which looks similar to Microsoft Word's track changes. This method of showing changes is
-more familiar to lawyers and is more compact for long series of characters.
+`Redlines` compares two strings/text and shows their differences. The changes are represented with
+strike-throughs and highlights, similar to Microsoft Word's track changes.
 
-Redlines uses [SequenceMatcher](https://docs.python.org/3/library/difflib.html#difflib.SequenceMatcher)
-to find differences between words used.
-The output can be in HTML, Markdown, or `rich` format.
+The output can be in JSON, Markdown, HTML, or `rich` format. JSON is the default for CLI and automation use.
 
 ## Example
 
-Given an original string:
+```python
+from redlines import Redlines
 
-    The quick brown fox jumps over the lazy dog.
+test = Redlines(
+    "The quick brown fox jumps over the lazy dog.",
+    "The quick brown fox walks past the lazy dog."
+)
 
-And the string to be tested with:
+# Markdown output (with simple <del>/<ins> tags)
+print(test.output_markdown)  # requires markdown_style="none"
+# Output: The quick brown fox <del>jumps over </del><ins>walks past </ins>the lazy dog.
 
-    The quick brown fox walks past the lazy dog.
+# JSON output (default for CLI)
+print(test.output_json())
+# Returns structured JSON with changes, positions, and statistics
+```
 
-The library gives a result of:
-
-    The quick brown fox <del>jumps over </del><ins>walks past </ins>the lazy dog.
-
-Which is rendered like this:
-
-> The quick brown fox <del>jumps over </del><ins>walks past </ins>the lazy dog.
-
-The library can also output the results in Markdown, HTML or `rich` format, and
-for a variety of environments like Streamlit, Jupyter Notebooks, Google Colab and the terminal.
+Supports multiple output formats for different environments: JSON (default for automation), Markdown, HTML, and `rich` (terminal).
 
 ## Install
 
@@ -40,49 +37,13 @@ for a variety of environments like Streamlit, Jupyter Notebooks, Google Colab an
 pip install redlines
 ```
 
-### Supported Python Versions
-This project supports the following Python versions:
+**Supported:** Python 3.10 - 3.14 (Python 3.8 and 3.9 support dropped)
 
-- Python 3.10
-- Python 3.11
-- Python 3.12
-- Python 3.13
-- Python 3.14
-
-Support for Python 3.8 and 3.9 has been dropped as they have reached their end-of-life.
-
-### Optional: Install with NupunktProcessor support
-
-For advanced sentence boundary detection (requires Python 3.11+):
-
-```shell
-pip install redlines[nupunkt]
-```
-
-The NupunktProcessor provides intelligent sentence tokenization that handles:
-- Abbreviations (Dr., Mr., etc.)
-- Decimals and numbers (3.14, $5.99)
-- URLs and email addresses
-- Legal citations and complex punctuation
-
-See the [Usage](#advanced-custom-processors) section below for more details.
+**Optional:** `pip install redlines[nupunkt]` for advanced sentence boundary detection (Python 3.11+, handles abbreviations, citations, URLs)
 
 ## For AI Agents & Automation
 
-**🤖 Using redlines with Claude Code, Aider, Cursor, or other AI coding agents?**
-
-Check out the **[Agent Integration Guide](AGENT_GUIDE.md)** for:
-- Copy-paste ready code examples
-- JSON schema documentation
-- CLI automation patterns
-- Error handling cookbook
-- Performance guidelines
-- Real-world integration examples
-
-**Quick links:**
-- [Agent Guide](AGENT_GUIDE.md) - Comprehensive guide for AI agents
-- [Examples](examples/) - Runnable scripts for common tasks
-- [CLI Reference](AGENT_GUIDE.md#output-formats) - Command-line usage
+**🤖 Using with AI coding agents?** See the **[Agent Integration Guide](AGENT_GUIDE.md)** for JSON schemas, automation patterns, error handling, and [runnable examples](examples/).
 
 ## Usage
 
@@ -120,78 +81,37 @@ assert (
 
 ### Advanced: Custom Processors
 
-Redlines supports custom processors for different tokenization strategies. By default, it uses `WholeDocumentProcessor` which tokenizes at the paragraph level.
-
-#### Using NupunktProcessor
-
-For sentence-level tokenization with intelligent boundary detection (requires `pip install redlines[nupunkt]`):
+Use `NupunktProcessor` for sentence-level tokenization with intelligent boundary detection:
 
 ```python
 from redlines import Redlines
 from redlines.processor import NupunktProcessor
 
-# Use NupunktProcessor for better handling of abbreviations and complex punctuation
 processor = NupunktProcessor()
-test = Redlines(
-    "Dr. Smith said hello. Mr. Jones replied.",
-    "Dr. Smith said hi. Mr. Jones replied.",
-    processor=processor
-)
+test = Redlines("Dr. Smith said hello.", "Dr. Smith said hi.", processor=processor)
 ```
 
-**When to use NupunktProcessor:**
-- Legal or technical documents with many abbreviations
-- Text with URLs, emails, or complex citations
-- When you need sentence-level granularity
-- Documents with decimal numbers that shouldn't be treated as sentence boundaries
+**Use NupunktProcessor for:** Legal/technical documents with abbreviations, URLs, citations, decimals
+**Use WholeDocumentProcessor (default) for:** Simple documents, speed-critical tasks (5-6x faster), paragraph-level granularity
 
-**When to use WholeDocumentProcessor (default):**
-- Simple documents without complex sentence structures
-- When speed is critical (5-6x faster than NupunktProcessor)
-- When paragraph-level granularity is sufficient
-
-See the [demo comparison](demo/README.md) for detailed performance and accuracy benchmarks.
+See [demo comparison](demo/README.md) for benchmarks.
 
 ### Command Line Tool
 
-Redlines features a command line tool to visualize and analyze differences between texts.
-
-#### Quick Start (Command-less)
-
-For the simplest usage, just provide two strings or files - it outputs JSON by default:
-
+**Quick Start (outputs JSON by default):**
 ```bash
-# Compare two strings (outputs JSON)
-redlines "The quick brown fox" "The slow brown fox"
-
-# Compare two files
-redlines old_version.txt new_version.txt
-
-# Pretty-print JSON for readability
-redlines --pretty file1.txt file2.txt
+redlines "old text" "new text"
+redlines file1.txt file2.txt --pretty
 ```
 
-#### Specific Output Formats
-
-For specific output formats, use the traditional commands:
-
+**Specific formats:**
 ```bash
-# Rich terminal display with side-by-side comparison
-redlines text "source text" "test text"
-
-# Markdown output
-redlines markdown file1.txt file2.txt --markdown-style ghfm
-
-# Statistics only
-redlines stats old.txt new.txt --quiet
-
-# JSON with formatting
-redlines json old.txt new.txt --pretty
+redlines text "source" "test"              # Rich terminal display
+redlines markdown file1.txt file2.txt      # Markdown output
+redlines stats old.txt new.txt             # Statistics only
 ```
 
-**💡 Tip:** Run `redlines --help` to see all available commands, or `redlines guide` for the full [Agent Integration Guide](AGENT_GUIDE.md).
-
-You may also want to check out the demo project [redlines-textual](https://github.com/houfu/redlines-textual).
+Run `redlines --help` or `redlines guide` for the [Agent Integration Guide](AGENT_GUIDE.md). See also: [redlines-textual](https://github.com/houfu/redlines-textual).
 
 ## Documentation
 
