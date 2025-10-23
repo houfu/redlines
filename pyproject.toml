@@ -71,3 +71,7 @@ ignore_missing_imports = true
 [[tool.mypy.overrides]]
 module = "Levenshtein"
 ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "click_default_group"
+ignore_missing_imports = true
