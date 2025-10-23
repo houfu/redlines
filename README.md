@@ -67,6 +67,23 @@ The NupunktProcessor provides intelligent sentence tokenization that handles:
 
 See the [Usage](#advanced-custom-processors) section below for more details.
 
+## For AI Agents & Automation
+
+**🤖 Using redlines with Claude Code, Aider, Cursor, or other AI coding agents?**
+
+Check out the **[Agent Integration Guide](AGENT_GUIDE.md)** for:
+- Copy-paste ready code examples
+- JSON schema documentation
+- CLI automation patterns
+- Error handling cookbook
+- Performance guidelines
+- Real-world integration examples
+
+**Quick links:**
+- [Agent Guide](AGENT_GUIDE.md) - Comprehensive guide for AI agents
+- [Examples](examples/) - Runnable scripts for common tasks
+- [CLI Reference](AGENT_GUIDE.md#output-formats) - Command-line usage
+
 ## Usage
 
 The library contains one class: `Redlines`, which is used to compare text.
@@ -137,13 +154,42 @@ See the [demo comparison](demo/README.md) for detailed performance and accuracy 
 
 ### Command Line Tool
 
-Redlines also features a simple command line tool `redlines` to visualise the differences in text in the terminal.
+Redlines features a command line tool to visualize and analyze differences between texts.
 
-```
- Usage: redlines text [OPTIONS] SOURCE TEST
+#### Quick Start (Command-less)
 
- Compares the strings SOURCE and TEST and produce a redline in the terminal.
+For the simplest usage, just provide two strings or files - it outputs JSON by default:
+
+```bash
+# Compare two strings (outputs JSON)
+redlines "The quick brown fox" "The slow brown fox"
+
+# Compare two files
+redlines old_version.txt new_version.txt
+
+# Pretty-print JSON for readability
+redlines --pretty file1.txt file2.txt
 ```
+
+#### Specific Output Formats
+
+For specific output formats, use the traditional commands:
+
+```bash
+# Rich terminal display with side-by-side comparison
+redlines text "source text" "test text"
+
+# Markdown output
+redlines markdown file1.txt file2.txt --markdown-style ghfm
+
+# Statistics only
+redlines stats old.txt new.txt --quiet
+
+# JSON with formatting
+redlines json old.txt new.txt --pretty
+```
+
+**💡 Tip:** Run `redlines --help` to see all available commands, or `redlines guide` for the full [Agent Integration Guide](AGENT_GUIDE.md).
 
 You may also want to check out the demo project [redlines-textual](https://github.com/houfu/redlines-textual).
 

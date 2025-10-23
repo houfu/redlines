@@ -439,3 +439,149 @@ class TestQuietFlag:
         result = runner.invoke(cli, ["text", "Hello world", "Hello there", "--quiet"])
         assert result.exit_code == 0
         # Should output just the redline without panels/intro
+
+
+class TestGuideCommand:
+    """Tests for the guide command."""
+
+    def test_guide_command_basic(self, runner: CliRunner) -> None:
+        """Test guide command displays content."""
+        result = runner.invoke(cli, ["guide"])
+        # Exit code 0 regardless of whether file exists (falls back to URL)
+        assert result.exit_code == 0
+        # Should output something about the guide
+        assert "guide" in result.output.lower() or "agent" in result.output.lower()
+
+    def test_guide_help(self, runner: CliRunner) -> None:
+        """Test guide command help text."""
+        result = runner.invoke(cli, ["guide", "--help"])
+        assert result.exit_code == 0
+        assert "Agent Integration Guide" in result.output
+        assert "--open" in result.output
+
+
+class TestCommandlessInvocation:
+    """Tests for command-less invocation (redlines SOURCE TEST)."""
+
+    def test_commandless_with_strings(self, runner: CliRunner) -> None:
+        """Test command-less invocation with string arguments."""
+        result = runner.invoke(
+            cli,
+            [
+                "The quick brown fox jumps over the lazy dog.",
+                "The quick brown fox walks past the lazy dog.",
+            ],
+        )
+        assert result.exit_code == 0
+
+        # Should output valid JSON
+        data = json.loads(result.output)
+        assert "source" in data
+        assert "test" in data
+        assert "changes" in data
+        assert "stats" in data
+
+    def test_commandless_with_files(
+        self, runner: CliRunner, temp_files: dict[str, Path]
+    ) -> None:
+        """Test command-less invocation with file inputs."""
+        result = runner.invoke(cli, [str(temp_files["source"]), str(temp_files["test"])])
+        assert result.exit_code == 0
+
+        data = json.loads(result.output)
+        assert "The quick brown fox" in data["source"]
+
+    def test_commandless_pretty_flag(self, runner: CliRunner) -> None:
+        """Test command-less invocation with --pretty flag."""
+        result_compact = runner.invoke(cli, ["Hello world", "Hello there"])
+        result_pretty = runner.invoke(cli, ["--pretty", "Hello world", "Hello there"])
+
+        assert result_compact.exit_code == 0
+        assert result_pretty.exit_code == 0
+
+        # Both should be valid JSON
+        data_compact = json.loads(result_compact.output)
+        data_pretty = json.loads(result_pretty.output)
+
+        # Pretty version should have more characters (whitespace)
+        assert len(result_pretty.output) > len(result_compact.output)
+        assert "\n" in result_pretty.output
+
+        # Data should be the same
+        assert data_compact["source"] == data_pretty["source"]
+        assert data_compact["test"] == data_pretty["test"]
+
+    def test_commandless_json_structure(self, runner: CliRunner) -> None:
+        """Test command-less invocation outputs correct JSON structure."""
+        result = runner.invoke(cli, ["Hello world", "Hello there"])
+        data = json.loads(result.output)
+
+        # Verify required fields
+        assert data["source"] == "Hello world"
+        assert data["test"] == "Hello there"
+        assert isinstance(data["source_tokens"], list)
+        assert isinstance(data["test_tokens"], list)
+        assert isinstance(data["changes"], list)
+        assert isinstance(data["stats"], dict)
+
+        # Verify stats structure
+        stats = data["stats"]
+        assert "total_changes" in stats
+        assert "deletions" in stats
+        assert "insertions" in stats
+        assert "replacements" in stats
+
+    def test_commandless_no_changes(self, runner: CliRunner) -> None:
+        """Test command-less invocation with no changes (exit code 1)."""
+        result = runner.invoke(cli, ["Hello world", "Hello world"])
+        assert result.exit_code == 1
+
+        data = json.loads(result.output)
+        assert data["stats"]["total_changes"] == 0
+
+    def test_commandless_with_changes(self, runner: CliRunner) -> None:
+        """Test command-less invocation with changes (exit code 0)."""
+        result = runner.invoke(cli, ["Hello world", "Hello there"])
+        assert result.exit_code == 0
+
+        data = json.loads(result.output)
+        assert data["stats"]["total_changes"] > 0
+
+    def test_commandless_vs_json_command_equivalence(self, runner: CliRunner) -> None:
+        """Test that command-less invocation produces same output as json command."""
+        source = "The quick brown fox"
+        test = "The slow brown fox"
+
+        result_commandless = runner.invoke(cli, [source, test])
+        result_json = runner.invoke(cli, ["json", source, test])
+
+        assert result_commandless.exit_code == result_json.exit_code
+
+        data_commandless = json.loads(result_commandless.output)
+        data_json = json.loads(result_json.output)
+
+        # Should have identical data
+        assert data_commandless["source"] == data_json["source"]
+        assert data_commandless["test"] == data_json["test"]
+        assert data_commandless["stats"] == data_json["stats"]
+
+    def test_commandless_no_args_shows_help(self, runner: CliRunner) -> None:
+        """Test that no arguments shows help message."""
+        result = runner.invoke(cli, [])
+        # Should show help, not crash
+        assert "Redlines" in result.output or "Usage:" in result.output
+
+    def test_commandless_utf8_handling(self, runner: CliRunner, tmp_path: Path) -> None:
+        """Test command-less invocation with UTF-8 files."""
+        source = tmp_path / "source_utf8.txt"
+        test = tmp_path / "test_utf8.txt"
+
+        source.write_text("Hello 世界", encoding="utf-8")
+        test.write_text("Hello 🌍", encoding="utf-8")
+
+        result = runner.invoke(cli, [str(source), str(test)])
+        assert result.exit_code == 0
+
+        data = json.loads(result.output)
+        assert "世界" in data["source"]
+        assert "🌍" in data["test"]
