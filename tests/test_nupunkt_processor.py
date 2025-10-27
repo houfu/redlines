@@ -202,7 +202,7 @@ class TestNupunktProcessorWithoutImport:
         processor = NupunktProcessor()
 
         # Should raise ImportError when trying to process
-        with pytest.raises(ImportError, match="nupunkt is required"):
+        with pytest.raises(ImportError, match="Missing required package: nupunkt"):
             Redlines(source, test, processor=processor)
 
 

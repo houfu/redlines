@@ -134,8 +134,9 @@ You may also want to consider a related textual project if you want to use redli
 
 import sys
 import typing as t
-from importlib.metadata import version
+from importlib.metadata import version, metadata
 from pathlib import Path
+from collections.abc import Generator
 
 import rich_click as click
 from click_default_group import DefaultGroup
@@ -155,13 +156,28 @@ click.rich_click.SHOW_ARGUMENTS = True
 
 
 if sys.version_info < (3, 10):
+    # Get the required Python version from package metadata
+    pkg_metadata = metadata('redlines')
+    requires_python = pkg_metadata.get('Requires-Python', '>=3.10')
+
     raise RuntimeError(
-        "redlines requires Python 3.10 or higher. Please upgrade your Python version."
+        f"Python version {sys.version_info.major}.{sys.version_info.minor} is not supported.\n"
+        "\n"
+        f"Cause: redlines v{version('redlines')} requires Python {requires_python}.\n"
+        "\n"
+        "To fix: Upgrade your Python version:\n"
+        "  # Check your current Python version\n"
+        "  python --version\n"
+        "\n"
+        "  # Install a newer Python version from python.org\n"
+        "  # Or use a version manager like pyenv:\n"
+        "  pyenv install 3.12\n"
+        "  pyenv global 3.12\n"
     )
 
 
 @group()
-def print_intro() -> t.Generator[Text, None, None]:
+def print_intro() -> Generator[Text, None, None]:
     """@private"""
     yield Text.from_markup(
         f"\n[bold red]--__--[/] [b]Redlines CLI[/b] [magenta]v{version('redlines')}[/] [bold red]--__--[/]\n\n"
@@ -188,14 +204,31 @@ def _read_input(value: str) -> str:
             return path.read_text(encoding="utf-8")
         except UnicodeDecodeError:
             raise click.ClickException(
-                f"Failed to read file '{value}': File encoding is not UTF-8"
+                f"Cannot read file '{value}' - invalid encoding.\n\n"
+                f"Cause: The file is not encoded in UTF-8.\n\n"
+                f"To fix: Convert the file to UTF-8 encoding:\n"
+                f"  # Using iconv (Linux/Mac)\n"
+                f"  iconv -f ISO-8859-1 -t UTF-8 '{value}' > '{value}.utf8'\n\n"
+                f"  # Or open and save as UTF-8 in your text editor"
             )
         except PermissionError:
             raise click.ClickException(
-                f"Failed to read file '{value}': Permission denied"
+                f"Cannot read file '{value}' - permission denied.\n\n"
+                f"Cause: You don't have permission to read this file.\n\n"
+                f"To fix: Check file permissions and adjust if needed:\n"
+                f"  # Check permissions\n"
+                f"  ls -l '{value}'\n\n"
+                f"  # Make file readable (if you own it)\n"
+                f"  chmod +r '{value}'"
             )
         except Exception as e:
-            raise click.ClickException(f"Failed to read file '{value}': {e}")
+            raise click.ClickException(
+                f"Cannot read file '{value}'.\n\n"
+                f"Cause: {e}\n\n"
+                f"To fix: Verify the file exists and is readable:\n"
+                f"  # Check if file exists\n"
+                f"  ls -l '{value}'"
+            )
     return value
 
 
