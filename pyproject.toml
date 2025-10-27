@@ -1,13 +1,15 @@
 [project]
 name = "redlines"
-version = "0.5.2"
+version = "0.6.0"
 description = "Compare text, and produce human-readable differences or deltas which look like track changes in Microsoft Word."
 readme = "README.md"
 authors = [
     { name = "houfu", email = "houfu@outlook.sg" }
 ]
-license = { text = "MIT" }
+license = "MIT"
+license-files = ["LICENSE.txt"]
 requires-python = ">=3.10"
+keywords = ["diff", "text-comparison", "track-changes", "redlines", "document-comparison", "cli"]
 classifiers = [
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.10",
@@ -23,7 +25,12 @@ dependencies = [
     "rich-click>=1.6.1",
     "rich>=13.3.5",
 ]
-urls = { homepage = "https://houfu.github.io/redlines/", repository = "https://github.com/houfu/redlines", "Agent Guide" = "https://github.com/houfu/redlines/blob/main/AGENT_GUIDE.md" }
+
+[project.urls]
+Homepage = "https://houfu.github.io/redlines/"
+Documentation = "https://houfu.github.io/redlines/"
+Repository = "https://github.com/houfu/redlines"
+"Agent Guide" = "https://github.com/houfu/redlines/blob/main/AGENT_GUIDE.md"
 
 [project.optional-dependencies]
 nupunkt = [
@@ -34,14 +41,13 @@ levenshtein = ["Levenshtein>=0.27.1"]
 [project.scripts]
 redlines = 'redlines.cli:cli'
 
-[tool.uv]
-dev-dependencies = [
+[dependency-groups]
+dev = [
     "mypy>=1.14.1",
     "pdoc>=14.1.0",
     "pytest>=7.4.2",
     "pytest-cov>=3.0.0",
     "pytest-sugar>=0.9.7",
-    "tox>=3.28.0",
 ]
 
 [build-system]
