@@ -45,7 +45,20 @@ class Redlines:
         :rtype: str
         """
         if self._source is None:
-            raise ValueError("No source string was provided.")
+            raise ValueError(
+                "No source text available in Redlines object.\n"
+                "\n"
+                "Cause: The source property was accessed before being set.\n"
+                "\n"
+                "To fix: Initialize Redlines with source text or set it explicitly:\n"
+                "  # Option 1: Initialize with both texts\n"
+                "  redlines_obj = Redlines(source='original', test='modified')\n"
+                "\n"
+                "  # Option 2: Set source property after creation\n"
+                "  redlines_obj = Redlines()\n"
+                "  redlines_obj.source = 'original'\n"
+                "  redlines_obj.test = 'modified'\n"
+            )
         return self._source
 
     @source.setter
@@ -65,7 +78,20 @@ class Redlines:
         :rtype: str
         """
         if self._test is None:
-            raise ValueError("No test string was provided.")
+            raise ValueError(
+                "No test text available in Redlines object.\n"
+                "\n"
+                "Cause: The test property was accessed before being set.\n"
+                "\n"
+                "To fix: Initialize Redlines with test text or set it explicitly:\n"
+                "  # Option 1: Initialize with both texts\n"
+                "  redlines_obj = Redlines(source='original', test='modified')\n"
+                "\n"
+                "  # Option 2: Set test property after creation\n"
+                "  redlines_obj = Redlines()\n"
+                "  redlines_obj.source = 'original'\n"
+                "  redlines_obj.test = 'modified'\n"
+            )
         return self._test
 
     @test.setter
@@ -86,7 +112,22 @@ class Redlines:
         """
         if self._diff_operations is None:
             raise ValueError(
-                "No test string was provided when the function was called, or during initialisation."
+                "No diff operations available in Redlines object.\n"
+                "\n"
+                "Cause: The diff operations were accessed before a comparison was made.\n"
+                "\n"
+                "To fix: Set both source and test texts to generate diff operations:\n"
+                "  # Option 1: Initialize with both texts\n"
+                "  redlines_obj = Redlines(source='original', test='modified')\n"
+                "\n"
+                "  # Option 2: Set properties after creation\n"
+                "  redlines_obj = Redlines()\n"
+                "  redlines_obj.source = 'original'\n"
+                "  redlines_obj.test = 'modified'\n"
+                "\n"
+                "  # Option 3: Use compare method\n"
+                "  redlines_obj = Redlines('original')\n"
+                "  redlines_obj.compare('modified')\n"
             )
         return self._diff_operations
 
@@ -297,7 +338,22 @@ class Redlines:
 
         if operation not in ("delete", "insert", "replace"):
             raise ValueError(
-                f"Invalid operation '{operation}'. Must be 'delete', 'insert', or 'replace'."
+                f"Invalid operation type: '{operation}'.\n"
+                "\n"
+                f"Cause: The operation parameter must be one of the three valid diff operation types, but '{operation}' was provided.\n"
+                "\n"
+                "To fix: Use one of the valid operation types:\n"
+                "  # Get deletions (text removed from source)\n"
+                "  deletions = redlines_obj.get_changes(operation='delete')\n"
+                "\n"
+                "  # Get insertions (text added in test)\n"
+                "  insertions = redlines_obj.get_changes(operation='insert')\n"
+                "\n"
+                "  # Get replacements (text changed)\n"
+                "  replacements = redlines_obj.get_changes(operation='replace')\n"
+                "\n"
+                "  # Get all changes (no filter)\n"
+                "  all_changes = redlines_obj.get_changes()\n"
             )
 
         return [r for r in changes if r.operation == operation]
@@ -850,7 +906,23 @@ class Redlines:
                 self.test = test
         elif self._test is None:
             raise ValueError(
-                "No test string was provided when the function was called, or during initialisation."
+                "No test text provided for comparison.\n"
+                "\n"
+                "Cause: The compare() method was called without a test parameter, and no test text was set during initialization.\n"
+                "\n"
+                "To fix: Provide test text either as a parameter or during initialization:\n"
+                "  # Option 1: Pass test text to compare()\n"
+                "  redlines_obj = Redlines(source='original')\n"
+                "  result = redlines_obj.compare('modified')\n"
+                "\n"
+                "  # Option 2: Set test during initialization\n"
+                "  redlines_obj = Redlines(source='original', test='modified')\n"
+                "  result = redlines_obj.compare()\n"
+                "\n"
+                "  # Option 3: Set test property before calling compare()\n"
+                "  redlines_obj = Redlines('original')\n"
+                "  redlines_obj.test = 'modified'\n"
+                "  result = redlines_obj.compare()\n"
             )
 
         if output == OutputType.MARKDOWN:
