@@ -150,9 +150,19 @@ def concatenate_sentences_and_add_chr_182(text: str) -> str:
     """
     if not NUPUNKT_AVAILABLE:
         raise ImportError(
-            "nupunkt is required for sentence tokenization. "
-            "Install it with: pip install nupunkt>=0.6.0 "
-            "(requires Python 3.11+)"
+            "Missing required package: nupunkt.\n"
+            "\n"
+            "Cause: The nupunkt package is required for sentence-level tokenization but is not installed.\n"
+            "\n"
+            "To fix: Install nupunkt (requires Python 3.11+):\n"
+            "  # Using pip\n"
+            "  pip install nupunkt>=0.6.0\n"
+            "\n"
+            "  # Using uv\n"
+            "  uv pip install nupunkt>=0.6.0\n"
+            "\n"
+            "  # Install redlines with nupunkt support\n"
+            "  pip install redlines[nupunkt]\n"
         )
 
     sentences = sent_tokenize(text)
