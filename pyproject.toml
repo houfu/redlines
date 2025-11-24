@@ -1,6 +1,6 @@
 [project]
 name = "redlines"
-version = "0.6.0"
+version = "0.6.1"
 description = "Compare text, and produce human-readable differences or deltas which look like track changes in Microsoft Word."
 readme = "README.md"
 authors = [
