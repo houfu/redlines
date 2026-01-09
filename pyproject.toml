@@ -37,6 +37,7 @@ nupunkt = [
     "nupunkt>=0.6.0; python_version>='3.11'",
 ]
 levenshtein = ["Levenshtein>=0.27.1"]
+pdf = ["pdfplumber>=0.10.0"]
 
 [project.scripts]
 redlines = 'redlines.cli:cli'
@@ -80,4 +81,8 @@ ignore_missing_imports = true
 
 [[tool.mypy.overrides]]
 module = "click_default_group"
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "pdfplumber"
 ignore_missing_imports = true

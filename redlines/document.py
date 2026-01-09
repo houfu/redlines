@@ -12,6 +12,7 @@ class Document(ABC):
     |Supported File Formats | Class |
     |---| --- |
     |Plain Text files | `PlainTextFile` |
+    |PDF files | `PDFFile` (requires redlines[pdf]) |
     """
 
     @property
