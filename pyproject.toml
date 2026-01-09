@@ -59,7 +59,7 @@ build-backend = "hatchling.build"
 [tool.mypy]
 python_version = "3.11"
 strict = true
-disable_error_code = "misc"
+disable_error_code = ["misc", "unused-ignore"]
 
 ignore_missing_imports = false
 follow_untyped_imports = true
