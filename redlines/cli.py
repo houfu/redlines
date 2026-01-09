@@ -19,7 +19,7 @@ The changes are represented with strike-throughs and underlines, similar to Micr
 This method of showing changes is more familiar to lawyers and is more compact for long series of characters.
 
 SOURCE and TEST can be either literal strings or file paths. If a file path is provided, the file content
-will be read and used for comparison.
+will be read and used for comparison. PDF files are supported if the 'pdf' extra is installed.
 
 ## COMMANDS
 ```sh
@@ -115,6 +115,11 @@ Compare strings with specific markdown style:
 redlines markdown "Hello world" "Hello there" --markdown-style ghfm
 ```
 
+Compare two PDF files (requires redlines[pdf]):
+```sh
+redlines json contract_v1.pdf contract_v2.pdf --pretty
+```
+
 Use in scripts with exit codes:
 ```sh
 if redlines stats file1.txt file2.txt --quiet; then
@@ -127,6 +132,7 @@ fi
 ## LIMITATIONS
 * The `text` command is not able to show more than 6 lines of text. You may want to use `simple_text` for longer text.
 * File inputs must be UTF-8 encoded.
+* PDF support requires the 'pdf' extra: `pip install redlines[pdf]`. Only text-based PDFs are supported; scanned/image PDFs require OCR which is not currently available.
 
 You may also want to consider a related textual project if you want to use redlines in the terminal,
 [redlines-textual](https://github.com/houfu/redlines-textual).
@@ -194,12 +200,40 @@ def _read_input(value: str) -> str:
     If the value is a path to an existing file, reads and returns its content.
     Otherwise, treats the value as a literal string and returns it as-is.
 
+    Supports PDF files if the 'pdf' extra is installed.
+
     :param value: Either a file path or a literal string
     :return: The content to process
     :raises click.ClickException: If file exists but cannot be read
     """
     path = Path(value)
     if path.exists() and path.is_file():
+        # Check for PDF extension
+        if path.suffix.lower() == ".pdf":
+            try:
+                from .pdf import PDF_AVAILABLE, PDFFile
+
+                if not PDF_AVAILABLE:
+                    raise click.ClickException(
+                        f"PDF support requires the 'pdf' extra.\n\n"
+                        f"Cause: The pdfplumber package is required for PDF support but is not installed.\n\n"
+                        f"To fix: Install with PDF support:\n"
+                        f"  pip install redlines[pdf]\n\n"
+                        f"  # Or install pdfplumber directly\n"
+                        f"  pip install pdfplumber"
+                    )
+                pdf_doc = PDFFile(path)
+                return pdf_doc.text
+            except click.ClickException:
+                raise
+            except Exception as e:
+                raise click.ClickException(
+                    f"Cannot read PDF file '{value}'.\n\n"
+                    f"Cause: {e}\n\n"
+                    f"Note: Only text-based PDFs are supported. "
+                    f"Scanned/image PDFs require OCR which is not currently available."
+                )
+
         try:
             return path.read_text(encoding="utf-8")
         except UnicodeDecodeError:

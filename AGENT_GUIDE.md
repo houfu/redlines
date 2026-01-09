@@ -49,6 +49,9 @@ redlines old_version.txt new_version.txt
 # Basic installation
 pip install redlines
 
+# With PDF file comparison support
+pip install redlines[pdf]
+
 # With advanced sentence tokenization (Python 3.11+)
 pip install redlines[nupunkt]
 
@@ -117,6 +120,34 @@ diff = Redlines(source, test)
 # Get results
 print(f"Total changes: {diff.stats().total_changes}")
 print(diff.output_markdown)
+```
+
+### Pattern 1b: Compare PDF Files
+
+```python
+from redlines import Redlines
+from redlines.pdf import PDFFile
+
+# Load PDF files (requires: pip install redlines[pdf])
+source = PDFFile("contract_v1.pdf")
+test = PDFFile("contract_v2.pdf")
+
+# Compare
+diff = Redlines(source, test)
+
+# Get results
+print(f"Total changes: {diff.stats().total_changes}")
+print(diff.output_markdown)
+
+# Access page information
+print(f"Source has {source.page_count} pages")
+for page in source.pages:
+    print(f"Page {page.page_number}: {len(page.text)} chars")
+```
+
+```bash
+# CLI: PDF files are auto-detected
+redlines contract_v1.pdf contract_v2.pdf --pretty
 ```
 
 ### Pattern 2: Get Machine-Readable JSON
