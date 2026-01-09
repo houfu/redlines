@@ -70,12 +70,12 @@ print(pdf.text)  # Contains "[Page 1]\n...\n[Page 2]\n..."
 
 ## Limitations
 
-- **Text-based PDFs only**: Only PDFs with extractable text are supported.
-  Scanned/image PDFs require OCR, which is not currently available.
-- **Layout preservation**: Complex layouts (multi-column, tables) are flattened
-  to plain text. Visual formatting is not preserved.
-- **Encoding**: Assumes standard PDF text encoding. Some PDFs with custom
-  fonts or encodings may not extract correctly.
+This is a **text dump** implementation - it extracts plain text only:
+
+- **Text-based PDFs only**: Scanned/image PDFs require OCR (not supported)
+- **No layout preservation**: Multi-column layouts, tables, and formatting are flattened
+- **No structure awareness**: Headers/footers, footnotes, signature blocks extracted in reading order
+- **For complex legal documents**: Consider dedicated tools (Draftable, Workshare Compare, etc.)
 
 ## Future Enhancements
 
@@ -143,9 +143,9 @@ class PDFFile(Document):
     - Compatible with all redlines comparison features
 
     **Limitations:**
-    - Only text-based PDFs are supported (no OCR for scanned documents)
-    - Complex layouts are flattened to plain text
-    - Visual formatting is not preserved
+    - Text dump only - multi-column layouts, tables, headers/footers are flattened
+    - No OCR support for scanned documents
+    - Best suited for simple PDFs; complex legal contracts may need specialized tools
 
     **Example - Basic Comparison:**
         ```python
