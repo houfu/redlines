@@ -33,6 +33,9 @@ print(test.output_rich)
 ```bash
 pip install redlines
 
+# Optional: PDF file comparison
+pip install redlines[pdf]
+
 # Optional: Advanced sentence detection (Python 3.11+)
 pip install redlines[nupunkt]
 
@@ -68,6 +71,7 @@ redlines markdown file1.txt file2.txt  # Markdown output
 
 * [Redlines](redlines/redlines.html) - Main comparison class
 * [Document](redlines/document.html) - File input support
+* [PDF](redlines/pdf.html) - PDF file support (optional)
 * [Processor](redlines/processor.html) - Custom tokenization
 * [CLI](redlines/cli.html) - Command-line interface
 

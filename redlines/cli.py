@@ -115,6 +115,11 @@ Compare strings with specific markdown style:
 redlines markdown "Hello world" "Hello there" --markdown-style ghfm
 ```
 
+Compare two PDF files (requires redlines[pdf]):
+```sh
+redlines json contract_v1.pdf contract_v2.pdf --pretty
+```
+
 Use in scripts with exit codes:
 ```sh
 if redlines stats file1.txt file2.txt --quiet; then

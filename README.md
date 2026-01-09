@@ -32,6 +32,7 @@ print(test.output_markdown)
 **Supported:** Python 3.10 - 3.14 (Python 3.8 and 3.9 support dropped)
 
 **Optional dependencies:**
+- `pip install redlines[pdf]` for PDF file comparison
 - `pip install redlines[nupunkt]` for advanced sentence boundary detection (Python 3.11+, handles abbreviations, citations, URLs)
 - `pip install redlines[levenshtein]` for additional statistics
 
