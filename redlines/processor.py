@@ -4,10 +4,7 @@ import re
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from difflib import SequenceMatcher
-from typing import TYPE_CHECKING, Any, Literal
-
-if TYPE_CHECKING:
-    from typing import Callable
+from typing import TYPE_CHECKING, Any, Callable, Literal
 
 try:
     from nupunkt import sent_tokenize
@@ -24,6 +21,10 @@ except ImportError:
 
 from .document import Document
 
+# Type alias for tokenizer functions
+# A tokenizer takes a string and returns a list of token strings
+TokenizerFunction = Callable[[str], list[str]]
+
 __all__: tuple[str, ...] = (
     "RedlinesProcessor",
     "WholeDocumentProcessor",
@@ -32,6 +33,7 @@ __all__: tuple[str, ...] = (
     "Stats",
     "DiffOperation",
     "Chunk",
+    "TokenizerFunction",
 )
 
 tokenizer = re.compile(r"((?:[^()\s]+|[().?!-])\s*)")
@@ -282,7 +284,19 @@ class RedlinesProcessor(ABC):
     A redlines processor is a class that takes two documents and generates diff operations from them.
     Use this class as a base class if you want to create a custom redlines processor.
     See `WholeDocumentProcessor` for an example of a redlines processor.
+
+    You can optionally provide a custom tokenizer function to control how text is split into tokens.
     """
+
+    def __init__(self, tokenizer: TokenizerFunction | None = None):
+        """
+        Initialize the processor with an optional custom tokenizer.
+
+        :param tokenizer: Optional function that takes a string and returns a list of tokens.
+                         If None, the default regex-based tokenizer will be used.
+        :type tokenizer: TokenizerFunction | None
+        """
+        self.tokenizer = tokenizer or tokenize_text
 
     @abstractmethod
     def process(
@@ -313,11 +327,11 @@ class WholeDocumentProcessor(RedlinesProcessor):
         source_text = source.text if isinstance(source, Document) else source
         test_text = test.text if isinstance(test, Document) else test
 
-        # Tokenize the texts
-        source_tokens = tokenize_text(
+        # Tokenize the texts using the configured tokenizer
+        source_tokens = self.tokenizer(
             concatenate_paragraphs_and_add_chr_182(source_text)
         )
-        test_tokens = tokenize_text(concatenate_paragraphs_and_add_chr_182(test_text))
+        test_tokens = self.tokenizer(concatenate_paragraphs_and_add_chr_182(test_text))
 
         # Normalize tokens by stripping whitespace for comparison
         # This allows the matcher to focus on content differences rather than whitespace variations
@@ -379,11 +393,11 @@ class NupunktProcessor(RedlinesProcessor):
         source_text = source.text if isinstance(source, Document) else source
         test_text = test.text if isinstance(test, Document) else test
 
-        # Tokenize the texts using nupunkt sentence boundaries
-        source_tokens = tokenize_text(
+        # Tokenize the texts using nupunkt sentence boundaries and the configured tokenizer
+        source_tokens = self.tokenizer(
             concatenate_sentences_and_add_chr_182(source_text)
         )
-        test_tokens = tokenize_text(concatenate_sentences_and_add_chr_182(test_text))
+        test_tokens = self.tokenizer(concatenate_sentences_and_add_chr_182(test_text))
 
         # Normalize tokens by stripping whitespace for comparison
         # This allows the matcher to focus on content differences rather than whitespace variations

@@ -105,6 +105,28 @@ Run `redlines --help` or `redlines guide` for the [Agent Integration Guide](AGEN
 
 ## Advanced Features
 
+### Custom Tokenizers
+
+Supply your own tokenizer function to control how text is split into tokens:
+
+```python
+from redlines import Redlines
+
+# Define a custom tokenizer
+def my_tokenizer(text: str) -> list[str]:
+    return text.split()  # Simple whitespace tokenizer
+
+test = Redlines("old text", "new text", tokenizer=my_tokenizer)
+```
+
+**Common use cases:**
+- **Word-level**: `lambda text: text.split()` - Compare word-by-word
+- **Character-level**: `lambda text: list(text)` - Detect single-character changes
+- **Line-level**: Custom function for git-style line diffs
+- **Domain-specific**: Preserve emails, URLs, or code tokens
+
+See [examples/custom_tokenizer.py](examples/custom_tokenizer.py) for more examples.
+
 ### Custom Processors
 
 Use `NupunktProcessor` for sentence-level tokenization with intelligent boundary detection:
@@ -115,6 +137,15 @@ from redlines.processor import NupunktProcessor
 
 processor = NupunktProcessor()
 test = Redlines("Dr. Smith said hello.", "Dr. Smith said hi.", processor=processor)
+```
+
+Or combine a custom tokenizer with a processor:
+
+```python
+from redlines.processor import WholeDocumentProcessor
+
+processor = WholeDocumentProcessor(tokenizer=my_tokenizer)
+test = Redlines(source, test, processor=processor)
 ```
 
 **Use NupunktProcessor for:** Legal/technical documents with abbreviations, URLs, citations, decimals

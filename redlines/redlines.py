@@ -8,7 +8,14 @@ from typing_extensions import Unpack
 
 from .document import Document
 from .enums import MarkdownStyle, OutputType
-from .processor import DiffOperation, Redline, RedlinesProcessor, Stats, WholeDocumentProcessor
+from .processor import (
+    DiffOperation,
+    Redline,
+    RedlinesProcessor,
+    Stats,
+    TokenizerFunction,
+    WholeDocumentProcessor,
+)
 
 __all__: tuple[str, ...] = (
     "Redlines",
@@ -149,6 +156,7 @@ class Redlines:
         source: str | Document,
         test: str | Document | None = None,
         processor: RedlinesProcessor | None = None,
+        tokenizer: TokenizerFunction | None = None,
         **options: Unpack[RedlinesOptions],
     ):
         """
@@ -200,16 +208,45 @@ class Redlines:
         )
         ```
 
+        Or you can provide a custom tokenizer function directly:
+
+        ```python
+        from redlines import Redlines
+
+        # Define a custom tokenizer that splits on whitespace
+        def my_tokenizer(text: str) -> list[str]:
+            return text.split()
+
+        test = Redlines(
+            "The quick brown fox",
+            "The fast brown fox",
+            tokenizer=my_tokenizer
+        )
+        ```
+
         :param source: The source text to be used as a basis for comparison.
         :type source: str | Document
         :param test: Optional test text to compare with the source.
         :type test: str | Document | None
         :param processor: Optional custom processor for tokenization. Defaults to WholeDocumentProcessor (paragraph-level).
         :type processor: RedlinesProcessor | None
+        :param tokenizer: Optional custom tokenizer function. Only used if processor is None.
+                         The function should take a string and return a list of tokens.
+        :type tokenizer: TokenizerFunction | None
         :param options: Additional options for comparison and output formatting.
         :type options: RedlinesOptions
         """
-        self.processor = processor if processor is not None else WholeDocumentProcessor()
+        # Determine which processor to use
+        if processor is not None:
+            # User provided a custom processor, use it as-is
+            self.processor = processor
+        elif tokenizer is not None:
+            # User provided a custom tokenizer, create a default processor with it
+            self.processor = WholeDocumentProcessor(tokenizer=tokenizer)
+        else:
+            # Use default processor with default tokenizer
+            self.processor = WholeDocumentProcessor()
+
         self.source = source.text if isinstance(source, Document) else source
         self.options = options
         self._diff_operations = None

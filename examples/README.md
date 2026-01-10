@@ -173,7 +173,60 @@ Summary:
 
 ---
 
-### 5. `ci_check.py` - CI/CD Integration
+### 5. `custom_tokenizer.py` - Custom Tokenizer Examples
+
+Demonstrates how to use custom tokenizer functions for specialized text comparison needs.
+
+**Usage:**
+```bash
+python custom_tokenizer.py
+```
+
+**Features:**
+- 6 different tokenizer implementations
+- Word-level tokenization (whitespace splitting)
+- Character-level tokenization (fine-grained diffs)
+- Line-level tokenization (diff-like comparison)
+- Code-aware tokenization (programming languages)
+- Domain-specific tokenization (email preservation)
+- Processor integration examples
+
+**Example tokenizers:**
+
+```python
+# Simple whitespace tokenizer
+def whitespace_tokenizer(text: str) -> list[str]:
+    return text.split()
+
+redlines = Redlines(source, test, tokenizer=whitespace_tokenizer)
+```
+
+```python
+# Character-level tokenizer
+def char_tokenizer(text: str) -> list[str]:
+    return list(text)
+
+redlines = Redlines(source, test, tokenizer=char_tokenizer)
+```
+
+```python
+# Using with a processor
+from redlines.processor import WholeDocumentProcessor
+
+processor = WholeDocumentProcessor(tokenizer=my_tokenizer)
+redlines = Redlines(source, test, processor=processor)
+```
+
+**When to use custom tokenizers:**
+- **Whitespace tokenizer**: When you want word-by-word comparison without punctuation handling
+- **Character tokenizer**: For detecting typos or single-character changes
+- **Line tokenizer**: For git-style diff output or comparing configuration files
+- **Code tokenizer**: For comparing source code with operator-aware splitting
+- **Domain-specific**: When you need to preserve certain patterns (emails, URLs, citations)
+
+---
+
+### 6. `ci_check.py` - CI/CD Integration
 
 Check documentation changes between git branches for CI/CD pipelines.
 
