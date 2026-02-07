@@ -44,7 +44,7 @@ from .processor import Chunk, DiffOperation, RedlinesProcessor, RichToken
 __all__: tuple[str, ...] = ("DocxFile", "DocxProcessor", "DOCX_AVAILABLE")
 
 try:
-    from lxml import etree as _etree  # noqa: F401
+    from lxml import etree as _etree  # type: ignore[attr-defined]  # noqa: F401
 
     from .docx_parser import parse_docx
 

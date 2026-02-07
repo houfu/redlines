@@ -89,5 +89,5 @@ module = "pdfplumber"
 ignore_missing_imports = true
 
 [[tool.mypy.overrides]]
-module = "lxml.*"
+module = ["lxml", "lxml.*"]
 ignore_missing_imports = true

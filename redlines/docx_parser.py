@@ -17,7 +17,7 @@ import zipfile
 from io import BytesIO
 from typing import Any
 
-from lxml import etree
+from lxml import etree  # type: ignore[attr-defined]
 
 # ── OOXML namespaces ─────────────────────────────────────────────────
 WORD_NS = "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
@@ -112,9 +112,9 @@ def _local_tag(elem: etree._Element) -> str:
 
 def _get_val(elem: etree._Element) -> str | None:
     """Get the ``val`` attribute, trying both namespaced and plain."""
-    val = elem.get(f"{W}val")
+    val: str | None = elem.get(f"{W}val")  # type: ignore[assignment]  # lxml returns Any
     if val is None:
-        val = elem.get("val")
+        val = elem.get("val")  # type: ignore[assignment]
     return val
 
 
@@ -200,52 +200,52 @@ def _extract_run_properties(
     # Boolean toggles
     for prop_name in ("b", "i", "strike", "dstrike", "caps", "smallCaps"):
         elem = rpr.find(f"{W}{prop_name}")
-        val = _is_toggle_on(elem)
-        if val is not None:
-            props[prop_name] = str(val).lower()
+        toggle = _is_toggle_on(elem)
+        if toggle is not None:
+            props[prop_name] = str(toggle).lower()
 
     # Underline
     u_elem = rpr.find(f"{W}u")
     if u_elem is not None:
-        val = _get_val(u_elem)
-        if val and val.lower() != "none":
-            props["u"] = val
+        u_val = _get_val(u_elem)
+        if u_val and u_val.lower() != "none":
+            props["u"] = u_val
 
     # Font family
     rfonts = rpr.find(f"{W}rFonts")
     if rfonts is not None:
         for attr in ("ascii", "hAnsi", "eastAsia", "cs"):
-            val = rfonts.get(f"{W}{attr}") or rfonts.get(attr)
-            if val:
-                props["font"] = val
+            font_val: str | None = rfonts.get(f"{W}{attr}") or rfonts.get(attr)  # type: ignore[assignment]
+            if font_val:
+                props["font"] = font_val
                 break
 
     # Font size (half-points)
     sz = rpr.find(f"{W}sz")
     if sz is not None:
-        val = _get_val(sz)
-        if val:
-            props["sz"] = val
+        sz_val = _get_val(sz)
+        if sz_val:
+            props["sz"] = sz_val
 
     # Color
     color = rpr.find(f"{W}color")
     if color is not None:
-        val = _get_val(color)
-        if val:
-            props["color"] = val
+        color_val = _get_val(color)
+        if color_val:
+            props["color"] = color_val
 
     # Highlight
     highlight = rpr.find(f"{W}highlight")
     if highlight is not None:
-        val = _get_val(highlight)
-        if val:
-            props["highlight"] = val
+        hl_val = _get_val(highlight)
+        if hl_val:
+            props["highlight"] = hl_val
 
     # Superscript / subscript
     vert_align = rpr.find(f"{W}vertAlign")
     if vert_align is not None:
-        val = _get_val(vert_align)
-        if val:
-            props["vertAlign"] = val
+        va_val = _get_val(vert_align)
+        if va_val:
+            props["vertAlign"] = va_val
 
     return props
