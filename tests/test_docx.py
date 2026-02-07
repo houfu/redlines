@@ -665,3 +665,152 @@ class TestDocxEdgeCases:
         paragraphs = parse_docx(path)
 
         assert paragraphs[0]["runs"][0]["properties"]["u"] == "single"
+
+
+# ── File-based comparison (tests/documents/DocxFile/) ─────────────────
+
+FIXTURES = os.path.join(os.path.dirname(__file__), "documents", "DocxFile")
+
+
+class TestDocxFileComparison:
+    """Compare the persistent source.docx and test.docx fixture files.
+
+    The fixtures represent a short "Service Agreement" document where
+    ``test.docx`` has deliberate text, formatting, and structural changes
+    relative to ``source.docx``:
+
+    * Text change: "hereby agrees" → "consents"
+    * Formatting-only change: "in good faith" gains bold (was italic-only)
+    * Paragraph style change: "Terms and Conditions" Normal → Heading2
+    * Alignment change: CONFIDENTIAL centered → left, red color removed
+    * New paragraph appended
+    """
+
+    @pytest.fixture()
+    def diff(self) -> Redlines:
+        source = DocxFile(os.path.join(FIXTURES, "source.docx"))
+        test = DocxFile(os.path.join(FIXTURES, "test.docx"))
+        return Redlines(source, test)
+
+    @pytest.fixture()
+    def diff_json(self, diff: Redlines) -> dict[str, Any]:
+        return json.loads(diff.output_json(pretty=True))
+
+    # ── basic properties ──────────────────────────────────────────────
+
+    def test_source_text_extracted(self, diff: Redlines) -> None:
+        assert "Service Agreement" in diff.source
+        assert "CONFIDENTIAL" in diff.source
+
+    def test_test_text_extracted(self, diff: Redlines) -> None:
+        assert "Service Agreement" in diff.test
+        assert "date of signing" in diff.test
+
+    def test_processor_is_docx(self, diff: Redlines) -> None:
+        assert isinstance(diff.processor, DocxProcessor)
+
+    # ── stats ─────────────────────────────────────────────────────────
+
+    def test_total_changes(self, diff: Redlines) -> None:
+        stats = diff.stats()
+        assert stats.total_changes == 4
+        assert stats.replacements == 4
+
+    # ── text change: "hereby agrees" → "consents" ────────────────────
+
+    def test_text_change_detected(self, diff_json: dict[str, Any]) -> None:
+        replaces = [c for c in diff_json["changes"] if c["type"] == "replace"]
+        text_changes = [
+            c for c in replaces
+            if c.get("text_changed") is True
+            and "agrees" in (c.get("source_text") or "")
+        ]
+        assert len(text_changes) == 1
+        assert "consents" in text_changes[0]["test_text"]
+
+    def test_text_change_has_underline_formatting_diff(
+        self, diff_json: dict[str, Any]
+    ) -> None:
+        """'consents' also gained underline, so formatting_changes includes u."""
+        replaces = [c for c in diff_json["changes"] if c["type"] == "replace"]
+        text_changes = [
+            c for c in replaces if "agrees" in (c.get("source_text") or "")
+        ]
+        fmt = text_changes[0].get("formatting_changes", {})
+        assert "u" in fmt
+        assert fmt["u"]["to"] == "single"
+
+    # ── formatting-only: "in good faith" italic → bold+italic ────────
+
+    def test_formatting_only_change(self, diff_json: dict[str, Any]) -> None:
+        replaces = [c for c in diff_json["changes"] if c["type"] == "replace"]
+        fmt_only = [
+            c for c in replaces
+            if c.get("text_changed") is False
+            and "good faith" in (c.get("source_text") or "")
+        ]
+        assert len(fmt_only) == 1
+        fmt = fmt_only[0]["formatting_changes"]
+        assert fmt["b"]["from"] is None
+        assert fmt["b"]["to"] == "true"
+
+    # ── paragraph style change: Normal → Heading2 ────────────────────
+
+    def test_paragraph_style_change(self, diff_json: dict[str, Any]) -> None:
+        replaces = [c for c in diff_json["changes"] if c["type"] == "replace"]
+        style_changes = [
+            c for c in replaces
+            if c.get("text_changed") is False
+            and "Terms" in (c.get("source_text") or "")
+        ]
+        assert len(style_changes) == 1
+        fmt = style_changes[0]["formatting_changes"]
+        assert "paragraph_style" in fmt
+        assert fmt["paragraph_style"]["to"] == "Heading2"
+
+    # ── alignment + color change on CONFIDENTIAL ─────────────────────
+
+    def test_alignment_and_color_change(self, diff_json: dict[str, Any]) -> None:
+        replaces = [c for c in diff_json["changes"] if c["type"] == "replace"]
+        conf = [
+            c for c in replaces if "CONFIDENTIAL" in (c.get("source_text") or "")
+        ]
+        assert len(conf) == 1
+        fmt = conf[0].get("formatting_changes", {})
+        assert fmt["alignment"]["from"] == "center"
+        assert fmt["alignment"]["to"] == "left"
+        assert fmt["color"]["from"] == "FF0000"
+        assert fmt["color"]["to"] is None
+
+    # ── JSON structure validation ─────────────────────────────────────
+
+    def test_tokens_are_rich(self, diff_json: dict[str, Any]) -> None:
+        """source_tokens and test_tokens carry formatting dicts."""
+        for tok in diff_json["source_tokens"]:
+            assert isinstance(tok, dict)
+            assert "text" in tok
+            assert "formatting" in tok
+
+    def test_changes_cover_full_text(self, diff_json: dict[str, Any]) -> None:
+        """Equal + changed spans should cover all source tokens."""
+        total_source_span = 0
+        for c in diff_json["changes"]:
+            if c["type"] in ("equal", "delete", "replace"):
+                i1, i2 = c["source_token_position"]
+                total_source_span += i2 - i1
+        assert total_source_span == len(diff_json["source_tokens"])
+
+    def test_stats_section(self, diff_json: dict[str, Any]) -> None:
+        stats = diff_json["stats"]
+        assert stats["replacements"] == 4
+        assert stats["total_changes"] == 4
+        assert stats["insertions"] == 0
+        assert stats["deletions"] == 0
+        assert 0 < stats["change_ratio"] < 1
+
+    # ── markdown output doesn't crash ─────────────────────────────────
+
+    def test_markdown_output(self, diff: Redlines) -> None:
+        md = diff.output_markdown
+        assert isinstance(md, str)
+        assert "Service Agreement" in md
