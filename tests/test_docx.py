@@ -857,3 +857,27 @@ class TestDocxFileComparison:
     def test_rich_style_change_annotation(self, diff: Redlines) -> None:
         plain = diff.output_rich.plain
         assert "+style: Heading2" in plain
+
+    # ── custom_css with fmt_class / fmt_note_class ───────────────────
+
+    def test_custom_css_default_fmt_classes(self) -> None:
+        source = DocxFile(os.path.join(FIXTURES, "source.docx"))
+        test = DocxFile(os.path.join(FIXTURES, "test.docx"))
+        r = Redlines(source, test, markdown_style="custom_css")
+        md = r.output_markdown
+        assert "class='redline-formatting'" in md
+        assert "class='redline-formatting-note'" in md
+
+    def test_custom_css_overridden_fmt_classes(self) -> None:
+        source = DocxFile(os.path.join(FIXTURES, "source.docx"))
+        test = DocxFile(os.path.join(FIXTURES, "test.docx"))
+        r = Redlines(
+            source,
+            test,
+            markdown_style="custom_css",
+            fmt_class="my-fmt",
+            fmt_note_class="my-fmt-note",
+        )
+        md = r.output_markdown
+        assert "class='my-fmt'" in md
+        assert "class='my-fmt-note'" in md

@@ -113,6 +113,10 @@ class RedlinesOptions(t.TypedDict, total=False):
     """The CSS class to use for insertions when `markdown_style` is set to `custom_css`. Defaults to 'redline-inserted'."""
     del_class: str
     """The CSS class to use for deletions when `markdown_style` is set to `custom_css`. Defaults to 'redline-deleted'."""
+    fmt_class: str
+    """The CSS class to use for formatting-only changes when `markdown_style` is set to `custom_css`. Defaults to 'redline-formatting'."""
+    fmt_note_class: str
+    """The CSS class to use for formatting annotations when `markdown_style` is set to `custom_css`. Defaults to 'redline-formatting-note'."""
 
 
 class Redlines:
@@ -623,6 +627,11 @@ class Redlines:
         You can also set your own CSS classes by specifying the name of the CSS class in the options `ins_class`
         and `del_class` respectively in the constructor or compare function.
 
+        When comparing DOCX files, formatting-only changes (where text is unchanged but formatting differs)
+        are rendered using separate `fmt` and `fmt_note` style pairs. For `custom_css`, these use the
+        "redline-formatting" and "redline-formatting-note" CSS classes by default, which can be overridden
+        using the `fmt_class` and `fmt_note_class` options.
+
         ## Markdown output in specific environments
 
         Users have reported that the output doesn't display correctly in their environments.
@@ -722,6 +731,16 @@ class Redlines:
                     if "del_class" in self.options
                     else "redline-deleted"
                 )
+                fmt_class = (
+                    self.options["fmt_class"]
+                    if "fmt_class" in self.options
+                    else "redline-formatting"
+                )
+                fmt_note_class = (
+                    self.options["fmt_note_class"]
+                    if "fmt_note_class" in self.options
+                    else "redline-formatting-note"
+                )
 
                 md_styles = {
                     "ins": (
@@ -733,11 +752,11 @@ class Redlines:
                         "</span>",
                     ),
                     "fmt": (
-                        "<span class='redline-formatting'>",
+                        f"<span class='{fmt_class}'>",
                         "</span>",
                     ),
                     "fmt_note": (
-                        "<sup class='redline-formatting-note'>",
+                        f"<sup class='{fmt_note_class}'>",
                         "</sup>",
                     ),
                 }
