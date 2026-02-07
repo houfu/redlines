@@ -32,6 +32,7 @@ __all__: tuple[str, ...] = (
     "Stats",
     "DiffOperation",
     "Chunk",
+    "RichToken",
 )
 
 tokenizer = re.compile(r"((?:[^()\s]+|[().?!-])\s*)")
@@ -183,6 +184,36 @@ def concatenate_sentences_and_add_chr_182(text: str) -> str:
     return "".join(result)
 
 
+@dataclass(frozen=True)
+class RichToken:
+    """A word-level token carrying text and formatting metadata.
+
+    Used for format-aware comparison (e.g. DOCX documents). Two tokens are
+    equal only if both their text and formatting match, so "Hello" in bold
+    is different from "Hello" in normal.
+
+    The formatting field is a sorted tuple of (key, value) string pairs,
+    making it hashable and usable with SequenceMatcher.
+    """
+
+    text: str
+    """The word text including any trailing whitespace."""
+    formatting: tuple[tuple[str, str], ...] = ()
+    """Sorted (key, value) pairs of formatting properties."""
+
+    def __str__(self) -> str:
+        return self.text
+
+    @property
+    def formatting_dict(self) -> dict[str, str]:
+        """Return formatting as a plain dict (for JSON serialization)."""
+        return dict(self.formatting)
+
+    def normalized(self) -> RichToken:
+        """Return a copy with stripped text (for comparison), preserving formatting."""
+        return RichToken(text=self.text.strip(), formatting=self.formatting)
+
+
 @dataclass
 class Chunk:
     """A chunk of text that is being compared. In some cases, it may be the whole document"""
@@ -191,6 +222,9 @@ class Chunk:
     """The tokens of the chunk"""
     chunk_location: str | None
     """An optional string describing the location of the chunk in the document. For example, a PDF page number"""
+    rich_tokens: list[RichToken] | None = None
+    """Optional rich tokens for format-aware comparison (e.g. DOCX). When present, each
+    entry corresponds 1:1 with the plain strings in ``text``."""
 
 
 @dataclass
