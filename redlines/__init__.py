@@ -77,6 +77,7 @@ redlines markdown file1.txt file2.txt  # Markdown output
 
 """
 
+from .docx import *
 from .document import *
 from .enums import *
 from .pdf import *

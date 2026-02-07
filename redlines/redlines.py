@@ -6,14 +6,47 @@ import typing as t
 from rich.text import Text
 from typing_extensions import Unpack
 
+from .docx import DocxFile, DocxProcessor
 from .document import Document
 from .enums import MarkdownStyle, OutputType
-from .processor import DiffOperation, Redline, RedlinesProcessor, Stats, WholeDocumentProcessor
+from .processor import DiffOperation, Redline, RedlinesProcessor, RichToken, Stats, WholeDocumentProcessor
 
 __all__: tuple[str, ...] = (
     "Redlines",
     "RedlinesOptions",
 )
+
+
+def _formatting_diff(
+    source_tokens: list[t.Any], test_tokens: list[t.Any]
+) -> dict[str, dict[str, str | None]]:
+    """Compare formatting across two slices of RichTokens.
+
+    Returns a dict of ``{property: {"from": old_val, "to": new_val}}`` for
+    every property that differs between the two token slices.  Properties are
+    aggregated across all tokens in each slice — if a property has multiple
+    distinct values in a slice the most common one is used.
+    """
+    from collections import Counter
+
+    def _aggregate(tokens: list[RichToken]) -> dict[str, str]:
+        counts: dict[str, Counter[str]] = {}
+        for tok in tokens:
+            for k, v in tok.formatting:
+                counts.setdefault(k, Counter())[v] += 1
+        return {k: ctr.most_common(1)[0][0] for k, ctr in counts.items()}
+
+    src_agg = _aggregate(source_tokens)
+    tst_agg = _aggregate(test_tokens)
+
+    all_keys = set(src_agg) | set(tst_agg)
+    diff: dict[str, dict[str, str | None]] = {}
+    for key in sorted(all_keys):
+        src_val = src_agg.get(key)
+        tst_val = tst_agg.get(key)
+        if src_val != tst_val:
+            diff[key] = {"from": src_val, "to": tst_val}
+    return diff
 
 # Workaround for enum + literal support in type hints
 # See: https://github.com/python/typing/issues/781
@@ -185,6 +218,18 @@ class Redlines:
 
         ```
 
+        For DOCX comparison with formatting awareness:
+
+        ```python
+        from redlines import Redlines
+        from redlines.docx import DocxFile
+
+        source = DocxFile("old.docx")
+        test = DocxFile("new.docx")
+        diff = Redlines(source, test)
+        print(diff.output_json(pretty=True))
+        ```
+
         For advanced use cases, you can specify a custom processor for different tokenization strategies:
 
         ```python
@@ -209,10 +254,19 @@ class Redlines:
         :param options: Additional options for comparison and output formatting.
         :type options: RedlinesOptions
         """
-        self.processor = processor if processor is not None else WholeDocumentProcessor()
-        self.source = source.text if isinstance(source, Document) else source
         self.options = options
         self._diff_operations = None
+
+        # Auto-detect DOCX inputs and use format-aware processor.
+        if isinstance(source, DocxFile) and isinstance(test, DocxFile):
+            self.processor = processor if processor is not None else DocxProcessor()
+            self._source = source.text
+            self._test = test.text
+            self._diff_operations = self.processor.process(source, test)
+            return
+
+        self.processor = processor if processor is not None else WholeDocumentProcessor()
+        self.source = source.text if isinstance(source, Document) else source
         if test is not None:
             self.test = test.text if isinstance(test, Document) else test
             # self.compare()
@@ -737,12 +791,18 @@ class Redlines:
         # All operations share the same source and test tokens
         if not self._diff_ops:
             # Handle edge case of empty diff (e.g., both texts are empty or whitespace-only)
-            source_tokens = []
-            test_tokens = []
+            source_tokens: list[str] = []
+            test_tokens: list[str] = []
+            source_rich: list[RichToken] | None = None
+            test_rich: list[RichToken] | None = None
         else:
             first_op = self._diff_ops[0]
             source_tokens = first_op.source_chunk.text
             test_tokens = first_op.test_chunk.text
+            source_rich = first_op.source_chunk.rich_tokens
+            test_rich = first_op.test_chunk.rich_tokens
+
+        has_rich = source_rich is not None and test_rich is not None
 
         # Don't clean tokens individually - we need to join them first then replace ¶
         # This matches the approach in output_markdown (line 470)
@@ -783,6 +843,10 @@ class Redlines:
                     "source_token_position": [i1, i2],
                     "test_token_position": [j1, j2],
                 }
+                if has_rich:
+                    change["source_formatting"] = [
+                        rt.formatting_dict for rt in source_rich[i1:i2]  # type: ignore[index]
+                    ]
                 source_char_offset += len(source_text)
                 test_char_offset += len(test_text)
             elif tag == "delete":
@@ -797,6 +861,10 @@ class Redlines:
                     "source_token_position": [i1, i2],
                     "test_token_position": None,
                 }
+                if has_rich:
+                    change["source_formatting"] = [
+                        rt.formatting_dict for rt in source_rich[i1:i2]  # type: ignore[index]
+                    ]
                 source_char_offset += len(source_text)
             elif tag == "insert":
                 change = {
@@ -810,6 +878,10 @@ class Redlines:
                     "source_token_position": None,
                     "test_token_position": [j1, j2],
                 }
+                if has_rich:
+                    change["test_formatting"] = [
+                        rt.formatting_dict for rt in test_rich[j1:j2]  # type: ignore[index]
+                    ]
                 test_char_offset += len(test_text)
             elif tag == "replace":
                 change = {
@@ -827,6 +899,20 @@ class Redlines:
                     "source_token_position": [i1, i2],
                     "test_token_position": [j1, j2],
                 }
+                if has_rich:
+                    src_rich_slice = source_rich[i1:i2]  # type: ignore[index]
+                    tst_rich_slice = test_rich[j1:j2]  # type: ignore[index]
+                    change["source_formatting"] = [
+                        rt.formatting_dict for rt in src_rich_slice
+                    ]
+                    change["test_formatting"] = [
+                        rt.formatting_dict for rt in tst_rich_slice
+                    ]
+                    # Summarise what actually changed between source and test.
+                    change["text_changed"] = source_text.strip() != test_text.strip()
+                    fmt_changes = _formatting_diff(src_rich_slice, tst_rich_slice)
+                    if fmt_changes:
+                        change["formatting_changes"] = fmt_changes
                 source_char_offset += len(source_text)
                 test_char_offset += len(test_text)
             else:
@@ -844,12 +930,24 @@ class Redlines:
 
         # Build final JSON structure
         # Clean tokens for output by replacing paragraph markers
-        output_source_tokens = [
-            token.replace("¶ ", "\n\n") for token in cleaned_source_tokens
-        ]
-        output_test_tokens = [
-            token.replace("¶ ", "\n\n") for token in cleaned_test_tokens
-        ]
+        output_source_tokens: list[t.Any]
+        output_test_tokens: list[t.Any]
+        if has_rich:
+            output_source_tokens = [
+                {"text": rt.text.replace("¶ ", "\n\n"), "formatting": rt.formatting_dict}
+                for rt in (source_rich or [])
+            ]
+            output_test_tokens = [
+                {"text": rt.text.replace("¶ ", "\n\n"), "formatting": rt.formatting_dict}
+                for rt in (test_rich or [])
+            ]
+        else:
+            output_source_tokens = [
+                token.replace("¶ ", "\n\n") for token in cleaned_source_tokens
+            ]
+            output_test_tokens = [
+                token.replace("¶ ", "\n\n") for token in cleaned_test_tokens
+            ]
 
         result = {
             "source": self.source,
