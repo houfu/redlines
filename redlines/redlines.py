@@ -48,6 +48,59 @@ def _formatting_diff(
             diff[key] = {"from": src_val, "to": tst_val}
     return diff
 
+
+# Friendly display names for formatting properties.
+_PROP_LABELS: dict[str, str] = {
+    "b": "bold",
+    "i": "italic",
+    "u": "underline",
+    "strike": "strikethrough",
+    "dstrike": "double-strikethrough",
+    "caps": "caps",
+    "smallCaps": "small-caps",
+    "sz": "font-size",
+    "font": "font",
+    "color": "color",
+    "highlight": "highlight",
+    "vertAlign": "vertical-align",
+    "paragraph_style": "style",
+    "alignment": "alignment",
+}
+
+
+def _describe_formatting_changes(
+    source_rich: list[RichToken],
+    test_rich: list[RichToken],
+) -> str:
+    """Return a compact human-readable summary of formatting differences.
+
+    Examples:
+        ``"+bold"``  ``"-italic"``  ``"style: Normal→Heading2"``
+        ``"+bold, alignment: center→left"``
+    """
+    fmt = _formatting_diff(source_rich, test_rich)
+    if not fmt:
+        return ""
+    parts: list[str] = []
+    for key, change in fmt.items():
+        label = _PROP_LABELS.get(key, key)
+        frm = change["from"]
+        to = change["to"]
+        # Boolean-ish toggles: "+bold" / "-bold"
+        if to == "true" and frm is None:
+            parts.append(f"+{label}")
+        elif frm == "true" and to is None:
+            parts.append(f"-{label}")
+        # Value changes: "style: Normal→Heading2"
+        elif frm is not None and to is not None:
+            parts.append(f"{label}: {frm}\u2192{to}")
+        elif frm is None and to is not None:
+            parts.append(f"+{label}: {to}")
+        elif frm is not None and to is None:
+            parts.append(f"-{label}: {frm}")
+    return ", ".join(parts)
+
+
 # Workaround for enum + literal support in type hints
 # See: https://github.com/python/typing/issues/781
 OutputTypeLike = OutputType | t.Literal["markdown", "rich"]
@@ -607,14 +660,25 @@ class Redlines:
 
         # default_style = "red_green"
 
-        md_styles = {
+        # Formatting-change styles used alongside ins/del when rich tokens
+        # are available.  "fmt" wraps the text of a formatting-only change,
+        # "fmt_note" wraps the human-readable annotation like "[+bold]".
+        md_styles: dict[str, tuple[str, str]] = {
             "ins": (
-                f"<span style='color:green;font-weight:700;'>",
+                "<span style='color:green;font-weight:700;'>",
                 "</span>",
             ),
             "del": (
-                f"<span style='color:red;font-weight:700;text-decoration:line-through;'>",
+                "<span style='color:red;font-weight:700;text-decoration:line-through;'>",
                 "</span>",
+            ),
+            "fmt": (
+                "<span style='color:blue;font-weight:700;'>",
+                "</span>",
+            ),
+            "fmt_note": (
+                "<sup style='color:blue;'>",
+                "</sup>",
             ),
         }
 
@@ -622,16 +686,29 @@ class Redlines:
             style = self.options["markdown_style"]
 
             if style == "none" or style is None:
-                md_styles = {"ins": ("<ins>", "</ins>"), "del": ("<del>", "</del>")}
+                md_styles = {
+                    "ins": ("<ins>", "</ins>"),
+                    "del": ("<del>", "</del>"),
+                    "fmt": ("<span>", "</span>"),
+                    "fmt_note": ("<sup>", "</sup>"),
+                }
             elif style == "red":
                 md_styles = {
                     "ins": (
-                        f"<span style='color:red;font-weight:700;'>",
+                        "<span style='color:red;font-weight:700;'>",
                         "</span>",
                     ),
                     "del": (
-                        f"<span style='color:red;font-weight:700;text-decoration:line-through;'>",
+                        "<span style='color:red;font-weight:700;text-decoration:line-through;'>",
                         "</span>",
+                    ),
+                    "fmt": (
+                        "<span style='color:red;font-weight:700;text-decoration:underline;'>",
+                        "</span>",
+                    ),
+                    "fmt_note": (
+                        "<sup style='color:red;'>",
+                        "</sup>",
                     ),
                 }
             elif style == "custom_css":
@@ -646,35 +723,52 @@ class Redlines:
                     else "redline-deleted"
                 )
 
-                elem_attributes = {
-                    "ins": f"class='{ins_class}'",
-                    "del": f"class='{del_class}'",
-                }
-
                 md_styles = {
                     "ins": (
-                        f"<span {elem_attributes['ins']}>",
+                        f"<span class='{ins_class}'>",
                         "</span>",
                     ),
                     "del": (
-                        f"<span {elem_attributes['del']}>",
+                        f"<span class='{del_class}'>",
                         "</span>",
+                    ),
+                    "fmt": (
+                        "<span class='redline-formatting'>",
+                        "</span>",
+                    ),
+                    "fmt_note": (
+                        "<sup class='redline-formatting-note'>",
+                        "</sup>",
                     ),
                 }
             elif style == "ghfm":
-                md_styles = {"ins": ("**", "**"), "del": ("~~", "~~")}
+                md_styles = {
+                    "ins": ("**", "**"),
+                    "del": ("~~", "~~"),
+                    "fmt": ("***", "***"),
+                    "fmt_note": (" _", "_"),
+                }
             elif style == "bbcode":
                 md_styles = {
                     "ins": ("[b][color=green]", "[/color][/b]"),
                     "del": ("[s][color=red]", "[/color][/s]"),
+                    "fmt": ("[u][color=blue]", "[/color][/u]"),
+                    "fmt_note": ("[i][color=blue]", "[/color][/i]"),
                 }
             elif style == "streamlit":
-                md_styles = {"ins": ("**:green[", "]** "), "del": ("~~:red[", "]~~ ")}
+                md_styles = {
+                    "ins": ("**:green[", "]** "),
+                    "del": ("~~:red[", "]~~ "),
+                    "fmt": ("**:blue[", "]** "),
+                    "fmt_note": ("_:blue[", "]_ "),
+                }
 
         for diff_op in self._diff_ops:
             tag, i1, i2, j1, j2 = diff_op.opcodes
             source_tokens = diff_op.source_chunk.text
             test_tokens = diff_op.test_chunk.text
+            source_rich = diff_op.source_chunk.rich_tokens
+            test_rich = diff_op.test_chunk.rich_tokens
 
             if tag == "equal":
                 temp_str = "".join(source_tokens[i1:i2])
@@ -697,16 +791,45 @@ class Redlines:
                 # for 'delete', we make no change, because otherwise there will be two times '\n\n' than the original
                 # text.
             elif tag == "replace":
-                result.append(
-                    f"{md_styles['del'][0]}{''.join(source_tokens[i1:i2])}{md_styles['del'][1]}"
-                )
-                temp_str = "".join(test_tokens[j1:j2])
-                splits = re.split("¶ ", temp_str)
-                for split in splits:
-                    result.append(f"{md_styles['ins'][0]}{split}{md_styles['ins'][1]}")
-                    result.append("\n\n")
-                if len(splits) > 0:
-                    result.pop()
+                src_text = "".join(source_tokens[i1:i2])
+                tst_text = "".join(test_tokens[j1:j2])
+                text_same = src_text.strip() == tst_text.strip()
+
+                if text_same and source_rich is not None and test_rich is not None:
+                    # Formatting-only change — show text once with annotation.
+                    desc = _describe_formatting_changes(
+                        source_rich[i1:i2], test_rich[j1:j2]
+                    )
+                    clean = re.sub("¶ ", "\n\n", tst_text)
+                    result.append(
+                        f"{md_styles['fmt'][0]}{clean}{md_styles['fmt'][1]}"
+                    )
+                    if desc:
+                        result.append(
+                            f"{md_styles['fmt_note'][0]}[{desc}]{md_styles['fmt_note'][1]}"
+                        )
+                else:
+                    # Text changed — standard del + ins.
+                    result.append(
+                        f"{md_styles['del'][0]}{src_text}{md_styles['del'][1]}"
+                    )
+                    temp_str = tst_text
+                    splits = re.split("¶ ", temp_str)
+                    for split in splits:
+                        result.append(f"{md_styles['ins'][0]}{split}{md_styles['ins'][1]}")
+                        result.append("\n\n")
+                    if len(splits) > 0:
+                        result.pop()
+
+                    # If there's also a formatting diff, append a note.
+                    if source_rich is not None and test_rich is not None:
+                        desc = _describe_formatting_changes(
+                            source_rich[i1:i2], test_rich[j1:j2]
+                        )
+                        if desc:
+                            result.append(
+                                f"{md_styles['fmt_note'][0]}[{desc}]{md_styles['fmt_note'][1]}"
+                            )
 
         return "".join(result)
 
@@ -724,6 +847,8 @@ class Redlines:
             tag, i1, i2, j1, j2 = diff_op.opcodes
             source_tokens = diff_op.source_chunk.text
             test_tokens = diff_op.test_chunk.text
+            source_rich = diff_op.source_chunk.rich_tokens
+            test_rich = diff_op.test_chunk.rich_tokens
 
             if tag == "equal":
                 temp_str = "".join(source_tokens[i1:i2])
@@ -737,11 +862,31 @@ class Redlines:
             elif tag == "delete":
                 console_text.append("".join(source_tokens[i1:i2]), "strike red")
             elif tag == "replace":
-                console_text.append("".join(source_tokens[i1:i2]), "strike red")
-                temp_str = "".join(test_tokens[j1:j2])
-                splits = re.split("¶ ", temp_str)
-                for split in splits:
-                    console_text.append(split, "green")
+                src_text = "".join(source_tokens[i1:i2])
+                tst_text = "".join(test_tokens[j1:j2])
+                text_same = src_text.strip() == tst_text.strip()
+
+                if text_same and source_rich is not None and test_rich is not None:
+                    desc = _describe_formatting_changes(
+                        source_rich[i1:i2], test_rich[j1:j2]
+                    )
+                    clean = re.sub("¶ ", "\n\n", tst_text)
+                    console_text.append(clean, "bold blue")
+                    if desc:
+                        console_text.append(f"[{desc}]", "blue")
+                else:
+                    console_text.append(src_text, "strike red")
+                    temp_str = tst_text
+                    splits = re.split("¶ ", temp_str)
+                    for split in splits:
+                        console_text.append(split, "green")
+
+                    if source_rich is not None and test_rich is not None:
+                        desc = _describe_formatting_changes(
+                            source_rich[i1:i2], test_rich[j1:j2]
+                        )
+                        if desc:
+                            console_text.append(f"[{desc}]", "blue")
 
         return console_text
 

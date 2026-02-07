@@ -808,9 +808,52 @@ class TestDocxFileComparison:
         assert stats["deletions"] == 0
         assert 0 < stats["change_ratio"] < 1
 
-    # ── markdown output doesn't crash ─────────────────────────────────
+    # ── markdown output ──────────────────────────────────────────────
 
     def test_markdown_output(self, diff: Redlines) -> None:
         md = diff.output_markdown
         assert isinstance(md, str)
         assert "Service Agreement" in md
+
+    def test_markdown_formatting_only_not_del_ins(self, diff: Redlines) -> None:
+        """Formatting-only changes should NOT show del+ins of same text."""
+        md = diff.output_markdown
+        # "in good faith" is formatting-only (italic → bold+italic).
+        # It should appear once in blue, not as strikethrough + insertion.
+        assert "line-through;'>in good faith" not in md
+
+    def test_markdown_formatting_only_has_annotation(self, diff: Redlines) -> None:
+        md = diff.output_markdown
+        assert "[+bold]" in md
+
+    def test_markdown_style_change_annotation(self, diff: Redlines) -> None:
+        md = diff.output_markdown
+        assert "+style: Heading2" in md
+
+    def test_markdown_text_change_still_del_ins(self, diff: Redlines) -> None:
+        """Text changes should still use standard del+ins."""
+        md = diff.output_markdown
+        assert "hereby agrees" in md
+        assert "consents" in md
+
+    def test_markdown_text_change_with_formatting_note(self, diff: Redlines) -> None:
+        """Text change that also has formatting diff should include a note."""
+        md = diff.output_markdown
+        assert "+underline: single" in md
+
+    # ── rich (terminal) output ───────────────────────────────────────
+
+    def test_rich_output(self, diff: Redlines) -> None:
+        from rich.text import Text
+        rich = diff.output_rich
+        assert isinstance(rich, Text)
+        plain = rich.plain
+        assert "Service Agreement" in plain
+
+    def test_rich_formatting_only_has_annotation(self, diff: Redlines) -> None:
+        plain = diff.output_rich.plain
+        assert "[+bold]" in plain
+
+    def test_rich_style_change_annotation(self, diff: Redlines) -> None:
+        plain = diff.output_rich.plain
+        assert "+style: Heading2" in plain
