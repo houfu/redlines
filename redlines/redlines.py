@@ -20,6 +20,54 @@ __all__: tuple[str, ...] = (
 OutputTypeLike = OutputType | t.Literal["markdown", "rich"]
 
 
+def trailing_whitespace(token: str) -> str:
+    """
+    Return the whitespace a token carries at its end, which may be an empty string.
+
+    :param token: The token to inspect.
+    :return: The trailing whitespace of the token.
+    :rtype: str
+    """
+    return token[len(token.rstrip()) :]
+
+
+def join_equal_tokens(
+    source_tokens: list[str],
+    test_tokens: list[str],
+    i1: int,
+    i2: int,
+    j1: int,
+    j2: int,
+) -> str:
+    """
+    Join the tokens of an `equal` operation, preserving whitespace from either document.
+
+    Tokens carry their own trailing whitespace, but the processor compares tokens with that
+    whitespace stripped, so `token` in the source and `token ` in the test are treated as equal.
+    Rendering the source token alone would then drop a space the test document has, jamming the
+    unchanged text against the change that follows it (see issue #87).
+
+    Whenever the source token has no trailing whitespace but its test counterpart does, the test
+    token's whitespace is used. The tokens are otherwise identical apart from that whitespace.
+
+    :param source_tokens: The tokens of the source document.
+    :param test_tokens: The tokens of the test document.
+    :param i1: The start of the operation in the source tokens.
+    :param i2: The end of the operation in the source tokens.
+    :param j1: The start of the operation in the test tokens.
+    :param j2: The end of the operation in the test tokens.
+    :return: The text of the unchanged run.
+    :rtype: str
+    """
+    result: list[str] = []
+    for offset, source_token in enumerate(source_tokens[i1:i2]):
+        if not trailing_whitespace(source_token) and j1 + offset < j2:
+            source_token += trailing_whitespace(test_tokens[j1 + offset])
+        result.append(source_token)
+
+    return "".join(result)
+
+
 class RedlinesOptions(t.TypedDict, total=False):
     markdown_style: str | MarkdownStyle | None
     """The style to use for markdown output. See `Redlines.output_markdown` for more information."""
@@ -623,7 +671,7 @@ class Redlines:
             test_tokens = diff_op.test_chunk.text
 
             if tag == "equal":
-                temp_str = "".join(source_tokens[i1:i2])
+                temp_str = join_equal_tokens(source_tokens, test_tokens, i1, i2, j1, j2)
                 temp_str = re.sub("¶ ", "\n\n", temp_str)
                 # here we use '¶ ' instead of ' ¶ ', because the leading space will be included in the previous token,
                 # according to tokenizer = re.compile(r"((?:[^()\s]+|[().?!-])\s*)")
@@ -672,7 +720,7 @@ class Redlines:
             test_tokens = diff_op.test_chunk.text
 
             if tag == "equal":
-                temp_str = "".join(source_tokens[i1:i2])
+                temp_str = join_equal_tokens(source_tokens, test_tokens, i1, i2, j1, j2)
                 temp_str = re.sub("¶ ", "\n\n", temp_str)
                 console_text.append(temp_str)
             elif tag == "insert":
