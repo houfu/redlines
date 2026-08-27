@@ -4,7 +4,10 @@
 name: Python package
 
 on:
+  # Only main: work on a branch is covered by its pull request, so pushing to a
+  # branch with an open PR would otherwise run the whole matrix twice.
   push:
+    branches: [ main ]
     paths-ignore:
       - '**.md'
       - 'docs/**'
@@ -20,10 +23,13 @@ on:
       - '.github/workflows/docs.yml'
   workflow_dispatch:
 
-# A new push to the same branch makes the run in progress redundant.
+# A new push to the same branch makes the run in progress redundant. Grouping
+# by branch name rather than github.ref keeps a pull_request run and a push run
+# for one branch in the same group. Runs on main are left to finish, so every
+# commit there keeps its own result.
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  group: ${{ github.workflow }}-${{ github.head_ref || github.ref_name }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 jobs:
   build:
