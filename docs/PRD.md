@@ -1,6 +1,6 @@
 # PRD: redlines 1.0 — a structural redliner
 
-**Status:** draft for discussion, 26 August 2026 (revision 7: decisions hived off into ADRs under `docs/adr/`; section 6 is now an index and a D-number map)
+**Status:** draft for discussion, 27 August 2026 (revision 8: the documentation platform is decided in ADR-0026 — Astro Starlight, in one site with the demo — which adds section 7.12 and resolves the last of section 13's site questions. Revision 7: decisions hived off into ADRs under `docs/adr/`; section 6 is now an index and a D-number map)
 **Owner:** houfu
 **Companions:** [`docs/adr/`](adr/README.md) (the decisions, with rationale and alternatives — section 6 maps the old D-numbers onto them), [`docs/competitive-landscape-2026-08.md`](competitive-landscape-2026-08.md) (the landscape survey the decisions rest on), and [`ROADMAP.md`](../ROADMAP.md) (the authority on which release each feature is in; where the Must/Should/1.1 tags below disagree with it, the roadmap wins once curated)
 
@@ -104,6 +104,8 @@ Revisions 1 to 6 of this PRD numbered decisions D1 to D30 in a table here. That 
 | D29 | ADR-0025 CLI as a thin skin |
 | D30 | ADR-0006 Structure profiles |
 | (non-goal) | ADR-0007 No OCR, no LLM in the library |
+
+Decisions taken after revision 7 have no D-number and appear only as ADRs: [ADR-0026](adr/0026-docs-site-on-astro-starlight.md), the documentation platform.
 
 ## 6a. Change-tree wire format
 
@@ -236,9 +238,16 @@ R44. Shareable permalink that encodes both inputs client-side (compressed in the
 R45. The 0.6 public API (`Redlines`, `compare`, `output_markdown`, `output_rich`, `output_json`, `changes`, `get_changes`, `stats`, `opcodes`, processors, `Document`, `PlainTextFile`) keeps working with no code changes; the existing test suite passes unmodified. **Must.**
 R46. Deprecation warnings, not removals, for anything superseded. **Must.**
 
+### 7.12 Documentation site (ADR-0026)
+
+R47. Documentation is published from a single Astro Starlight project in `site/`, deployed to GitHub Pages, replacing pdoc as the publishing surface. Hand-written pages and the generated API reference live together, the latter built with pdoc and served under `/api/`; docstrings stay the source of truth for the API reference. **Must.**
+R48. By 1.0 the site carries: quickstart and install; the agent guide rewritten for compare, summary, annotate and verify; the JSON v2 schema and the profile schema, each with a worked example; a profile-authoring guide; the alignment benchmark report of ADR-0021; and the ADR index. **Must.**
+R49. The demo site of 7.10 is a route in that same project, sharing its build and deployment; documentation pages link to it and it links back. **Must.**
+R50. The boundary holds in both directions: nothing under `site/` is imported by the wheel, nothing in the wheel depends on the site building, and a failing site build never blocks a release. **Must.**
+
 ## 8. Non-functional requirements
 
-N1. Determinism: identical inputs and configuration produce identical trees, JSON and summaries. N2. Performance: a 200-page contract (roughly 60k words, 2,000 blocks) compares in under five seconds on a laptop in pure stdlib mode and under ten seconds in the browser; the alignment step is at worst quadratic in block count with early exit on exact matches. N3. Memory: block trees hold text once; inline diffs are computed per pair, not over the whole document. N4. Typing: strict mypy, `py.typed`. N5. Packaging: uv-managed, hatchling, extras as in D4; the core wheel and every 1.0 extra import under Pyodide, checked in CI (D28). N6. Documentation: JSON v2 schema published; an agent guide updated for compare, summary, verify; the MCP package and the site each link back to it. N7. The site and the MCP server are thin: no comparison logic lives outside the core library, so a behaviour seen on the site is reproducible from Python with the same inputs.
+N1. Determinism: identical inputs and configuration produce identical trees, JSON and summaries. N2. Performance: a 200-page contract (roughly 60k words, 2,000 blocks) compares in under five seconds on a laptop in pure stdlib mode and under ten seconds in the browser; the alignment step is at worst quadratic in block count with early exit on exact matches. N3. Memory: block trees hold text once; inline diffs are computed per pair, not over the whole document. N4. Typing: strict mypy, `py.typed`. N5. Packaging: uv-managed, hatchling, extras as in D4; the core wheel and every 1.0 extra import under Pyodide, checked in CI (D28). N6. Documentation: everything in 7.12 — the JSON v2 and profile schemas published with worked examples, an agent guide updated for compare, summary, annotate and verify, and the benchmark report — on the Starlight site of ADR-0026, which is stood up in the 0.6.x hygiene release so that no 1.0 page is written twice; the MCP package and the demo each link back to it. N7. The site and the MCP server are thin: no comparison logic lives outside the core library, so a behaviour seen on the site is reproducible from Python with the same inputs.
 
 ## 9. Interface sketch (names, not code)
 
@@ -254,13 +263,13 @@ For the alignment benchmark (D19): precision and recall of block correspondences
 
 Each step ships on its own and is useful without the next.
 
-1. **0.6.x hygiene release.** `autojunk` off, cleanup pass, sentence mode preserves paragraphs, regression corpus with a repetitive schedule, investigate the 18 benchmark failures. Small, immediate, no design risk.
+1. **0.6.x hygiene release.** `autojunk` off, cleanup pass, sentence mode preserves paragraphs, regression corpus with a repetitive schedule, investigate the 18 benchmark failures. Small, immediate, no design risk. The documentation moves from pdoc to Starlight here (ADR-0026, 7.12): it touches no engine code, so it neither blocks nor is blocked, and every page step 5 owes then gets written once, onto a site that can hold it.
 2. **Model, semantics and readers.** Block model with the semantic layer (D5), reader interface with a worked third-party example, `dropped` reporting; plain-text and minimal markdown readers; the legal semantic pass; format detection; the section 3a sample pair and its golden tree. Pyodide import check added to CI here. Existing API untouched.
 3. **Alignment and change tree.** D6 passes, moves, renumbering, tables; change tree; serialisation per the D10 decision; filters and per-section stats. The synthetic-mutation corpus and metric are built in this step, before alignment is tuned; the move-recall gate (section 10) is measured here.
 4. **Renderers and compatibility.** Markdown, rich, HTML and annotated-document renderers over the tree; `Redlines` facade; 0.6 suite green.
 5. **Verify, CLI, docs — the 1.0 release.** Verify mode, the three CLI subcommands over the shared argument layer (D29, about a day), agent guide, schema publication.
 6. **`redlines-mcp` 0.1 (G7).** Started as soon as the tree serialisation is frozen in step 3, released within days of 1.0: tools, transports, the LLM summary renderer (D15), SKILL.md, golden tests, registry listings.
-7. **Demo site (G8).** Started once step 4's renderers are stable; released after the MCP server. Pyodide worker, text and markdown inputs, the output views, the sample pair as the default state, privacy statement.
+7. **Demo site (G8).** Started once step 4's renderers are stable; released after the MCP server. A route in the documentation site from step 1 (ADR-0026), so this step is the demo itself and not a second build: Pyodide worker, text and markdown inputs, the output views, the sample pair as the default state, privacy statement.
 8. **1.1.** HTML reader, then DOCX reader (D12), then PDF text reader; adeu and superdoc-redlines export (D13); split/merge; side-by-side view on the site; `[fuzzy]` tuning from benchmark results; markdown-it reader only if the regex one proves insufficient.
 
 ## 12. Risks
@@ -289,4 +298,6 @@ The demo becomes the product. A site that works well invites feature requests (a
 
 D10 and D14 are now decided per the recommendations. Next design questions, in order: the profile format (D30) and the built-in set; the path syntax for D11; the JSON Schema for the change tree.
 
-Whether to keep the name (D20; I recommend keeping it; the site's domain is a separate, cheaper decision). Whether verify should also accept a natural-language instruction and ask an LLM to derive the allowed scope, or stay purely deterministic in 1.0 (I recommend deterministic; the LLM layer belongs in the caller, and on the site there is no LLM at all). Whether the site's side-by-side view is 1.0 or 1.1 (I recommend 1.1; the block-change list with expandable redlines is the view that shows what is different about this engine, and side-by-side is what every competitor already has). Whether the MCP server should expose the 0.6 flat comparison as a separate tool for callers who just want the old markdown string (I recommend no; `compare` on two bare strings already returns a one-block-per-paragraph tree, and one fewer tool is easier for models). Whether to approach the adeu and Docxodus maintainers before or after 1.0 (I recommend before, once the JSON v2 schema is drafted, because the schema is the integration point). Where the site lives: a `site/` directory in the main repo built by CI, or its own repo (I recommend the main repo so the wheel and the site are versioned together).
+Whether to keep the name (D20; I recommend keeping it; the site's domain is a separate, cheaper decision). Whether verify should also accept a natural-language instruction and ask an LLM to derive the allowed scope, or stay purely deterministic in 1.0 (I recommend deterministic; the LLM layer belongs in the caller, and on the site there is no LLM at all). Whether the site's side-by-side view is 1.0 or 1.1 (I recommend 1.1; the block-change list with expandable redlines is the view that shows what is different about this engine, and side-by-side is what every competitor already has). Whether the MCP server should expose the 0.6 flat comparison as a separate tool for callers who just want the old markdown string (I recommend no; `compare` on two bare strings already returns a one-block-per-paragraph tree, and one fewer tool is easier for models). Whether to approach the adeu and Docxodus maintainers before or after 1.0 (I recommend before, once the JSON v2 schema is drafted, because the schema is the integration point).
+
+**Resolved since revision 7.** Where the site lives: a `site/` directory in the main repository, one Astro project holding the documentation and the demo route together, per ADR-0026 and 7.12.
