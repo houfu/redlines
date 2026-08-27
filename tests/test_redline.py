@@ -1,3 +1,5 @@
+import re
+
 import pytest
 from rich.text import Text
 
@@ -269,3 +271,40 @@ Sophia."""
     )
     test = Redlines(test_string_1, test_string_2, markdown_style="none")
     assert test.output_markdown == expected_md
+
+
+@pytest.mark.parametrize(
+    "test_string_1, test_string_2, expected_md",
+    [
+        # Issue #87: the source token has no trailing whitespace (it ends the document,
+        # or the next token is a parenthesis), but its test counterpart does.
+        ("A B", "A B C", "A B <ins>C</ins>"),
+        ("foo(bar)", "foo new(bar)", "foo <ins>new</ins>(bar)"),
+        ("A B C", "A B", "A B <del>C</del>"),
+        ("foo new(bar)", "foo(bar)", "foo <del>new</del>(bar)"),
+    ],
+)
+def test_whitespace_preserved_at_change_boundary(
+    test_string_1: str, test_string_2: str, expected_md: str
+) -> None:
+    test = Redlines(test_string_1, test_string_2, markdown_style="none")
+    assert test.output_markdown == expected_md
+    assert test.output_rich.plain == re.sub(r"</?(ins|del)>", "", expected_md)
+
+
+@pytest.mark.parametrize(
+    "test_string_1, test_string_2",
+    [
+        ("A B", "A B C"),
+        ("foo(bar)", "foo new(bar)"),
+        ("The quick brown fox jumps over the dog.", "The quick brown fox jumps over the lazy dog."),
+        ("The quick brown fox jumps over the lazy dog.", "The quick brown fox walks past the lazy dog."),
+    ],
+)
+def test_removing_deletions_reproduces_test_text(
+    test_string_1: str, test_string_2: str
+) -> None:
+    """Dropping the deleted content from the markdown output returns the modified text."""
+    test = Redlines(test_string_1, test_string_2, markdown_style="none")
+    without_deletions = re.sub(r"<del>.*?</del>", "", test.output_markdown)
+    assert re.sub(r"</?ins>", "", without_deletions) == test_string_2
