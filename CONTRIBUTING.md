@@ -157,31 +157,41 @@ see your changes.
 Our documentation is automatically generated from source code using `pdoc`.
 
 ### How It Works
-- Documentation builds automatically **when a new release is published**.
-- The release tag (for example `v1.2.3`) is extracted by the CI workflow and exposed to the build as the `VERSION` environment variable.
-- The version number is displayed in the published documentation.
+- Documentation builds automatically **when a new release is published**, so the
+  published site always reflects the most recent release rather than `main`.
+- The generated HTML goes into `site/`, which is not committed. The `docs/`
+  directory holds hand-written documents instead — see [Written documentation](#written-documentation) below.
 
 ### To Update Documentation
 1. Make code changes and update docstrings as needed.
 2. Create and publish a new release on GitHub (use tags like `vMAJOR.MINOR.PATCH`).
 3. The documentation workflow will run automatically and rebuild the docs for that release.
-4. Check the deployed docs to verify the version banner and content.
+4. Check the deployed docs to verify the content.
 
 ### Manual Documentation Build (for testing)
 To build docs locally before releasing:
 
 ```bash
-# install pdoc locally
-pip install pdoc
-
-# generate HTML into docs/
-pdoc --html --output-dir docs/ your_package_name
+# generate HTML into site/ (development dependencies include pdoc)
+uv run pdoc -o site/ redlines
 
 # preview locally
-cd docs
+cd site
 python -m http.server 8000
 # then open http://localhost:8000 in your browser
 ```
+
+### Written documentation
+
+Not everything belongs in a docstring. `docs/` holds the documents that are
+written by hand rather than generated:
+
+- `docs/adr/` — architecture decision records: why a design choice was made,
+  what was rejected, and when to revisit it. Adding a decision means adding a
+  file here; see [docs/adr/README.md](docs/adr/README.md) for the conventions.
+- `docs/PRD.md` — what redlines 1.0 is and who it is for.
+- `docs/competitive-landscape-2026-08.md` — the survey the 1.0 decisions rest on.
+- `ROADMAP.md` — which release each feature lands in.
 
 ## Styleguides
 

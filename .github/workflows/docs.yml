@@ -29,10 +29,13 @@ jobs:
           cache-dependency-glob: "uv.lock"
       - name: Install the project
         run: uv sync --all-extras --dev
-      - run: uv run pdoc -o docs/ redlines
+      # The API documentation is generated into site/, which is not part of the
+      # repository. docs/ holds hand-written documents (ADRs, the PRD) and is
+      # left alone.
+      - run: uv run pdoc -o site/ redlines
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: docs/
+          path: site/
 
   # Deploy the artifact to GitHub pages.
   # This is a separate job so that only actions/deploy-pages has the necessary permissions.
