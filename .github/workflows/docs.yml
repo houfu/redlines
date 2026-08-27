@@ -1,12 +1,11 @@
 name: website
 
-# build the documentation whenever there are new commits on main
+# build the documentation whenever a release is published
 on:
   release:
-      types:  [published]
-    # Alternative: only build for tags.
-    # tags:
-    #   - '*'
+    types: [published]
+  # Lets the build be exercised without cutting a release.
+  workflow_dispatch:
 
 # security: restrict permissions for CI jobs.
 permissions:
@@ -17,13 +16,13 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: '3.11'
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v5
+        uses: astral-sh/setup-uv@v10.0.1
         with:
           enable-cache: true
           cache-dependency-glob: "uv.lock"
@@ -33,7 +32,7 @@ jobs:
       # repository. docs/ holds hand-written documents (ADRs, the PRD) and is
       # left alone.
       - run: uv run pdoc -o site/ redlines
-      - uses: actions/upload-pages-artifact@v3
+      - uses: actions/upload-pages-artifact@v5
         with:
           path: site/
 
@@ -50,4 +49,4 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5
