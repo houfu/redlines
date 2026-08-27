@@ -13,10 +13,10 @@ Sizes are rough, for one experienced developer working with an agent: **S** is a
 
 | Release | What it proves | Contents in one line |
 |---|---|---|
-| **0.6.x** (hygiene) | The flat engine is trustworthy while 1.0 is built | autojunk off, cleanup pass, sentence mode keeps paragraphs, regression corpus, benchmark failure investigation |
+| **0.6.x** (hygiene) | The flat engine is trustworthy while 1.0 is built, and there is somewhere to publish | autojunk off, cleanup pass, sentence mode keeps paragraphs, regression corpus, benchmark failure investigation, documentation moved from pdoc to Astro Starlight |
 | **1.0** (the slice) | Structural, semantic, format-neutral comparison works end to end on text and markdown | block model + semantic layer + profiles; text and markdown readers; alignment with moves and renumbering; change tree and JSON schema; annotated, summary, markdown, rich and HTML renderers; verify; CLI; compatibility layer; benchmark |
 | **redlines-mcp 0.1** (with 1.0) | Agents can compare, verify and author profiles | tools, prompts, resources, skill, golden tests; stdio transport |
-| **Site 1.0** (after MCP) | A visitor sees the thesis in one click | Pyodide, text and markdown inputs, sample pair by default, block-change list, annotated view, summary, JSON |
+| **Site 1.0** (after MCP) | A visitor sees the thesis in one click | A demo route added to the docs site: Pyodide, text and markdown inputs, sample pair by default, block-change list, annotated view, summary, JSON |
 | **1.1** | More inputs and more detection, same core | HTML, DOCX and PDF readers; split/merge; applier export; profile auto-selection; `legislation` profile; MCP HTTP transport; side-by-side view |
 | **Later** | Only with demand in hand | formatting changes, comments and footnotes, XML renderer, permalinks, batch API, Akoma Ntoso reader |
 
@@ -31,8 +31,11 @@ Sizes are rough, for one experienced developer working with an agent: **S** is a
 | Sentence mode preserves paragraph boundaries | D9, R16 | S | |
 | Regression corpus including a repetitive schedule and the course examples as golden files | section 12 (compatibility risk) | S | These golden files are reused by M4 |
 | Investigate the 18 `neurotic_docx_bench` failures | step 1 | S | Read-only investigation; fix only if trivial |
+| Documentation site on Astro Starlight in `site/`, replacing pdoc as the publishing surface | ADR-0026, N6 | M | Scaffold, migrate what already exists (quickstart from the README, agent guide, ADR index, contributing), build pdoc into `/api/`, rewrite the Pages workflow. Nothing in `site/` may block a release |
 
-**Exit:** 0.6.x on PyPI; existing test suite green; the repetitive-schedule case reports a two-token change.
+**Exit:** 0.6.x on PyPI; existing test suite green; the repetitive-schedule case reports a two-token change; the docs site is live on GitHub Pages with the agent guide, the ADR index and the API reference under `/api/`.
+
+**Why this milestone.** The site work is independent of every engine milestone, so it neither blocks nor is blocked — and doing it first means the 1.0 pages that M4 owes (schemas, rewritten agent guide, benchmark report) are written once, onto a site that can hold them, instead of being written for pdoc and then migrated. It also settles the `site/` directory before M6 depends on it.
 
 ### M1 — Block model, semantic layer, profiles, readers
 
@@ -95,8 +98,9 @@ Sizes are rough, for one experienced developer working with an agent: **S** is a
 | Shared argument layer: path, stdin, inline; format hint; profile; size limit | R30a, D29 | S | Reused by the MCP package |
 | CLI subcommands `compare`, `summary`, `annotate`, `verify`; `--profile`, `--format` | R28, R29 | S | About a day in total |
 | Existing subcommands and command-less default unchanged | R30 | S | |
-| Agent guide rewritten for compare, annotate, summary, verify, profiles | N6 | M | |
-| JSON schema and profile schema published in the docs | N6 | S | |
+| Agent guide rewritten for compare, annotate, summary, verify, profiles | N6 | M | Written as pages on the docs site stood up in M0 |
+| JSON schema and profile schema published as pages, with a worked example each | N6, ADR-0026 | S | MDX, so the examples are real output rather than pasted |
+| Benchmark report from M2 published on the docs site | ADR-0021, N6 | S | It is the external quality signal; it needs to be readable, not a file in the repository |
 | Performance check: 2,000-block markdown pair under five seconds native | N2 | S | |
 
 **Exit:** 1.0 on PyPI; agent guide live; benchmark report linked from the README.
@@ -121,16 +125,17 @@ Sizes are rough, for one experienced developer working with an agent: **S** is a
 
 | Feature | PRD | Size | Notes |
 |---|---|---|---|
-| Static site, Pyodide in a web worker, loads the published wheel | R37, D23 | M | |
+| Demo route in the docs site, Pyodide in a web worker, loads the published wheel | R37, D23, ADR-0026 | M | The site and its deployment already exist from M0; this adds a route and an island |
 | Two inputs: drop or upload txt/md, or paste; sample pair loaded by default; friendly "coming in 1.1" for other types | R38 | M | |
 | Views: block-change list with roles and addresses, expandable inline redlines; annotated document; summary; JSON with copy; `dropped` notice | R39 | M | Density view moved to 1.1, see section 5 |
 | Profile selector with the built-ins and a paste box for a custom profile | R1e | S | |
 | Progress state; 2,000-block pair under ten seconds after load | R40 | S | |
 | Privacy statement; no upload endpoint; no content analytics | R41 | S | |
 | Browser matrix and a clear failure message when Pyodide cannot load | R42 | S | |
-| Source lives in the main repo under `site/`, built by CI | section 13 | S | |
+| Demo ships from the same Astro project as the docs — no second build, no second deployment | section 13, ADR-0026 | S | PRD section 13's "where the site lives" question, now decided |
+| Documentation pages link to the demo, and the demo links back to the guides | ADR-0026 | S | The demo is the fastest explanation the project has; every page should be one click from it |
 
-**Exit:** site live on GitHub Pages; sample pair renders on first load; a pasted 100-page markdown contract completes within budget on a mid-range laptop.
+**Exit:** demo route live on GitHub Pages alongside the docs; sample pair renders on first load; a pasted 100-page markdown contract completes within budget on a mid-range laptop.
 
 ## 3. 1.1
 
