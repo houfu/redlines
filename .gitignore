@@ -155,3 +155,12 @@ fabric.properties
 
 # Mypy
 .mypy_cache/
+
+# macOS
+.DS_Store
+
+# Claude Code (local, per-developer settings)
+.claude/settings.local.json
+
+# Generated API documentation (see CONTRIBUTING.md)
+site/
