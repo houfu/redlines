@@ -4,6 +4,14 @@ name: website
 on:
   release:
     types: [published]
+  # Build (but do not deploy) on pull requests that could break it, so a
+  # release is not the first time the documentation is generated.
+  pull_request:
+    paths:
+      - 'redlines/**'
+      - 'pyproject.toml'
+      - 'uv.lock'
+      - '.github/workflows/docs.yml'
   # Lets the build be exercised without cutting a release.
   workflow_dispatch:
 
@@ -40,6 +48,8 @@ jobs:
   # This is a separate job so that only actions/deploy-pages has the necessary permissions.
   deploy:
     needs: build
+    # A pull request only proves the build works; publishing stays on release.
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     permissions:
       pages: write
