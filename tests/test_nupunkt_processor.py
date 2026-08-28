@@ -1,8 +1,10 @@
 """Tests for NupunktProcessor."""
+import json
+
 import pytest
 
 from redlines import Redlines
-from redlines.processor import NUPUNKT_AVAILABLE, NupunktProcessor
+from redlines.processor import NUPUNKT_AVAILABLE, SENTENCE_MARKER, NupunktProcessor
 
 
 @pytest.mark.skipif(not NUPUNKT_AVAILABLE, reason="nupunkt not installed")
@@ -183,6 +185,168 @@ class TestNupunktProcessor:
         assert nupunkt_changes[0].operation == whole_changes[0].operation
         assert nupunkt_changes[0].source_text is not None and "brown" in nupunkt_changes[0].source_text
         assert nupunkt_changes[0].test_text is not None and "red" in nupunkt_changes[0].test_text
+
+    def test_output_markdown_preserves_paragraph_breaks(self) -> None:
+        """Test that paragraph boundaries survive rendering instead of being reflowed."""
+        source = "One sentence. Two sentence.\n\nThree sentence."
+        test = "One sentence. Two sentence.\n\nThree modified."
+
+        processor = NupunktProcessor()
+        redlines = Redlines(source, test, processor=processor)
+        output = redlines.output_markdown
+
+        # Only the input's real paragraph break renders as '\n\n'; sentences within
+        # a paragraph stay on one line (the pre-fix behavior emitted '\n\n' between
+        # every sentence).
+        assert output.count("\n\n") == 1
+        assert "One sentence. Two sentence." in output
+
+    def test_output_contains_no_sentence_marker(self) -> None:
+        """Test that the internal sentence marker never leaks into any output."""
+        source = "First one. Second one.\n\nThird one."
+        test = "First one. Second edited.\n\nThird one."
+
+        processor = NupunktProcessor()
+        redlines = Redlines(source, test, processor=processor)
+
+        assert SENTENCE_MARKER not in redlines.output_markdown
+        assert SENTENCE_MARKER not in redlines.output_rich.plain
+        assert SENTENCE_MARKER not in redlines.output_json()
+
+    def test_paragraph_boundary_not_merged_across(self) -> None:
+        """Test that a change in one paragraph does not pull in another paragraph."""
+        source = "Alpha stays here.\n\nBravo gets changed now."
+        test = "Alpha stays here.\n\nBravo gets modified now."
+
+        processor = NupunktProcessor()
+        redlines = Redlines(source, test, processor=processor)
+        changes = redlines.redlines
+
+        assert len(changes) == 1
+        assert changes[0].operation == "replace"
+        assert changes[0].source_text is not None and "Alpha" not in changes[0].source_text
+        assert changes[0].test_text is not None and "Alpha" not in changes[0].test_text
+
+    def test_sentence_anchoring_within_paragraph(self) -> None:
+        """Test that changes stay anchored to their sentence within a paragraph."""
+        source = "Alpha starts here. Bravo gets changed. Charlie ends here."
+        test = "Alpha starts here. Bravo gets modified. Charlie ends here."
+
+        processor = NupunktProcessor()
+        redlines = Redlines(source, test, processor=processor)
+        changes = redlines.redlines
+
+        assert len(changes) == 1
+        assert changes[0].operation == "replace"
+        assert changes[0].source_text is not None
+        assert "changed" in changes[0].source_text
+        assert "Alpha" not in changes[0].source_text
+        assert "Charlie" not in changes[0].source_text
+
+    def test_changes_api_has_no_markers(self) -> None:
+        """Test that the public changes API contains no sentence markers."""
+        source = "One here. Two here.\n\nThree here."
+        test = "One here. Two changed.\n\nThree here."
+
+        processor = NupunktProcessor()
+        redlines = Redlines(source, test, processor=processor)
+
+        for change in redlines.changes:
+            if change.source_text is not None:
+                assert SENTENCE_MARKER not in change.source_text
+            if change.test_text is not None:
+                assert SENTENCE_MARKER not in change.test_text
+
+        # stats() is built on changes, so character counts reflect visible text only
+        stats = redlines.stats()
+        replace = redlines.get_changes(operation="replace")[0]
+        assert replace.source_text is not None and replace.test_text is not None
+        assert stats.chars_deleted == len(replace.source_text)
+        assert stats.chars_added == len(replace.test_text)
+
+    def test_json_roundtrip_paragraphs(self) -> None:
+        """Test that JSON output has no markers and preserves paragraph breaks."""
+        source = "One here. Two here.\n\nThree here."
+        test = "One here. Two changed.\n\nThree here."
+
+        processor = NupunktProcessor()
+        redlines = Redlines(source, test, processor=processor)
+        data = json.loads(redlines.output_json())
+
+        for token in data["source_tokens"] + data["test_tokens"]:
+            assert SENTENCE_MARKER not in token
+        for change in data["changes"]:
+            for key in ("text", "source_text", "test_text"):
+                if change.get(key) is not None:
+                    assert SENTENCE_MARKER not in change[key]
+
+        # Reconstructing the test document from the changes keeps its paragraph break
+        reconstructed = "".join(
+            change.get("text") or change.get("test_text") or ""
+            for change in data["changes"]
+            if change["type"] in ("equal", "insert", "replace")
+        )
+        assert reconstructed.count("\n\n") == 1
+
+    def test_whole_paragraph_insertion(self) -> None:
+        """Test that an inserted paragraph renders separated by paragraph breaks."""
+        source = "Para one here.\n\nPara two here."
+        test = "Para one here.\n\nBrand new paragraph.\n\nPara two here."
+
+        processor = NupunktProcessor()
+        redlines = Redlines(source, test, processor=processor)
+        output = redlines.output_markdown
+
+        assert "Brand new paragraph." in output
+        assert output.count("\n\n") == 2
+        assert SENTENCE_MARKER not in output
+
+    def test_whole_paragraph_deletion(self) -> None:
+        """Test that a deleted paragraph's struck-through text has no sentence markers."""
+        source = "Para one here.\n\nDoomed paragraph text.\n\nPara two here."
+        test = "Para one here.\n\nPara two here."
+
+        processor = NupunktProcessor()
+        redlines = Redlines(source, test, processor=processor)
+        output = redlines.output_markdown
+
+        assert "Doomed paragraph text." in output
+        assert SENTENCE_MARKER not in output
+
+    def test_single_paragraph_no_paragraph_breaks(self) -> None:
+        """Test that a single-paragraph input renders without any paragraph breaks."""
+        source = "First one. Second one. Third one."
+        test = "First one. Second edited. Third one."
+
+        processor = NupunktProcessor()
+        redlines = Redlines(source, test, processor=processor)
+
+        assert "\n\n" not in redlines.output_markdown
+
+    def test_consecutive_and_surrounding_newlines(self) -> None:
+        """Test that extra newlines still collapse to one break per boundary."""
+        source = "\nFirst para here.\n\n\nSecond para here.\n"
+        test = "\nFirst para here.\n\n\nSecond para changed.\n"
+
+        processor = NupunktProcessor()
+        redlines = Redlines(source, test, processor=processor)
+        output = redlines.output_markdown
+
+        assert output.count("\n\n") == 1
+
+    def test_empty_and_identical_texts(self) -> None:
+        """Test that empty and identical inputs produce no changes and no errors."""
+        processor = NupunktProcessor()
+
+        empty = Redlines("", "", processor=processor)
+        assert len(empty.changes) == 0
+
+        identical = Redlines(
+            "Same text here.\n\nSame again.",
+            "Same text here.\n\nSame again.",
+            processor=processor,
+        )
+        assert len(identical.changes) == 0
 
 
 class TestNupunktProcessorWithoutImport:

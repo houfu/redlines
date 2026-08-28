@@ -8,7 +8,14 @@ from typing_extensions import Unpack
 
 from .document import Document
 from .enums import MarkdownStyle, OutputType
-from .processor import DiffOperation, Redline, RedlinesProcessor, Stats, WholeDocumentProcessor
+from .processor import (
+    SENTENCE_MARKER,
+    DiffOperation,
+    Redline,
+    RedlinesProcessor,
+    Stats,
+    WholeDocumentProcessor,
+)
 
 __all__: tuple[str, ...] = (
     "Redlines",
@@ -29,6 +36,21 @@ def trailing_whitespace(token: str) -> str:
     :rtype: str
     """
     return token[len(token.rstrip()) :]
+
+
+def _strip_sentence_markers(text: str) -> str:
+    """
+    Remove the sentence boundary markers ('¦ ') emitted by sentence-level tokenization.
+
+    Unlike the paragraph marker '¶', which renders as a real paragraph break ('\\n\\n'),
+    the sentence marker corresponds to nothing in the input text and must never appear
+    in any output (see `redlines.processor.SENTENCE_MARKER`).
+
+    :param text: The text to clean.
+    :return: The text with sentence markers removed.
+    :rtype: str
+    """
+    return text.replace(f"{SENTENCE_MARKER} ", "")
 
 
 def join_equal_tokens(
@@ -323,10 +345,12 @@ class Redlines:
             test_tokens = diff_op.test_chunk.text
 
             # Extract text and positions based on operation type
+            # Sentence markers ('¦') are internal anchors with no counterpart in the
+            # input text, so they must not leak into the public Redline API.
             if tag == "delete":
                 redline = Redline(
                     operation="delete",
-                    source_text="".join(source_tokens[i1:i2]),
+                    source_text=_strip_sentence_markers("".join(source_tokens[i1:i2])),
                     test_text=None,
                     source_position=(i1, i2),
                     test_position=None,
@@ -335,15 +359,15 @@ class Redlines:
                 redline = Redline(
                     operation="insert",
                     source_text=None,
-                    test_text="".join(test_tokens[j1:j2]),
+                    test_text=_strip_sentence_markers("".join(test_tokens[j1:j2])),
                     source_position=None,
                     test_position=(j1, j2),
                 )
             elif tag == "replace":
                 redline = Redline(
                     operation="replace",
-                    source_text="".join(source_tokens[i1:i2]),
-                    test_text="".join(test_tokens[j1:j2]),
+                    source_text=_strip_sentence_markers("".join(source_tokens[i1:i2])),
+                    test_text=_strip_sentence_markers("".join(test_tokens[j1:j2])),
                     source_position=(i1, i2),
                     test_position=(j1, j2),
                 )
@@ -678,9 +702,9 @@ class Redlines:
                 temp_str = re.sub("¶ ", "\n\n", temp_str)
                 # here we use '¶ ' instead of ' ¶ ', because the leading space will be included in the previous token,
                 # according to tokenizer = re.compile(r"((?:[^()\s]+|[().?!-])\s*)")
-                result.append(temp_str)
+                result.append(_strip_sentence_markers(temp_str))
             elif tag == "insert":
-                temp_str = "".join(test_tokens[j1:j2])
+                temp_str = _strip_sentence_markers("".join(test_tokens[j1:j2]))
                 splits = re.split("¶ ", temp_str)
                 for split in splits:
                     result.append(f"{md_styles['ins'][0]}{split}{md_styles['ins'][1]}")
@@ -689,15 +713,15 @@ class Redlines:
                     result.pop()
             elif tag == "delete":
                 result.append(
-                    f"{md_styles['del'][0]}{''.join(source_tokens[i1:i2])}{md_styles['del'][1]}"
+                    f"{md_styles['del'][0]}{_strip_sentence_markers(''.join(source_tokens[i1:i2]))}{md_styles['del'][1]}"
                 )
                 # for 'delete', we make no change, because otherwise there will be two times '\n\n' than the original
                 # text.
             elif tag == "replace":
                 result.append(
-                    f"{md_styles['del'][0]}{''.join(source_tokens[i1:i2])}{md_styles['del'][1]}"
+                    f"{md_styles['del'][0]}{_strip_sentence_markers(''.join(source_tokens[i1:i2]))}{md_styles['del'][1]}"
                 )
-                temp_str = "".join(test_tokens[j1:j2])
+                temp_str = _strip_sentence_markers("".join(test_tokens[j1:j2]))
                 splits = re.split("¶ ", temp_str)
                 for split in splits:
                     result.append(f"{md_styles['ins'][0]}{split}{md_styles['ins'][1]}")
@@ -725,17 +749,21 @@ class Redlines:
             if tag == "equal":
                 temp_str = join_equal_tokens(source_tokens, test_tokens, i1, i2, j1, j2)
                 temp_str = re.sub("¶ ", "\n\n", temp_str)
-                console_text.append(temp_str)
+                console_text.append(_strip_sentence_markers(temp_str))
             elif tag == "insert":
-                temp_str = "".join(test_tokens[j1:j2])
+                temp_str = _strip_sentence_markers("".join(test_tokens[j1:j2]))
                 splits = re.split("¶ ", temp_str)
                 for split in splits:
                     console_text.append(split, "green")
             elif tag == "delete":
-                console_text.append("".join(source_tokens[i1:i2]), "strike red")
+                console_text.append(
+                    _strip_sentence_markers("".join(source_tokens[i1:i2])), "strike red"
+                )
             elif tag == "replace":
-                console_text.append("".join(source_tokens[i1:i2]), "strike red")
-                temp_str = "".join(test_tokens[j1:j2])
+                console_text.append(
+                    _strip_sentence_markers("".join(source_tokens[i1:i2])), "strike red"
+                )
+                temp_str = _strip_sentence_markers("".join(test_tokens[j1:j2]))
                 splits = re.split("¶ ", temp_str)
                 for split in splits:
                     console_text.append(split, "green")
@@ -812,10 +840,10 @@ class Redlines:
             # Get text for this operation, following output_markdown's approach:
             # Join tokens first, then replace paragraph markers
             source_text = "".join(cleaned_source_tokens[i1:i2]) if i1 < i2 else ""
-            source_text = re.sub("¶ ", "\n\n", source_text)
+            source_text = _strip_sentence_markers(re.sub("¶ ", "\n\n", source_text))
 
             test_text = "".join(cleaned_test_tokens[j1:j2]) if j1 < j2 else ""
-            test_text = re.sub("¶ ", "\n\n", test_text)
+            test_text = _strip_sentence_markers(re.sub("¶ ", "\n\n", test_text))
 
             # Build change object based on operation type
             change: dict[str, t.Any]
@@ -894,12 +922,16 @@ class Redlines:
         )
 
         # Build final JSON structure
-        # Clean tokens for output by replacing paragraph markers
+        # Clean tokens for output by replacing paragraph markers and removing
+        # sentence markers. A bare '¦ ' token becomes '', which keeps token
+        # indices stable so the token positions in `changes` remain valid.
         output_source_tokens = [
-            token.replace("¶ ", "\n\n") for token in cleaned_source_tokens
+            _strip_sentence_markers(token.replace("¶ ", "\n\n"))
+            for token in cleaned_source_tokens
         ]
         output_test_tokens = [
-            token.replace("¶ ", "\n\n") for token in cleaned_test_tokens
+            _strip_sentence_markers(token.replace("¶ ", "\n\n"))
+            for token in cleaned_test_tokens
         ]
 
         result = {
