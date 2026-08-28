@@ -75,7 +75,7 @@ def print_results(results: list[dict]) -> None:
     # Summary
     total_files = len(results)
     compared = sum(1 for r in results if r["status"] == "compared")
-    with_changes = sum(1 for r in results if r.get("changes", 0) > 0)
+    with_changes = sum(1 for r in results if (r.get("changes") or 0) > 0)
     errors = sum(1 for r in results if r["status"] == "error")
     missing = sum(1 for r in results if r["status"] == "missing_in_dir2")
 
@@ -94,7 +94,7 @@ def print_results(results: list[dict]) -> None:
         print("-" * 80)
 
         for result in results:
-            if result.get("changes", 0) > 0:
+            if (result.get("changes") or 0) > 0:
                 file = result["file"]
                 changes = result["changes"]
                 ratio = f"{result['change_ratio']:.1%}"
