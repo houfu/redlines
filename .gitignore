@@ -162,5 +162,6 @@ fabric.properties
 # Claude Code (local, per-developer settings)
 .claude/settings.local.json
 
-# Generated API documentation (see CONTRIBUTING.md)
-site/
+# The documentation site is a tracked Astro project (ADR-0026). Its own
+# generated output — node_modules, dist, .astro and the pdoc build under
+# public/api — is ignored by site/.gitignore.

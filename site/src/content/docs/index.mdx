@@ -1,0 +1,36 @@
+---
+title: redlines
+description: Compare text and produce human-readable differences that look like track changes.
+template: splash
+hero:
+  tagline: Compare two texts and see what changed — as markdown, rich terminal output, or JSON an agent can parse.
+  actions:
+    - text: API reference
+      link: /redlines/api/redlines.html
+      icon: right-arrow
+    - text: View on GitHub
+      link: https://github.com/houfu/redlines
+      icon: external
+      variant: minimal
+---
+
+import { Card, CardGrid } from '@astrojs/starlight/components';
+
+<CardGrid>
+	<Card title="Install" icon="seti:python">
+		```bash
+		pip install redlines
+		```
+	</Card>
+	<Card title="Compare" icon="seti:shell">
+		```bash
+		redlines "the quick brown fox" "the quick red fox"
+		```
+	</Card>
+</CardGrid>
+
+:::note[This site is being built out]
+The documentation is moving here from the repository. The API reference below is
+generated from docstrings and is complete; the hand-written guides are arriving.
+Until then they live in the [repository](https://github.com/houfu/redlines).
+:::

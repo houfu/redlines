@@ -23,3 +23,16 @@ updates:
       python-dependencies:
         patterns:
           - "*"
+
+  # ADR-0026 accepted a JavaScript dependency surface for the documentation
+  # site. This is the mitigation.
+  - package-ecosystem: "npm"
+    directory: "/site"
+    schedule:
+      interval: "monthly"
+    commit-message:
+      prefix: "chore"
+    groups:
+      site-dependencies:
+        patterns:
+          - "*"
