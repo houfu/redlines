@@ -1,0 +1,1 @@
+foo <span style='color:green;font-weight:700;'>new</span>(bar)

@@ -1,0 +1,1 @@
+Payment is due within <del>thirty (30</del><ins>sixty (60</ins>) days of the invoice date. Late payments accrue interest.

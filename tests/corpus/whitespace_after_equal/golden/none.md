@@ -1,0 +1,1 @@
+foo <ins>new</ins>(bar)
