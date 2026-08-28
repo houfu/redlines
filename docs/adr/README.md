@@ -44,6 +44,7 @@ This directory records the decisions behind redlines 1.0 — the reasoning, the 
 | [0025](0025-cli-as-thin-skin.md) | Treat the CLI and the MCP server as two skins over one function table | Accepted |
 | [0026](0026-docs-site-on-astro-starlight.md) | Publish the documentation with Astro Starlight, in the same site as the demo | Accepted |
 | [0027](0027-agent-docs-machine-surface.md) | Serve agents with a machine surface and a contract page, not a guide | Accepted |
+| [0028](0028-api-reference-from-griffe.md) | Generate the API reference from griffe as native site pages | Proposed |
 
 ## Evidence base
 
