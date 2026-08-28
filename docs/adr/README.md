@@ -43,6 +43,7 @@ This directory records the decisions behind redlines 1.0 — the reasoning, the 
 | [0024](0024-no-formatting-change-detection.md) | No inline formatting change detection in 1.0 | Accepted |
 | [0025](0025-cli-as-thin-skin.md) | Treat the CLI and the MCP server as two skins over one function table | Accepted |
 | [0026](0026-docs-site-on-astro-starlight.md) | Publish the documentation with Astro Starlight, in the same site as the demo | Accepted |
+| [0027](0027-agent-docs-machine-surface.md) | Serve agents with a machine surface and a contract page, not a guide | Accepted |
 
 ## Evidence base
 

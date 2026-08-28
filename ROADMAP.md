@@ -31,7 +31,7 @@ Sizes are rough, for one experienced developer working with an agent: **S** is a
 | Sentence mode preserves paragraph boundaries | D9, R16 | S | |
 | Regression corpus including a repetitive schedule and the course examples as golden files | section 12 (compatibility risk) | S | These golden files are reused by M4 |
 | Investigate the 18 `neurotic_docx_bench` failures | step 1 | S | Read-only investigation; fix only if trivial |
-| Documentation site on Astro Starlight in `site/`, replacing pdoc as the publishing surface | ADR-0026, N6 | M | Scaffold, migrate what already exists (quickstart from the README, agent guide, ADR index, contributing), build pdoc into `/api/`, rewrite the Pages workflow. Nothing in `site/` may block a release |
+| Documentation site on Astro Starlight in `site/`, replacing pdoc as the publishing surface | ADR-0026, N6 | M | Scaffold, migrate what already exists (quickstart from the README, agent guide, ADR index, contributing), build pdoc into `/api/`, rewrite the Pages workflow. The agent guide moves whole and marked as the 0.6 guide, per ADR-0027; `llms.txt`, the per-page markdown export and a `/schemas/` location are stood up here so M4 writes into slots that exist. Nothing in `site/` may block a release |
 
 **Exit:** 0.6.x on PyPI; existing test suite green; the repetitive-schedule case reports a two-token change; the docs site is live on GitHub Pages with the agent guide, the ADR index and the API reference under `/api/`.
 
@@ -98,7 +98,7 @@ Sizes are rough, for one experienced developer working with an agent: **S** is a
 | Shared argument layer: path, stdin, inline; format hint; profile; size limit | R30a, D29 | S | Reused by the MCP package |
 | CLI subcommands `compare`, `summary`, `annotate`, `verify`; `--profile`, `--format` | R28, R29 | S | About a day in total |
 | Existing subcommands and command-less default unchanged | R30 | S | |
-| Agent guide rewritten for compare, annotate, summary, verify, profiles | N6 | M | Written as pages on the docs site stood up in M0 |
+| Agent guide decomposed into one contract page plus task pages included from `examples/` | N6, ADR-0027 | M | Not a rewrite of one document: the contract goes on a single fetchable page, the tasks become pages whose code CI executes |
 | JSON schema and profile schema published as pages, with a worked example each | N6, ADR-0026 | S | MDX, so the examples are real output rather than pasted |
 | Benchmark report from M2 published on the docs site | ADR-0021, N6 | S | It is the external quality signal; it needs to be readable, not a file in the repository |
 | Performance check: 2,000-block markdown pair under five seconds native | N2 | S | |
