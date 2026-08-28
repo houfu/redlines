@@ -37,6 +37,8 @@ Sizes are rough, for one experienced developer working with an agent: **S** is a
 
 **Why this milestone.** The site work is independent of every engine milestone, so it neither blocks nor is blocked — and doing it first means the 1.0 pages that M4 owes (schemas, rewritten agent guide, benchmark report) are written once, onto a site that can hold them, instead of being written for pdoc and then migrated. It also settles the `site/` directory before M6 depends on it.
 
+pdoc is kept here deliberately rather than replaced along with the publishing surface. The reference it produces is a foreign body on the site — its own theme, its own search, HTML only, so it is absent from `llms-full.txt` — but every one of those costs is lowest while the API is still being rebuilt, and the migration is scheduled into M4. Bring it forward if profile authoring in M1 needs API objects embedded in hand-written pages: that is a capability pdoc does not have at all, and it would be a reason to move early rather than on schedule.
+
 ### M1 — Block model, semantic layer, profiles, readers
 
 | Feature | PRD | Size | Notes |
@@ -102,6 +104,7 @@ Sizes are rough, for one experienced developer working with an agent: **S** is a
 | JSON schema and profile schema published as pages, with a worked example each | N6, ADR-0026 | S | MDX, so the examples are real output rather than pasted |
 | Benchmark report from M2 published on the docs site | ADR-0021, N6 | S | It is the external quality signal; it needs to be readable, not a file in the repository |
 | Performance check: 2,000-block markdown pair under five seconds native | N2 | S | |
+| API reference migrated off pdoc onto a `griffe`-based generator | ADR-0026, N6 | S | Deferred to here on purpose. The API roughly triples through M1–M3 and `Redlines` becomes a facade over a new core, so the reference's job changes; and the Starlight-side tooling is weeks old, which only time can settle. Docstring conventions are fixed from M0 so this stays a configuration change. Trial on `claude/trial-starlight-pydocs` |
 
 **Exit:** 1.0 on PyPI; agent guide live; benchmark report linked from the README.
 

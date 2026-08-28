@@ -177,6 +177,25 @@ agent-facing pages.
   edited by hand — it is generated and not committed.
 - **Everything else:** edit the pages under `site/src/content/docs/`.
 
+### Docstring conventions
+
+Two conventions, both there for the same reason: the API reference generator is
+expected to change at M4, and these keep that a configuration change rather than
+a rewrite of every docstring written between now and then.
+
+- **Write docstrings in reST style** — `:param name:`, `:type name:`,
+  `:return:`, `:rtype:` — which is what the package already uses throughout.
+  Do not mix in Google or numpy sections. Both pdoc and `griffe`, the extractor
+  every plausible successor is built on, read reST; a mixed codebase means one
+  of them renders half the parameters as literal text.
+- **Do not add `@private` to a docstring.** It is a pdoc-specific pragma that no
+  other generator recognises: under `griffe` the member reappears in the
+  reference with a literal `@private` line in its body. To keep something out of
+  the published reference, use `__all__`, or raise it in the pull request so the
+  module can be excluded by configuration. The nine existing pragmas in
+  `redlines/cli.py` are doing a real job for pdoc today and stay until the
+  generator changes; the rule is about not adding a tenth.
+
 ### Building the site locally
 
 ```bash
