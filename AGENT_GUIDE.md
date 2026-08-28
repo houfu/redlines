@@ -702,6 +702,8 @@ diff = Redlines(source, test, processor=processor)
 - URLs, email addresses, or decimal numbers in text
 - Performance overhead (2-6x) is acceptable
 
+Sentence mode preserves the input's paragraph boundaries (fixed in 0.6.x): sentences are anchored within their paragraph, so output is not reflowed one sentence per paragraph.
+
 ### Performance Tips
 
 1. **Reuse Redlines instance for multiple comparisons:**

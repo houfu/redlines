@@ -1,0 +1,1 @@
+foo [b][color=green]new[/color][/b](bar)

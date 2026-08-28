@@ -64,6 +64,26 @@ It is used to split the text into paragraphs.
 space_pattern = re.compile(r"(\s+)")
 """It is used to detect space."""
 
+PARAGRAPH_MARKER = "¶"
+"""
+The character (U+00B6 PILCROW SIGN) used internally to mark a paragraph boundary.
+Renderers convert '¶ ' into '\\n\\n'. Input text that literally contains '¶'
+collides with this convention and may render incorrectly.
+"""
+
+SENTENCE_MARKER = "¦"
+"""
+The character (U+00A6 BROKEN BAR) used internally to mark a sentence boundary
+within a paragraph in sentence-level tokenization (`NupunktProcessor`).
+
+Because '¦' is neither whitespace nor a parenthesis, the tokenizer emits '¦ '
+as a single token — exactly like '¶ ' — so it anchors `SequenceMatcher` at
+sentence boundaries (a change cannot silently span sentences) without encoding
+fake paragraph structure. Renderers strip it entirely, so it never appears in
+output. As with '¶', input text that literally contains '¦ ' collides with this
+convention and will be silently dropped from rendered output.
+"""
+
 punctuation_token_pattern = re.compile(r"[^\w\s]+")
 r"""
 It is used to detect a normalized token that consists entirely of punctuation.
@@ -219,7 +239,13 @@ def concatenate_paragraphs_and_add_chr_182(text: str) -> str:
 
 def concatenate_sentences_and_add_chr_182(text: str) -> str:
     """
-    Split text into sentences using nupunkt and mark boundaries with '¶'.
+    Split text into paragraphs and sentences, marking the boundaries.
+
+    Paragraph boundaries (one or more newlines) are preserved and marked with
+    '¶' (`PARAGRAPH_MARKER`), exactly as in paragraph-level tokenization.
+    Within each paragraph, sentences are detected with nupunkt and their
+    boundaries are marked with '¦' (`SENTENCE_MARKER`), which renderers strip
+    so the input's real paragraph structure is not reflowed.
 
     Uses intelligent sentence boundary detection that handles:
     - Abbreviations (Dr., Mr., etc.)
@@ -227,14 +253,15 @@ def concatenate_sentences_and_add_chr_182(text: str) -> str:
     - URLs and email addresses
     - Complex punctuation
 
-    For example: "Dr. Smith said hello. Mr. Jones replied."
-    Returns: "Dr. Smith said hello. ¶ Mr. Jones replied."
+    For example: "One. Two.\\n\\nThree."
+    Returns: "One. ¦ Two. ¶ Three."
 
     Note: Requires nupunkt to be installed (Python 3.11+)
 
     :param text: The text to split into sentences.
     :type text: str
-    :return: Text with sentences separated by ' ¶ ' markers.
+    :return: Text with sentences separated by ' ¦ ' markers within paragraphs,
+        and paragraphs separated by ' ¶ ' markers.
     :rtype: str
     :raises ImportError: If nupunkt is not installed.
     """
@@ -255,22 +282,24 @@ def concatenate_sentences_and_add_chr_182(text: str) -> str:
             "  pip install redlines[nupunkt]\n"
         )
 
-    sentences = sent_tokenize(text)
+    paragraphs = split_paragraphs(text)
 
-    result: list[str] = []
-    for sentence in sentences:
-        # sent_tokenize can return either strings or tuples (text, score)
-        # We only care about the text
-        if isinstance(sentence, tuple):
-            text_part = sentence[0]
-        else:
-            text_part = sentence
-        result.append(text_part.strip())
-        result.append(" ¶ ")
-    if len(sentences) > 0:
-        result.pop()
+    paragraph_results: list[str] = []
+    for paragraph in paragraphs:
+        sentences = sent_tokenize(paragraph)
 
-    return "".join(result)
+        sentence_results: list[str] = []
+        for sentence in sentences:
+            # sent_tokenize can return either strings or tuples (text, score)
+            # We only care about the text
+            if isinstance(sentence, tuple):
+                text_part = sentence[0]
+            else:
+                text_part = sentence
+            sentence_results.append(text_part.strip())
+        paragraph_results.append(" ¦ ".join(sentence_results))
+
+    return " ¶ ".join(paragraph_results)
 
 
 @dataclass
@@ -466,7 +495,9 @@ class NupunktProcessor(RedlinesProcessor):
     - Complex punctuation
 
     The result is sentence-level granularity in diffs, providing more precise change detection
-    compared to paragraph-level comparison.
+    compared to paragraph-level comparison. Paragraph boundaries in the input are preserved:
+    sentences are anchored within their paragraph with an invisible marker, so rendered output
+    keeps the document's real paragraph structure instead of reflowing one sentence per paragraph.
 
     A cleanup pass merges adjacent edits separated only by punctuation, so a change
     such as "thirty (30)" -> "forty (40)" is reported as a single replace instead of
@@ -497,6 +528,9 @@ class NupunktProcessor(RedlinesProcessor):
     def process(self, source: Document | str, test: Document | str) -> list[DiffOperation]:
         """
         Compare two documents using sentence-level tokenization.
+
+        Paragraph boundaries are preserved ('¶' markers), and sentence boundaries
+        within each paragraph are anchored with render-invisible '¦' markers.
 
         :param source: The source document to compare.
         :type source: Document | str

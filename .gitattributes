@@ -1,0 +1,3 @@
+# The regression corpus is compared byte-for-byte (tests/test_corpus.py), so
+# git must never translate its line endings on checkout.
+tests/corpus/** -text

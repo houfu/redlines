@@ -1,0 +1,1 @@
+Payment is due within ~~:red[thirty (30]~~ **:green[sixty (60]** ) days of the invoice date. Late payments accrue interest.

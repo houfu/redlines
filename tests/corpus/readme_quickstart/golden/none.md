@@ -1,0 +1,1 @@
+The quick brown fox <del>jumps over </del><ins>walks past </ins>the lazy dog.
