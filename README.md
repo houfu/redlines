@@ -124,7 +124,7 @@ See [demo comparison](demo/README.md) for benchmarks.
 
 ### For AI Agents & Automation
 
-**🤖 Using with AI coding agents?** See the **[Agent Integration Guide](AGENT_GUIDE.md)** for JSON schemas, automation patterns, error handling, and [runnable examples](examples/).
+**🤖 Using with AI coding agents?** See the **[Agent Integration Guide](https://houfu.github.io/redlines/guides/agent-guide/)** for JSON schemas, automation patterns, error handling, and [runnable examples](examples/). Agents fetching documentation as text can start at [llms.txt](https://houfu.github.io/redlines/llms.txt).
 
 ## Documentation & Resources
 

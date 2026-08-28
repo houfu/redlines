@@ -31,11 +31,13 @@ Sizes are rough, for one experienced developer working with an agent: **S** is a
 | Sentence mode preserves paragraph boundaries | D9, R16 | S | |
 | Regression corpus including a repetitive schedule and the course examples as golden files | section 12 (compatibility risk) | S | These golden files are reused by M4 |
 | Investigate the 18 `neurotic_docx_bench` failures | step 1 | S | Read-only investigation; fix only if trivial |
-| Documentation site on Astro Starlight in `site/`, replacing pdoc as the publishing surface | ADR-0026, N6 | M | Scaffold, migrate what already exists (quickstart from the README, agent guide, ADR index, contributing), build pdoc into `/api/`, rewrite the Pages workflow. Nothing in `site/` may block a release |
+| Documentation site on Astro Starlight in `site/`, replacing pdoc as the publishing surface | ADR-0026, N6 | M | Scaffold, migrate what already exists (quickstart from the README, agent guide, ADR index, contributing), build pdoc into `/api/`, rewrite the Pages workflow. The agent guide moves whole and marked as the 0.6 guide, per ADR-0027; `llms.txt`, the per-page markdown export and a `/schemas/` location are stood up here so M4 writes into slots that exist. Nothing in `site/` may block a release |
 
 **Exit:** 0.6.x on PyPI; existing test suite green; the repetitive-schedule case reports a two-token change; the docs site is live on GitHub Pages with the agent guide, the ADR index and the API reference under `/api/`.
 
 **Why this milestone.** The site work is independent of every engine milestone, so it neither blocks nor is blocked — and doing it first means the 1.0 pages that M4 owes (schemas, rewritten agent guide, benchmark report) are written once, onto a site that can hold them, instead of being written for pdoc and then migrated. It also settles the `site/` directory before M6 depends on it.
+
+pdoc is kept here deliberately rather than replaced along with the publishing surface. The reference it produces is a foreign body on the site — its own theme, its own search, HTML only, so it is absent from `llms-full.txt` — but every one of those costs is lowest while the API is still being rebuilt, and the migration is scheduled into M4. Bring it forward if profile authoring in M1 needs API objects embedded in hand-written pages: that is a capability pdoc does not have at all, and it would be a reason to move early rather than on schedule.
 
 ### M1 — Block model, semantic layer, profiles, readers
 
@@ -98,10 +100,11 @@ Sizes are rough, for one experienced developer working with an agent: **S** is a
 | Shared argument layer: path, stdin, inline; format hint; profile; size limit | R30a, D29 | S | Reused by the MCP package |
 | CLI subcommands `compare`, `summary`, `annotate`, `verify`; `--profile`, `--format` | R28, R29 | S | About a day in total |
 | Existing subcommands and command-less default unchanged | R30 | S | |
-| Agent guide rewritten for compare, annotate, summary, verify, profiles | N6 | M | Written as pages on the docs site stood up in M0 |
+| Agent guide decomposed into one contract page plus task pages included from `examples/` | N6, ADR-0027 | M | Not a rewrite of one document: the contract goes on a single fetchable page, the tasks become pages whose code CI executes |
 | JSON schema and profile schema published as pages, with a worked example each | N6, ADR-0026 | S | MDX, so the examples are real output rather than pasted |
 | Benchmark report from M2 published on the docs site | ADR-0021, N6 | S | It is the external quality signal; it needs to be readable, not a file in the repository |
 | Performance check: 2,000-block markdown pair under five seconds native | N2 | S | |
+| API reference migrated off pdoc onto a `griffe`-based generator | ADR-0026, N6 | S | Deferred to here on purpose. The API roughly triples through M1–M3 and `Redlines` becomes a facade over a new core, so the reference's job changes; and the Starlight-side tooling is weeks old, which only time can settle. Docstring conventions are fixed from M0 so this stays a configuration change. Trial on `claude/trial-starlight-pydocs` |
 
 **Exit:** 1.0 on PyPI; agent guide live; benchmark report linked from the README.
 

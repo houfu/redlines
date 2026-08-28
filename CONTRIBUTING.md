@@ -1,4 +1,4 @@
-# Contributing to CONTRIBUTING.md
+# Contributing to redlines
 
 First off, thanks for taking the time to contribute! ❤️
 
@@ -149,37 +149,64 @@ Be relaxed and open to comments. We are all here to learn and grow together.
 The Documentation is contained in the python source files as docstrings. Edit them directly. Please be clear, concise
 and respectful in your tone.
 
-To preview documentation, you can clone the project, install development dependencies, and then run `pdoc redlines` to
-see your changes.
+To preview documentation, clone the project, install the development dependencies, then run `npm install && npm run dev`
+in `site/` — the dev server regenerates the API reference from your docstrings before it starts.
 
 ## Documentation
 
-Our documentation is automatically generated from source code using `pdoc`.
+Documentation is published from `site/`, an Astro Starlight project that serves
+the hand-written pages and, under `/api/`, the API reference that `pdoc`
+generates from docstrings. See
+[ADR-0026](docs/adr/0026-docs-site-on-astro-starlight.md) for why, and
+[ADR-0027](docs/adr/0027-agent-docs-machine-surface.md) for the shape of the
+agent-facing pages.
 
 ### How It Works
-- Documentation builds automatically **when a new release is published**, so the
-  published site always reflects the most recent release rather than `main`.
-- The generated HTML goes into `site/`, which is not committed. The `docs/`
-  directory holds hand-written documents instead — see [Written documentation](#written-documentation) below.
+- The site deploys **on every push to `main`**, and again when a release is
+  published. A documentation fix does not have to wait for a release; the
+  consequence is that `/api/` documents `main` rather than the last tag.
+- Every pull request builds the site without deploying it, so a release is
+  never the first time the site is built.
+- **A broken site never blocks a release.** The website workflow is separate
+  from the packaging workflows, nothing depends on it, and it must not be made
+  a required status check.
 
 ### To Update Documentation
-1. Make code changes and update docstrings as needed.
-2. Create and publish a new release on GitHub (use tags like `vMAJOR.MINOR.PATCH`).
-3. The documentation workflow will run automatically and rebuild the docs for that release.
-4. Check the deployed docs to verify the content.
+- **API reference:** edit the docstrings in `redlines/`. They remain the source
+  of truth; `pdoc` renders them and nothing under `site/public/api/` should be
+  edited by hand — it is generated and not committed.
+- **Everything else:** edit the pages under `site/src/content/docs/`.
 
-### Manual Documentation Build (for testing)
-To build docs locally before releasing:
+### Docstring conventions
+
+Two conventions, both there for the same reason: the API reference generator is
+expected to change at M4, and these keep that a configuration change rather than
+a rewrite of every docstring written between now and then.
+
+- **Write docstrings in reST style** — `:param name:`, `:type name:`,
+  `:return:`, `:rtype:` — which is what the package already uses throughout.
+  Do not mix in Google or numpy sections. Both pdoc and `griffe`, the extractor
+  every plausible successor is built on, read reST; a mixed codebase means one
+  of them renders half the parameters as literal text.
+- **Do not add `@private` to a docstring.** It is a pdoc-specific pragma that no
+  other generator recognises: under `griffe` the member reappears in the
+  reference with a literal `@private` line in its body. To keep something out of
+  the published reference, use `__all__`, or raise it in the pull request so the
+  module can be excluded by configuration. The nine existing pragmas in
+  `redlines/cli.py` are doing a real job for pdoc today and stay until the
+  generator changes; the rule is about not adding a tenth.
+
+### Building the site locally
 
 ```bash
-# generate HTML into site/ (development dependencies include pdoc)
-uv run pdoc -o site/ redlines
-
-# preview locally
 cd site
-python -m http.server 8000
-# then open http://localhost:8000 in your browser
+npm install
+npm run dev      # runs pdoc first, then serves on http://localhost:4321/redlines/
 ```
+
+`npm run build` does the same for a production build, and `npm run api`
+regenerates only the pdoc output. All three need the Python development
+environment (`uv sync --all-extras --dev`) available in the repository root.
 
 ### Written documentation
 

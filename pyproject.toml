@@ -30,7 +30,7 @@ dependencies = [
 Homepage = "https://houfu.github.io/redlines/"
 Documentation = "https://houfu.github.io/redlines/"
 Repository = "https://github.com/houfu/redlines"
-"Agent Guide" = "https://github.com/houfu/redlines/blob/main/AGENT_GUIDE.md"
+"Agent Guide" = "https://houfu.github.io/redlines/guides/agent-guide/"
 
 [project.optional-dependencies]
 nupunkt = [

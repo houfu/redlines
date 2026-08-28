@@ -1,34 +1,49 @@
 name: website
 
-# build the documentation whenever a release is published
+# The documentation site (site/) is an Astro Starlight project that also serves
+# the pdoc API reference under /api/. See ADR-0026.
+#
+# This workflow must never be able to block a release (PRD R50). It is separate
+# from python-package.yml and python-publish.yml, nothing depends on it, and it
+# must not be made a required status check. If the site build breaks, the site
+# is stale; the wheel still ships.
 on:
+  # Hand-written pages should not have to wait for a release to be corrected,
+  # so main deploys. The API reference under /api/ therefore documents main
+  # rather than the last tag.
+  push:
+    branches: [main]
+  # A release still redeploys, so the site is rebuilt against the released code.
   release:
     types: [published]
-  # Build (but do not deploy) on pull requests that could break it, so a
-  # release is not the first time the documentation is generated.
+  # Build without deploying, so a release is never the first time the site is
+  # built. Deliberately unfiltered: a docstring, a page and a dependency bump
+  # can each break it.
   pull_request:
-    paths:
-      - 'redlines/**'
-      - 'pyproject.toml'
-      - 'uv.lock'
-      - '.github/workflows/docs.yml'
-  # Lets the build be exercised without cutting a release.
   workflow_dispatch:
 
 # security: restrict permissions for CI jobs.
 permissions:
   contents: read
 
+# Let a newer commit supersede an in-flight deploy rather than queueing behind
+# it, but never cancel a deploy half-way.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
 jobs:
-  # Build the documentation and upload the static HTML files as an artifact.
+  # Build the site and upload it as a Pages artifact.
   build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
+
+      # Python, for pdoc: docstrings remain the source of truth for the API
+      # reference, which `npm run build` generates into site/public/api.
       - uses: actions/setup-python@v7
         with:
           python-version: '3.11'
-
       - name: Install uv
         uses: astral-sh/setup-uv@v10.0.1
         with:
@@ -36,19 +51,30 @@ jobs:
           cache-dependency-glob: "uv.lock"
       - name: Install the project
         run: uv sync --all-extras --dev
-      # The API documentation is generated into site/, which is not part of the
-      # repository. docs/ holds hand-written documents (ADRs, the PRD) and is
-      # left alone.
-      - run: uv run pdoc -o site/ redlines
+
+      # Node, for Astro.
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: site/package-lock.json
+      - name: Install site dependencies
+        run: npm ci
+        working-directory: site
+
+      - name: Build the site
+        run: npm run build
+        working-directory: site
+
       - uses: actions/upload-pages-artifact@v5
         with:
-          path: site/
+          path: site/dist/
 
-  # Deploy the artifact to GitHub pages.
-  # This is a separate job so that only actions/deploy-pages has the necessary permissions.
+  # Deploy the artifact to GitHub Pages.
+  # Separate job so that only actions/deploy-pages holds the permissions.
   deploy:
     needs: build
-    # A pull request only proves the build works; publishing stays on release.
+    # A pull request only proves the build works; publishing stays off PRs.
     if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     permissions:
