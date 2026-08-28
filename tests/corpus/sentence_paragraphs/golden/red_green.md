@@ -1,0 +1,3 @@
+The parties met on Tuesday. Dr. Smith reviewed the <span style='color:red;font-weight:700;text-decoration:line-through;'>draft </span><span style='color:green;font-weight:700;'>revised </span>agreement in detail. No objections were raised. 
+
+Mr. Jones will sign the final copy on <span style='color:red;font-weight:700;text-decoration:line-through;'>Friday. </span><span style='color:green;font-weight:700;'>Monday. </span>The deposit is payable on signing. <span style='color:green;font-weight:700;'>Receipts will be issued within seven days.</span>
