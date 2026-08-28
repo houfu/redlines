@@ -365,13 +365,28 @@ chmod +r file.txt
 
 ---
 
+## How these are tested
+
+Every script in this directory is executed by `tests/test_examples.py`, which
+runs each one the way this README says to run it and checks its output. The
+1.0 documentation pages will include this code rather than pasting it
+(see [ADR-0027](../docs/adr/0027-agent-docs-machine-surface.md)), so an example
+that no longer runs is a documentation bug.
+
+Run them with the rest of the suite:
+
+```bash
+uv run pytest tests/test_examples.py
+```
+
 ## Contributing
 
 Have an example you'd like to add? Contributions are welcome!
 
 1. Create a new Python script with clear documentation
 2. Add usage examples and expected output
-3. Test thoroughly
+3. Add a test to `tests/test_examples.py` — a guard test fails if a script
+   there has no case
 4. Update this README with your example
 5. Submit a pull request
 
