@@ -2,6 +2,7 @@
 import { defineConfig } from 'astro/config';
 import starlight from '@astrojs/starlight';
 import starlightLlmsTxt from 'starlight-llms-txt';
+import starlightPydocs, { pydocsSidebarGroup } from 'starlight-pydocs';
 
 // The site is published to GitHub Pages at https://houfu.github.io/redlines/,
 // so every internal link has to carry the /redlines base.
@@ -42,6 +43,24 @@ export default defineConfig({
 			// Publishes /llms.txt and per-page markdown, so an agent can fetch the
 			// documentation as text rather than scraping HTML. See ADR-0027.
 			plugins: [
+				// TRIAL (not for merge as-is): griffe-backed API reference, mounted
+				// beside pdoc's rather than over it so the two can be compared.
+				starlightPydocs({
+					packages: [
+						{
+							name: 'redlines',
+							base: 'reference/redlines',
+							search: ['..'],
+							// The docstrings are reST/Sphinx style (:param:, :return:).
+							docstringStyle: 'sphinx',
+							// pdoc hides every member of redlines.cli through @private
+							// docstring pragmas, which griffe does not read. Matching
+							// that here keeps the comparison honest.
+							members: { exclude: ['redlines.cli.*'] },
+						},
+					],
+					inventories: ['python'],
+				}),
 				starlightLlmsTxt({
 					projectName: 'redlines',
 					// The abridged set is the documentation someone integrating the
@@ -61,6 +80,7 @@ export default defineConfig({
 			],
 			sidebar: [
 				{ label: 'Start here', items: [{ autogenerate: { directory: 'start' } }] },
+				{ label: 'API (pydocs trial)', items: [pydocsSidebarGroup] },
 				{ label: 'Guides', items: [{ autogenerate: { directory: 'guides' } }] },
 				{
 					label: 'Reference',
