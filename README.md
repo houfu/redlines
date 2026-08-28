@@ -117,6 +117,8 @@ processor = NupunktProcessor()
 test = Redlines("Dr. Smith said hello.", "Dr. Smith said hi.", processor=processor)
 ```
 
+Sentence mode preserves the input's paragraph boundaries (fixed in 0.6.2): sentences are anchored within their paragraph, so the output is not reflowed one sentence per paragraph.
+
 **Use NupunktProcessor for:** Legal/technical documents with abbreviations, URLs, citations, decimals
 **Use WholeDocumentProcessor (default) for:** Simple documents, speed-critical tasks (5-6x faster), paragraph-level granularity
 
