@@ -7,6 +7,7 @@ from difflib import SequenceMatcher
 from typing import TYPE_CHECKING, Any, Literal
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
     from typing import Callable
 
 try:
@@ -62,6 +63,95 @@ It is used to split the text into paragraphs.
 
 space_pattern = re.compile(r"(\s+)")
 """It is used to detect space."""
+
+punctuation_token_pattern = re.compile(r"[^\w\s]+")
+r"""
+It is used to detect a normalized token that consists entirely of punctuation.
+
+* `[^\w\s]` matches any character that is neither a word character (`\w`) nor a
+  whitespace character (`\s`), which covers parentheses, punctuation marks
+  (.?!-) and other unicode punctuation such as em-dashes and quotes.
+* `[^\w\s]+` is the previous character class repeated one or more times.
+"""
+
+
+def _is_punctuation_only(token: str) -> bool:
+    """
+    Returns True if a normalized (whitespace-stripped) token consists entirely of
+    punctuation, or is empty.
+
+    The paragraph boundary token '¶' is explicitly excluded: although it is a
+    punctuation character, merging edits across it would pull paragraph breaks
+    into deletions/insertions and break paragraph handling in the output.
+
+    :param token: The normalized token to test.
+    :type token: str
+    :return: True if the token is empty or punctuation-only (and not '¶').
+    :rtype: bool
+    """
+    if token == "¶":
+        return False
+    return token == "" or punctuation_token_pattern.fullmatch(token) is not None
+
+
+def _merge_ops_split_by_punctuation(
+    opcodes: Sequence[tuple[str, int, int, int, int]],
+    source_normalized: list[str],
+) -> list[tuple[str, int, int, int, int]]:
+    """
+    Cleanup pass over `SequenceMatcher` opcodes that merges adjacent non-equal
+    operations separated only by an 'equal' run of punctuation-only tokens.
+
+    Without this pass, a change such as "thirty (30)" -> "forty (40)" is reported
+    as two separate changes because the '(' between "thirty"/"forty" and
+    "30"/"40" matches as equal. Merging the two edits (and absorbing the
+    punctuation-only equal run between them) reports the single, human-visible
+    change instead.
+
+    Because a merged operation is itself non-equal, chains of edits separated by
+    punctuation collapse naturally into a single operation. Equal runs at the
+    document boundaries are never absorbed, since they are not flanked by
+    non-equal operations on both sides. Paragraph boundary tokens ('¶') are
+    never merged across (see `_is_punctuation_only`).
+
+    :param opcodes: The opcodes returned by `SequenceMatcher.get_opcodes`.
+    :type opcodes: Sequence[tuple[str, int, int, int, int]]
+    :param source_normalized: The normalized source tokens the matcher compared.
+    :type source_normalized: list[str]
+    :return: The opcodes with punctuation-separated edits merged.
+    :rtype: list[tuple[str, int, int, int, int]]
+    """
+    result: list[tuple[str, int, int, int, int]] = []
+
+    for op in opcodes:
+        tag, i1, i2, j1, j2 = op
+        if (
+            tag != "equal"
+            and len(result) >= 2
+            and result[-1][0] == "equal"
+            and result[-2][0] != "equal"
+            and all(
+                _is_punctuation_only(token)
+                for token in source_normalized[result[-1][1] : result[-1][2]]
+            )
+        ):
+            # Merge the previous non-equal op, the punctuation-only equal run,
+            # and the current non-equal op into a single operation.
+            result.pop()
+            prev = result.pop()
+            merged_i1, merged_i2 = prev[1], i2
+            merged_j1, merged_j2 = prev[3], j2
+            if merged_i1 == merged_i2:
+                merged_tag = "insert"
+            elif merged_j1 == merged_j2:
+                merged_tag = "delete"
+            else:
+                merged_tag = "replace"
+            result.append((merged_tag, merged_i1, merged_i2, merged_j1, merged_j2))
+        else:
+            result.append(op)
+
+    return result
 
 
 def tokenize_text(text: str) -> list[str]:
@@ -295,6 +385,10 @@ class WholeDocumentProcessor(RedlinesProcessor):
     """
     A redlines processor that compares two documents. It compares the entire documents as a single chunk.
 
+    A cleanup pass merges adjacent edits separated only by punctuation, so a change
+    such as "thirty (30)" -> "forty (40)" is reported as a single replace instead of
+    two separate changes (see `_merge_ops_split_by_punctuation`).
+
     By default, ``difflib``'s ``autojunk`` heuristic is disabled. With autojunk on,
     any comparison of 200+ tokens treats tokens occurring in more than 1% of positions
     as unmatchable "popular junk", which silently degrades diffs of repetitive documents
@@ -344,13 +438,19 @@ class WholeDocumentProcessor(RedlinesProcessor):
             None, seq_source_normalized, seq_test_normalized, autojunk=self.autojunk
         )
 
+        # Merge adjacent edits separated only by punctuation-only equal runs,
+        # so e.g. "thirty (30)" -> "forty (40)" is reported as a single change.
+        opcodes = _merge_ops_split_by_punctuation(
+            matcher.get_opcodes(), seq_source_normalized
+        )
+
         return [
             DiffOperation(
                 source_chunk=Chunk(text=source_tokens, chunk_location=None),
                 test_chunk=Chunk(text=test_tokens, chunk_location=None),
                 opcodes=opcode,
             )
-            for opcode in matcher.get_opcodes()
+            for opcode in opcodes
         ]
 
 
@@ -367,6 +467,10 @@ class NupunktProcessor(RedlinesProcessor):
 
     The result is sentence-level granularity in diffs, providing more precise change detection
     compared to paragraph-level comparison.
+
+    A cleanup pass merges adjacent edits separated only by punctuation, so a change
+    such as "thirty (30)" -> "forty (40)" is reported as a single replace instead of
+    two separate changes (see `_merge_ops_split_by_punctuation`).
 
     Note: Requires nupunkt>=0.6.0 (Python 3.11+)
 
@@ -422,11 +526,17 @@ class NupunktProcessor(RedlinesProcessor):
             None, seq_source_normalized, seq_test_normalized, autojunk=self.autojunk
         )
 
+        # Merge adjacent edits separated only by punctuation-only equal runs,
+        # so e.g. "thirty (30)" -> "forty (40)" is reported as a single change.
+        opcodes = _merge_ops_split_by_punctuation(
+            matcher.get_opcodes(), seq_source_normalized
+        )
+
         return [
             DiffOperation(
                 source_chunk=Chunk(text=source_tokens, chunk_location=None),
                 test_chunk=Chunk(text=test_tokens, chunk_location=None),
                 opcodes=opcode,
             )
-            for opcode in matcher.get_opcodes()
+            for opcode in opcodes
         ]
