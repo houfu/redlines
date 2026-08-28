@@ -20,7 +20,14 @@ const apiRedirects = Object.fromEntries(
 export default defineConfig({
 	site: 'https://houfu.github.io',
 	base,
-	redirects: apiRedirects,
+	redirects: {
+		...apiRedirects,
+		// pdoc has no page of its own at /api/ — its generated index is only a
+		// meta refresh, and `npm run api` deletes it. Owning the route here means
+		// it resolves in the dev server too, which does not serve directory
+		// indexes out of public/.
+		'/api': `${base}/api/redlines.html`,
+	},
 	integrations: [
 		starlight({
 			title: 'redlines',
@@ -59,8 +66,12 @@ export default defineConfig({
 					label: 'Reference',
 					items: [
 						{
+							// pdoc's own index forwards to redlines.html. Linking the
+							// directory rather than the file matters: Starlight strips
+							// a .html extension from sidebar links, which would point
+							// this at a page that does not exist.
 							label: 'API reference',
-							link: '/api/redlines.html',
+							link: '/api/',
 							attrs: { target: '_blank' },
 						},
 					],

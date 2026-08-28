@@ -5,9 +5,12 @@ template: splash
 hero:
   tagline: Compare two texts and see what changed — as markdown, rich terminal output, or JSON an agent can parse.
   actions:
-    - text: API reference
-      link: /redlines/api/redlines.html
+    - text: Quickstart
+      link: /redlines/start/quickstart/
       icon: right-arrow
+    - text: Agent integration guide
+      link: /redlines/guides/agent-guide/
+      variant: secondary
     - text: View on GitHub
       link: https://github.com/houfu/redlines
       icon: external
@@ -16,21 +19,42 @@ hero:
 
 import { Card, CardGrid } from '@astrojs/starlight/components';
 
+```bash
+pip install redlines
+redlines "the quick brown fox" "the quick red fox"
+```
+
 <CardGrid>
-	<Card title="Install" icon="seti:python">
-		```bash
-		pip install redlines
-		```
+	<Card title="Quickstart" icon="rocket">
+		Install, compare two texts from the CLI or from Python, and find your way
+		around the output formats.
+
+		[Start here](/redlines/start/quickstart/)
 	</Card>
-	<Card title="Compare" icon="seti:shell">
-		```bash
-		redlines "the quick brown fox" "the quick red fox"
-		```
+	<Card title="Agent integration" icon="robot">
+		Invocation, the JSON structure, exit codes, error handling and integration
+		patterns for calling redlines from agents and automation.
+
+		[Agent guide](/redlines/guides/agent-guide/) ·
+		[llms.txt](/redlines/llms.txt)
+	</Card>
+	<Card title="API reference" icon="open-book">
+		Every class and method, generated from the docstrings that ship with the
+		package.
+
+		[API reference](/redlines/api/)
+	</Card>
+	<Card title="Why it works this way" icon="approve-check">
+		The decisions behind redlines 1.0 — what was rejected, and the conditions
+		under which each should be revisited.
+
+		[Decision records](/redlines/project/adr/) ·
+		[Roadmap](/redlines/project/roadmap/)
 	</Card>
 </CardGrid>
 
-:::note[This site is being built out]
-The documentation is moving here from the repository. The API reference below is
-generated from docstrings and is complete; the hand-written guides are arriving.
-Until then they live in the [repository](https://github.com/houfu/redlines).
+:::note[The 1.0 documentation is still being written]
+The pages here cover the current release. The schemas, profile guide and
+benchmark report arrive with 1.0 — see the
+[roadmap](/redlines/project/roadmap/).
 :::

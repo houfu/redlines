@@ -63,7 +63,7 @@ structured changes and statistics, `output_rich` for terminal display, and
 - The [agent integration guide](/redlines/guides/agent-guide/) covers invocation
   from agents and automation, the JSON structure, error handling and integration
   patterns.
-- The [API reference](/redlines/api/redlines.html) is generated from the
+- The [API reference](/redlines/api/) is generated from the
   docstrings and documents every class and method.
 - The [decision records](/redlines/project/adr/) explain why the library is
   shaped the way it is, and where it is going.

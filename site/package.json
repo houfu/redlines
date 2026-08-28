@@ -5,7 +5,7 @@
   "private": true,
   "description": "Documentation site for redlines. Nothing here is imported by the wheel; see ADR-0026.",
   "scripts": {
-    "api": "cd .. && uv run pdoc -o site/public/api redlines",
+    "api": "cd .. && uv run pdoc -o site/api-tmp redlines && rm -rf site/public/api && mv site/api-tmp site/public/api && rm -f site/public/api/index.html",
     "predev": "npm run api && npm run sync",
     "dev": "astro dev",
     "prebuild": "npm run api && npm run sync",
