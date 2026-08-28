@@ -294,7 +294,22 @@ class RedlinesProcessor(ABC):
 class WholeDocumentProcessor(RedlinesProcessor):
     """
     A redlines processor that compares two documents. It compares the entire documents as a single chunk.
+
+    By default, ``difflib``'s ``autojunk`` heuristic is disabled. With autojunk on,
+    any comparison of 200+ tokens treats tokens occurring in more than 1% of positions
+    as unmatchable "popular junk", which silently degrades diffs of repetitive documents
+    (schedules, price lists, "Intentionally omitted" runs) into whole-document replaces.
     """
+
+    def __init__(self, *, autojunk: bool = False) -> None:
+        """
+        :param autojunk: Passed to difflib.SequenceMatcher. Defaults to False because the
+            default heuristic silently degrades diffs of repetitive documents of 200+ tokens
+            (see ADR-0010); set True to restore difflib's default popular-token heuristic,
+            which can be faster on large repetitive documents.
+        :type autojunk: bool
+        """
+        self.autojunk = autojunk
 
     def process(
         self, source: Document | str, test: Document | str
@@ -325,7 +340,9 @@ class WholeDocumentProcessor(RedlinesProcessor):
         seq_source_normalized = [token.strip() for token in source_tokens]
         seq_test_normalized = [token.strip() for token in test_tokens]
 
-        matcher = SequenceMatcher(None, seq_source_normalized, seq_test_normalized)
+        matcher = SequenceMatcher(
+            None, seq_source_normalized, seq_test_normalized, autojunk=self.autojunk
+        )
 
         return [
             DiffOperation(
@@ -363,6 +380,16 @@ class NupunktProcessor(RedlinesProcessor):
         ```
     """
 
+    def __init__(self, *, autojunk: bool = False) -> None:
+        """
+        :param autojunk: Passed to difflib.SequenceMatcher. Defaults to False because the
+            default heuristic silently degrades diffs of repetitive documents of 200+ tokens
+            (see ADR-0010); set True to restore difflib's default popular-token heuristic,
+            which can be faster on large repetitive documents.
+        :type autojunk: bool
+        """
+        self.autojunk = autojunk
+
     def process(self, source: Document | str, test: Document | str) -> list[DiffOperation]:
         """
         Compare two documents using sentence-level tokenization.
@@ -391,7 +418,9 @@ class NupunktProcessor(RedlinesProcessor):
         seq_source_normalized = [token.strip() for token in source_tokens]
         seq_test_normalized = [token.strip() for token in test_tokens]
 
-        matcher = SequenceMatcher(None, seq_source_normalized, seq_test_normalized)
+        matcher = SequenceMatcher(
+            None, seq_source_normalized, seq_test_normalized, autojunk=self.autojunk
+        )
 
         return [
             DiffOperation(

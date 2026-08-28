@@ -248,6 +248,9 @@ class Redlines:
         )
         ```
 
+        Processors also accept an ``autojunk`` keyword (default False) which is passed to
+        difflib.SequenceMatcher, e.g. ``WholeDocumentProcessor(autojunk=True)`` — see ADR-0010.
+
         :param source: The source text to be used as a basis for comparison.
         :type source: str | Document
         :param test: Optional test text to compare with the source.
