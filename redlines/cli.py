@@ -328,7 +328,7 @@ def cli() -> None:
     pass
 
 
-@cli.command()  # type: ignore[no-untyped-call]
+@cli.command()  # type: ignore[no-untyped-call, untyped-decorator]
 @click.argument("source", required=True)
 @click.argument("test", required=True)
 @click.option(
@@ -365,7 +365,7 @@ def compare(ctx: click.Context, source: str, test: str, pretty: bool) -> None:
     _set_exit_code(ctx, redlines)
 
 
-@cli.command()  # type: ignore[no-untyped-call]
+@cli.command()  # type: ignore[no-untyped-call, untyped-decorator]
 @click.argument("source", required=True)
 @click.argument("test", required=True)
 @click.option(
@@ -417,7 +417,7 @@ def text(ctx: click.Context, source: str, test: str, quiet: bool) -> None:
     _set_exit_code(ctx, redlines)
 
 
-@cli.command()  # type: ignore[no-untyped-call]
+@cli.command()  # type: ignore[no-untyped-call, untyped-decorator]
 @click.argument("source", required=True)
 @click.argument("test", required=True)
 @click.pass_context
@@ -441,7 +441,7 @@ def simple_text(ctx: click.Context, source: str, test: str) -> None:
     _set_exit_code(ctx, redlines)
 
 
-@cli.command()  # type: ignore[no-untyped-call]
+@cli.command()  # type: ignore[no-untyped-call, untyped-decorator]
 @click.argument("source", required=True)
 @click.argument("test", required=True)
 @click.option(
@@ -488,7 +488,7 @@ def markdown(
     _set_exit_code(ctx, redlines)
 
 
-@cli.command()  # type: ignore[no-untyped-call]
+@cli.command()  # type: ignore[no-untyped-call, untyped-decorator]
 @click.argument("source", required=True)
 @click.argument("test", required=True)
 @click.option(
@@ -522,7 +522,7 @@ def json(ctx: click.Context, source: str, test: str, pretty: bool) -> None:
     _set_exit_code(ctx, redlines)
 
 
-@cli.command()  # type: ignore[no-untyped-call]
+@cli.command()  # type: ignore[no-untyped-call, untyped-decorator]
 @click.argument("source", required=True)
 @click.argument("test", required=True)
 @click.option(
@@ -573,7 +573,7 @@ def stats(ctx: click.Context, source: str, test: str, quiet: bool) -> None:
     _set_exit_code(ctx, redlines)
 
 
-@cli.command()  # type: ignore[no-untyped-call]
+@cli.command()  # type: ignore[no-untyped-call, untyped-decorator]
 @click.option(
     "--open",
     "-o",
