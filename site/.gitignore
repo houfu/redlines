@@ -22,3 +22,6 @@ pnpm-debug.log*
 
 # generated: pdoc writes the API reference here
 public/api/
+
+# generated: scripts/sync-docs.mjs copies these in from the repository
+src/content/docs/project/

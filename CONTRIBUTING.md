@@ -1,4 +1,4 @@
-# Contributing to CONTRIBUTING.md
+# Contributing to redlines
 
 First off, thanks for taking the time to contribute! ❤️
 

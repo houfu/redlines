@@ -93,12 +93,14 @@ ENV/
 # Virtualenv
 # http://iamzed.com/2009/05/07/a-primer-on-virtualenv/
 .Python
-[Bb]in
-[Ii]nclude
-[Ll]ib
-[Ll]ib64
-[Ll]ocal
-[Ss]cripts
+# Anchored to the repository root: unanchored, these swallow any bin/, lib/,
+# include/ or scripts/ directory anywhere in the tree — site/scripts/ among them.
+/[Bb]in
+/[Ii]nclude
+/[Ll]ib
+/[Ll]ib64
+/[Ll]ocal
+/[Ss]cripts
 pyvenv.cfg
 .venv
 pip-selfcheck.json

@@ -6,12 +6,13 @@
   "description": "Documentation site for redlines. Nothing here is imported by the wheel; see ADR-0026.",
   "scripts": {
     "api": "cd .. && uv run pdoc -o site/public/api redlines",
-    "predev": "npm run api",
+    "predev": "npm run api && npm run sync",
     "dev": "astro dev",
-    "prebuild": "npm run api",
+    "prebuild": "npm run api && npm run sync",
     "build": "astro build",
     "preview": "astro preview",
-    "astro": "astro"
+    "astro": "astro",
+    "sync": "node scripts/sync-docs.mjs"
   },
   "dependencies": {
     "@astrojs/starlight": "^0.41.9",

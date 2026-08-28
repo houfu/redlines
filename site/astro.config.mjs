@@ -37,6 +37,10 @@ export default defineConfig({
 			plugins: [
 				starlightLlmsTxt({
 					projectName: 'redlines',
+					// The abridged set is the documentation someone integrating the
+					// library needs; the planning documents are context, not usage.
+					promote: ['start/**', 'guides/**'],
+					exclude: ['project/**'],
 					description:
 						'A Python library and CLI that compares two texts and reports the differences as markdown, rich text or JSON.',
 					optionalLinks: [
@@ -48,9 +52,9 @@ export default defineConfig({
 					],
 				}),
 			],
-			// The prose pages arrive with the content migration; the API
-			// reference is here from the first deploy.
 			sidebar: [
+				{ label: 'Start here', items: [{ autogenerate: { directory: 'start' } }] },
+				{ label: 'Guides', items: [{ autogenerate: { directory: 'guides' } }] },
 				{
 					label: 'Reference',
 					items: [
@@ -58,6 +62,20 @@ export default defineConfig({
 							label: 'API reference',
 							link: '/api/redlines.html',
 							attrs: { target: '_blank' },
+						},
+					],
+				},
+				{
+					// Generated from the repository by scripts/sync-docs.mjs.
+					label: 'Project',
+					items: [
+						{ label: 'PRD', link: '/project/prd/' },
+						{ label: 'Roadmap', link: '/project/roadmap/' },
+						{ label: 'Contributing', link: '/project/contributing/' },
+						{
+							label: 'Decision records',
+							collapsed: true,
+							items: [{ autogenerate: { directory: 'project/adr' } }],
 						},
 					],
 				},

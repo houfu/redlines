@@ -12,6 +12,9 @@ deployed to GitHub Pages at `https://houfu.github.io/redlines/`.
   the wheel, nothing in the wheel depends on this building, and a broken build
   here must never block a release. Do not wire this project into the Python
   workflows.
+- `src/content/docs/project/` is **generated** by `scripts/sync-docs.mjs` from
+  the repository's own documents (ADRs, PRD, roadmap, CONTRIBUTING). Edit the
+  source files, not the copies.
 - Decisions that govern this directory: `../docs/adr/0026-*` (platform),
   `../docs/adr/0027-*` (what the agent-facing pages are), `../docs/adr/0019-*`
   (the demo route, arriving in M6).
