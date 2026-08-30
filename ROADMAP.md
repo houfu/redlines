@@ -1,9 +1,9 @@
 # Roadmap to redlines 1.0
 
-**Status:** candidate curation for houfu to review, 26 August 2026
+**Status:** adopted, 30 August 2026. M0 shipped as 0.6.2 (PyPI, docs site live). Milestones M0–M6 exist on GitHub mirroring this file; all 12 M1 issues cite it. The ten calls in section 5 are recorded as accepted.
 **Relationship to the other documents:** the `PRD` reference in each row is a requirement number (R*) or a decision number (D*). Decisions now live as ADRs in [`docs/adr/`](docs/adr/README.md); PRD section 6 maps every old D-number onto its ADR.
 
-**Relationship to the PRD:** [`docs/PRD.md`](docs/PRD.md) says what each feature is and why it exists. This file says which release it is in. Where the two disagree, this file wins on release assignment, and the PRD should be updated to match once you have curated it.
+**Relationship to the PRD:** [`docs/PRD.md`](docs/PRD.md) says what each feature is and why it exists. This file says which release it is in. Where the two disagree, this file wins on release assignment; the PRD's Must/Should tags were reconciled against the adopted plan in its revision 10 (30 August 2026).
 
 ## How to read this
 
@@ -30,10 +30,12 @@ Sizes are rough, for one experienced developer working with an agent: **S** is a
 | Cleanup pass merging adjacent ops split only by punctuation or whitespace | D8, R15 | S | Fixes "thirty (30)" → two changes |
 | Sentence mode preserves paragraph boundaries | D9, R16 | S | |
 | Regression corpus including a repetitive schedule and the course examples as golden files | section 12 (compatibility risk) | S | These golden files are reused by M4 |
-| Investigate the 18 `neurotic_docx_bench` failures | step 1 | S | Read-only investigation; fix only if trivial |
+| Investigate the 18 `neurotic_docx_bench` failures | step 1 | S | Read-only investigation; fix only if trivial. **Resolved, #96:** none of the 18 are redlines failures — all die in the benchmark adapter's python-docx extraction before `Redlines` is ever constructed. Nothing to fix in 0.6.x. Carried forward as #110 (a preview of the 1.1 DOCX reader's failure modes) |
 | Documentation site on Astro Starlight in `site/`, replacing pdoc as the publishing surface | ADR-0026, N6 | M | Scaffold, migrate what already exists (quickstart from the README, agent guide, ADR index, contributing), build pdoc into `/api/`, rewrite the Pages workflow. The agent guide moves whole and marked as the 0.6 guide, per ADR-0027; `llms.txt`, the per-page markdown export and a `/schemas/` location are stood up here so M4 writes into slots that exist. Nothing in `site/` may block a release |
 
 **Exit:** 0.6.x on PyPI; existing test suite green; the repetitive-schedule case reports a two-token change; the docs site is live on GitHub Pages with the agent guide, the ADR index and the API reference under `/api/`.
+
+**Shipped, 30 August 2026.** 0.6.2 is on PyPI; the docs site is live at [houfu.github.io/redlines](https://houfu.github.io/redlines/); the "M0 0.6.x hygiene" GitHub milestone is closed, 6 of 6 issues.
 
 **Why this milestone.** The site work is independent of every engine milestone, so it neither blocks nor is blocked — and doing it first means the 1.0 pages that M4 owes (schemas, rewritten agent guide, benchmark report) are written once, onto a site that can hold them, instead of being written for pdoc and then migrated. It also settles the `site/` directory before M6 depends on it.
 
@@ -164,20 +166,22 @@ pdoc is kept here deliberately rather than replaced along with the publishing su
 
 Inline formatting change detection (D22). Comments, footnotes, headers and footers as parts. XML renderer over the change tree (6a). Site permalinks encoding inputs in the URL fragment (R44). Batch comparison API. Akoma Ntoso and other structured-XML readers via the reader interface. Native OOXML revision writer (D13, and probably never). Three-way merge. Any OCR or in-library LLM call (never, per section 3 non-goals; a model-backed semantic pass belongs outside the library).
 
-## 5. Calls I made that trim 1.0 below the PRD — please accept or overturn
+## 5. Calls that trim 1.0 below the PRD — accepted, 30 August 2026
 
-1. **`legislation` profile to 1.1.** The demo scenario is a contract and the primary persona's inputs are contracts and LLM drafts. But PLUS Explorer and your own work are legislation, so if you want a statute in the demo, pull it back and budget an extra M in M1.
-2. **Profile auto-selection to 1.1.** 1.0 defaults to `contract` for plain text and `markdown` for `.md`, with `--profile` to override. Auto-selection is nice on the site but is scoring logic that can wait until there are more than three profiles.
-3. **Verify text-anchor scope to 1.1.** Addresses, labels and roles cover the agent use case; free-text anchors bring the ambiguity problem adeu is fighting.
-4. **MCP HTTP transport to 1.1.** Claude Code, Claude Desktop and Cursor all use stdio. HTTP matters for hosted agents, which are not the first audience.
-5. **MCP `explain_changes` prompt to 1.1.** Useful, but the profile loop is the distinctive thing and the summary tool already gives a model what it needs.
-6. **Annotated renderer promoted to 1.0 Must.** The PRD hedged; the MCP `summary` and `annotate` tools need it, so it is in M3.
-7. **HTML renderer kept minimal in 1.0.** Block list plus expandable redlines; the site adds interaction on top rather than a second renderer.
-8. **Table alignment kept minimal in 1.0.** Row insert/delete and cell inline diff for markdown pipe tables; no column operations, no merged cells. Enough for the sample pair's inserted row.
-9. **Site density view to 1.1.** The stats exist in the JSON from M2; drawing them is UI work that does not prove anything new.
-10. **Hand-labelled benchmark set capped at ten pairs for 1.0.** Enough to catch a wrong move; expansion is ongoing work.
+All ten calls below are **accepted** as written. Nothing here has changed the milestone tables — M1 through M6 were already built on these calls, all 12 M1 issues cite this roadmap as authoritative, and issue [#101](https://github.com/houfu/redlines/issues/101) already treats call 5.1 as settled. Accepting them turns that existing fact into a recorded decision rather than a new one. [`docs/PRD.md`](docs/PRD.md) is annotated to match as of its revision 10.
 
-If you overturn any of these, the size lands in the milestone named in the PRD reference and the exit criteria above should be re-read.
+1. **Accepted. `legislation` profile to 1.1.** The demo scenario is a contract and the primary persona's inputs are contracts and LLM drafts. PLUS Explorer and legislation work stay a 1.1 case; revisit only if a statute needs to be in the demo before then.
+2. **Accepted. Profile auto-selection to 1.1.** 1.0 defaults to `contract` for plain text and `markdown` for `.md`, with `--profile` to override. Auto-selection is scoring logic that can wait until there are more than three profiles.
+3. **Accepted. Verify text-anchor scope to 1.1.** Addresses, labels and roles cover the agent use case; free-text anchors bring the ambiguity problem adeu is fighting.
+4. **Accepted. MCP HTTP transport to 1.1.** Claude Code, Claude Desktop and Cursor all use stdio. HTTP matters for hosted agents, which are not the first audience.
+5. **Accepted. MCP `explain_changes` prompt to 1.1.** Useful, but the profile loop is the distinctive thing and the summary tool already gives a model what it needs.
+6. **Accepted. Annotated renderer promoted to 1.0 Must.** The PRD hedged; the MCP `summary` and `annotate` tools need it, so it is in M3.
+7. **Accepted. HTML renderer kept minimal in 1.0.** Block list plus expandable redlines; the site adds interaction on top rather than a second renderer.
+8. **Accepted. Table alignment kept minimal in 1.0.** Row insert/delete and cell inline diff for markdown pipe tables; no column operations, no merged cells. Enough for the sample pair's inserted row.
+9. **Accepted. Site density view to 1.1.** The stats exist in the JSON from M2; drawing them is UI work that does not prove anything new.
+10. **Accepted. Hand-labelled benchmark set capped at ten pairs for 1.0.** Enough to catch a wrong move; expansion is ongoing work.
+
+Any of these can still be overturned later; if one is, the size lands in the milestone named in the PRD reference and that milestone's exit criteria should be re-read.
 
 ## 6. What is deliberately not sized here
 
