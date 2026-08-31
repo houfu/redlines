@@ -296,7 +296,7 @@ The demo becomes the product. A site that works well invites feature requests (a
 
 ## 13. Open questions for you
 
-D10 and D14 are now decided per the recommendations. Next design questions, in order: the profile format (D30) — the built-in set is decided (`generic`, `contract`, `markdown` for 1.0; `legislation` deferred to 1.1, ROADMAP § 5.1) but the format itself is still to be designed, tracked as [#100](https://github.com/houfu/redlines/issues/100); the path syntax for D11; the JSON Schema for the change tree.
+D10 and D14 are now decided per the recommendations. The profile format (D30) is now decided too: YAML, hand-validated against a published JSON Schema — [ADR-0028](adr/0028-profile-file-format.md), resolving [#100](https://github.com/houfu/redlines/issues/100). Next design questions, in order: the path syntax for D11; the JSON Schema for the change tree.
 
 Whether to keep the name (D20; I recommend keeping it; the site's domain is a separate, cheaper decision). Whether verify should also accept a natural-language instruction and ask an LLM to derive the allowed scope, or stay purely deterministic in 1.0 (I recommend deterministic; the LLM layer belongs in the caller, and on the site there is no LLM at all). Whether the MCP server should expose the 0.6 flat comparison as a separate tool for callers who just want the old markdown string (I recommend no; `compare` on two bare strings already returns a one-block-per-paragraph tree, and one fewer tool is easier for models). Whether to approach the adeu and Docxodus maintainers before or after 1.0 (I recommend before, once the JSON v2 schema is drafted, because the schema is the integration point).
 

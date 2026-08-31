@@ -1,0 +1,110 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/houfu/redlines/blob/main/redlines/profiles/schema.json",
+  "title": "Redlines Structure Profile",
+  "description": "Schema for a redlines structure profile: the declarative format (ADR-0006, ADR-0028) that tells a reader how to recognise labels, headings, roles and semantic spans in a document family. Files are YAML on disk; this schema describes the mapping shape after parsing, which is the same shape a profile passed as a Python dict or MCP tool argument must have. Every 'pattern' in this schema is Python `re` syntax, so inline flags like (?i) and lookarounds are available. In YAML, write patterns as single-quoted scalars ('...') so backslashes stay literal and need no doubling; a pattern containing an apostrophe doubles it ('parties'' case') rather than switching to double quotes, which would force every backslash to be doubled too.",
+  "type": "object",
+  "required": ["name"],
+  "additionalProperties": false,
+  "properties": {
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "description": "The profile's name, used to select it explicitly (R1d)."
+    },
+    "description": {
+      "type": "string",
+      "description": "A short, human-readable description of the document family this profile targets."
+    },
+    "label_patterns": {
+      "type": "array",
+      "description": "Patterns recognising a leading label on a paragraph or list item, tried in order. Order is precedence: the first pattern that matches wins.",
+      "items": { "$ref": "#/definitions/labelPattern" }
+    },
+    "heading_resets": {
+      "type": "array",
+      "description": "Headings that open a new section and clear the label-depth stack (e.g. Schedule, Annex, Part), which is what keeps alpha/roman labels unambiguous after the boundary. This is only about numbering: a reset does not assign a role, and a role_rule does not clear the stack. A profile that wants both from the same heading declares it in both lists, which is why the worked example repeats one regex. Only headings listed here touch the stack: every other heading leaves the numbering alone, so a document whose paragraph numbering runs continuously from start to finish simply declares no resets.",
+      "items": { "$ref": "#/definitions/headingReset" }
+    },
+    "heading_rule": {
+      "$ref": "#/definitions/headingRule",
+      "description": "General heuristics for recognising a short, unlabelled line as a heading. These narrow the field of candidates; they are not the whole scorer, and the reader weighs other signals (surrounding blank lines, indentation, what follows) that a profile does not control. A short sentence-case line can still be scored as a heading with both case flags left on -- the flags admit candidates rather than excluding everything else."
+    },
+    "role_rules": {
+      "type": "array",
+      "description": "Rules assigning a semantic role (ADR-0005) to blocks, tried in order. A block carries one role, so order is precedence: the first rule that matches wins and the rest are not tried. Roles are assigned walking the block tree top-down, so a block's ancestors already carry their roles by the time its own rules are tried -- which is what makes a 'parent_role' rule work. List the rule that assigns a role before any rule that depends on it as a parent_role. Proximity beats list order: 'ancestor_heading' rules are resolved from the block outwards, so the nearest matching ancestor heading decides, and list order only breaks a tie between rules matching that same heading. A 'Conclusion' section nested inside 'My decision' therefore gives its paragraphs the conclusion role, however the two rules are ordered.",
+      "items": { "$ref": "#/definitions/roleRule" }
+    },
+    "span_extractors": {
+      "type": "array",
+      "description": "Regexes extracting semantic spans (ADR-0005) -- defined terms, cross-references, parties, dates, amounts -- from block text. Unlike label_patterns and role_rules, order is not precedence: a block carries many spans, so every extractor runs and all matches are kept. Order only fixes the order the spans are emitted in. Two extractors may share a type -- several unrelated patterns for one kind of span is the expected way to write this, not a mistake.",
+      "items": { "$ref": "#/definitions/spanExtractor" }
+    }
+  },
+  "definitions": {
+    "labelPattern": {
+      "type": "object",
+      "required": ["name", "pattern", "style"],
+      "additionalProperties": false,
+      "properties": {
+        "name": { "type": "string", "minLength": 1, "description": "A short, plain name for this pattern (e.g. 'decimal', 'alpha_paren')." },
+        "pattern": { "type": "string", "minLength": 1, "description": "A regular expression matching the label at the start of the block text." },
+        "style": {
+          "type": "string",
+          "enum": ["decimal", "alpha", "roman", "word"],
+          "description": "The label's numbering style. 'decimal' is a dotted or bare number ('1', '1.2.3') and carries its own depth from the dot-separated groups. 'alpha' ('(a)', 'A.') and 'roman' ('(i)', 'IV.') are ambiguous in isolation -- '(i)' after '(h)' is alphabetic, after '7.2' it is roman -- and are resolved by depth_mode. 'word' is a label introduced by a word ('Article 5', 'Section 3', 'Schedule 2', 'Part IV')."
+        },
+        "depth_mode": {
+          "type": "string",
+          "enum": ["arithmetic", "stack"],
+          "default": "stack",
+          "description": "'arithmetic': depth is counted from the label itself (e.g. '1.2.3' is depth 3, a bare '17' is depth 1). 'stack': depth is resolved from the label-style stack, for styles that are ambiguous on their own. The two share one stack, so an arithmetic label sets the level a following stack-mode label nests under -- which is how '(a)' after '7.2' lands one level deeper than '(a)' after '7'."
+        }
+      }
+    },
+    "headingReset": {
+      "type": "object",
+      "required": ["name", "pattern"],
+      "additionalProperties": false,
+      "properties": {
+        "name": { "type": "string", "minLength": 1, "description": "A short, plain name for this reset (e.g. 'schedule')." },
+        "pattern": { "type": "string", "minLength": 1, "description": "A regular expression matching the heading text that triggers the reset." }
+      }
+    },
+    "headingRule": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "max_words": { "type": "integer", "minimum": 1, "default": 8, "description": "A line longer than this many words is never scored as a heading. Words are whitespace-separated tokens of the heading text after any label is stripped, so the label does not count against the budget and \"parties'\" counts as one word." },
+        "allow_all_caps": { "type": "boolean", "default": true, "description": "Score an all-caps short line as a heading candidate." },
+        "allow_title_case": { "type": "boolean", "default": true, "description": "Score a title-case short line as a heading candidate." },
+        "forbid_terminal_punctuation": { "type": "boolean", "default": true, "description": "A line ending in terminal punctuation (. ; :) is never scored as a heading." }
+      }
+    },
+    "roleRule": {
+      "type": "object",
+      "required": ["role", "match"],
+      "additionalProperties": false,
+      "properties": {
+        "role": { "type": "string", "minLength": 1, "description": "The semantic role to assign. The vocabulary is open (ADR-0005): any string is accepted and nothing in the library enforces a list, so a document family can name a role of its own. The recommended set -- title, recital, definition, clause, sub_clause, schedule, signature, note, quote, code, boilerplate -- is what renderers, filters and the change tree already understand, so prefer it where one fits and invent a name only where none does." },
+        "match": {
+          "type": "string",
+          "enum": ["heading", "ancestor_heading", "parent_role"],
+          "description": "'heading': the block is itself a heading whose text matches pattern. 'ancestor_heading': the block sits somewhere under a heading matching pattern, at any depth. 'parent_role': the block's immediate parent in the block tree -- the block that contains it, which for a block directly under a heading is that heading's block -- already carries the role named in parent_role. Use 'ancestor_heading' to match on a heading's text and 'parent_role' to build on a role another rule already assigned; 'parent_role' is the only one of the three that looks at depth 1 exactly. Choose between 'heading' and 'ancestor_heading' by what you want the role to land on: 'heading' labels the heading block itself, so filters and renderers see the heading; 'ancestor_heading' labels the content underneath it and not the heading. A profile that wants both writes both rules. All three match kinds are structural -- none of them looks at the block's own text."
+        },
+        "pattern": { "type": "string", "minLength": 1, "description": "Required when match is 'heading' or 'ancestor_heading'; must not be set otherwise. Matched against the heading's text with any label already stripped, so '^Background' matches the heading '3. Background'." },
+        "parent_role": { "type": "string", "minLength": 1, "description": "Required when match is 'parent_role'; must not be set otherwise." }
+      }
+    },
+    "spanExtractor": {
+      "type": "object",
+      "required": ["type", "pattern"],
+      "additionalProperties": false,
+      "properties": {
+        "type": { "type": "string", "minLength": 1, "description": "The span type (ADR-0005 recommends: emphasis, defined_term, cross_reference, party, date, amount, citation)." },
+        "pattern": { "type": "string", "minLength": 1, "description": "A regular expression searched for anywhere in the block's text, as many times as it matches -- unlike label and heading patterns, which are tried at the start. Anchor it yourself if you mean the start." },
+        "group": { "type": "integer", "minimum": 0, "default": 0, "description": "Which capturing group of pattern is the span's text; 0 is the whole match. Omit it entirely for a pattern with no capturing groups. A span is a typed range of text, not a structured record -- there is one group and no attributes -- so a citation captured as a single span keeps the text as written rather than splitting it into parts." }
+      }
+    }
+  }
+}

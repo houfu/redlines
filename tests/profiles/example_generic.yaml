@@ -1,0 +1,6 @@
+# The simplest possible valid profile: no label patterns, no roles, no
+# spans. A reader falls back to one block per paragraph. Proves the format
+# doesn't force a document family to declare anything it doesn't need.
+
+name: example-generic
+description: No structure beyond paragraphs.
