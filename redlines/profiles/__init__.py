@@ -30,6 +30,12 @@ carry one label and one role but many spans:
 - ``span_extractors`` -- **every** extractor runs and all matches are kept;
   order only fixes the order the spans come out in.
 
+A profile is trusted input. Its patterns are regular expressions someone
+else's document text will be run against, and a valid pattern can take
+exponential time to match, so treat authoring a profile as equivalent to
+running code -- the same standing a Vale or Semgrep rule file has. See
+`load_profile` for what that means for a paste box or an MCP argument.
+
 See ``docs/adr/0028-profile-file-format.md`` for the format's design rationale
 and ``redlines/profiles/schema.json`` for the published JSON Schema -- the
 schema and one worked example (``tests/profiles/example_contract.yaml``) are

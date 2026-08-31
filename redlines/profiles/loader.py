@@ -52,12 +52,25 @@ def load_profile(source: str | Path | Mapping[str, Any]) -> Profile:
     """Load a profile from a mapping, a ``.yaml``/``.yml`` file path, or raw YAML text.
 
     A plain ``str`` that names an existing file on disk is read as that
-    file; any other string is parsed as YAML text directly. This is meant
-    for trusted, caller-controlled sources such as a CLI ``--profile``
-    argument or a path built in code. A caller that already knows it holds
-    untrusted pasted text (an MCP tool, the site's paste box) should call
-    `parse_profile_yaml` directly instead, so a crafted string can never be
-    mistaken for a path to a file already on disk.
+    file; any other string is parsed as YAML text directly. This dispatch
+    is meant for trusted, caller-controlled sources such as a CLI
+    ``--profile`` argument or a path built in code. A caller that already
+    holds text it did not choose (an MCP tool argument, the site's paste
+    box) should call `parse_profile_yaml` directly, so a crafted string can
+    never be mistaken for a path to a file already on disk.
+
+    **A profile is trusted input, not sanitised input.** Its patterns are
+    regular expressions that a reader will later run against document text
+    with Python's backtracking `re` engine, where a short, perfectly valid
+    pattern such as ``(a+)+$`` takes time exponential in the length of the
+    text. Validation checks that every pattern *compiles*; it cannot check
+    that one *terminates*, and the standard library gives no way to bound a
+    match once it starts. Accept a profile from whoever you would let run
+    code in the same process. Anything else -- a public paste box, an
+    untrusted model's output -- needs a resource boundary around whatever
+    runs the patterns (a subprocess or worker that can be killed), which is
+    a property of the caller's deployment, not something this function can
+    provide. Loading itself is cheap and safe: nothing here matches.
     """
     if isinstance(source, Mapping):
         return profile_from_mapping(source)
@@ -90,10 +103,41 @@ def _looks_like_a_path(source: str) -> bool:
     return "\n" not in source and len(source) <= 255
 
 
+class _StrictSafeLoader(yaml.SafeLoader):
+    """`yaml.SafeLoader`, but a repeated key is an error rather than the last one winning.
+
+    Plain YAML resolves ``pattern: one`` followed by ``pattern: two`` to
+    ``two``, silently. In a settings file that is merely surprising; in a
+    file of match rules it means a profile can behave differently from the
+    way it reads, with the losing line sitting right there in the document.
+    """
+
+    def construct_mapping(self, node: yaml.MappingNode, deep: bool = False) -> dict[Any, Any]:
+        seen: set[Any] = set()
+        for key_node, _ in node.value:
+            key = self.construct_object(key_node, deep=deep)
+            if key in seen:
+                raise yaml.constructor.ConstructorError(
+                    "while constructing a profile",
+                    node.start_mark,
+                    f"duplicate key {key!r}",
+                    key_node.start_mark,
+                )
+            seen.add(key)
+        return super().construct_mapping(node, deep=deep)
+
+
 def parse_profile_yaml(text: str) -> Profile:
-    """Parse raw YAML text into a validated `Profile`."""
+    """Parse raw YAML text into a validated `Profile`.
+
+    Parsing is safe in the `yaml.safe_load` sense -- no arbitrary Python
+    objects are constructed -- but see `load_profile` on why a profile is
+    still trusted input.
+    """
     try:
-        mapping = yaml.safe_load(text)
+        # Safe despite the name: _StrictSafeLoader derives from SafeLoader,
+        # so no tag can construct an arbitrary Python object.
+        mapping = yaml.load(text, Loader=_StrictSafeLoader)  # noqa: S506
     except yaml.YAMLError as exc:
         raise ProfileError([f"invalid YAML: {exc}"]) from exc
     if mapping is None:

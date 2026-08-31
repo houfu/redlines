@@ -85,6 +85,28 @@
       "type": "object",
       "required": ["role", "match"],
       "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "required": ["match"],
+            "properties": { "match": { "enum": ["heading", "ancestor_heading"] } }
+          },
+          "then": {
+            "required": ["pattern"],
+            "not": { "required": ["parent_role"] }
+          }
+        },
+        {
+          "if": {
+            "required": ["match"],
+            "properties": { "match": { "const": "parent_role" } }
+          },
+          "then": {
+            "required": ["parent_role"],
+            "not": { "required": ["pattern"] }
+          }
+        }
+      ],
       "properties": {
         "role": { "type": "string", "minLength": 1, "description": "The semantic role to assign. The vocabulary is open (ADR-0005): any string is accepted and nothing in the library enforces a list, so a document family can name a role of its own. The recommended set -- title, recital, definition, clause, sub_clause, schedule, signature, note, quote, code, boilerplate -- is what renderers, filters and the change tree already understand, so prefer it where one fits and invent a name only where none does." },
         "match": {

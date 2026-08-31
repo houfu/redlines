@@ -230,6 +230,24 @@ def test_malformed_yaml_is_rejected() -> None:
         parse_profile_yaml("a: {b: c")  # unclosed flow mapping
 
 
+def test_duplicate_top_level_key_is_rejected() -> None:
+    """Plain YAML keeps the last silently; in a rule file that hides a live line."""
+    with pytest.raises(ProfileError, match="duplicate key"):
+        parse_profile_yaml("name: first\nname: second")
+
+
+def test_duplicate_key_inside_a_rule_is_rejected() -> None:
+    with pytest.raises(ProfileError, match="duplicate key"):
+        parse_profile_yaml(
+            "name: x\n"
+            "label_patterns:\n"
+            "  - name: decimal\n"
+            "    pattern: '^one'\n"
+            "    pattern: '^two'\n"
+            "    style: decimal\n"
+        )
+
+
 def test_only_yaml_file_extension_is_accepted() -> None:
     with pytest.raises(ProfileError):
         load_profile(Path(__file__))  # a .py file
@@ -338,6 +356,70 @@ def test_schema_defaults_match_the_dataclass_defaults() -> None:
     assert definitions["spanExtractor"]["properties"]["group"]["default"] == (
         SpanExtractor(type="t", pattern="x").group
     )
+
+
+# Every shape a role rule can take, and whether it is legal. The loader and
+# the schema's conditional branches must agree on all of them -- the schema
+# once accepted rules the loader rejects, because it only required role+match.
+_ROLE_RULE_CASES: list[tuple[str, dict[str, object], bool]] = [
+    ("heading with pattern", {"role": "r", "match": "heading", "pattern": "^x"}, True),
+    ("heading without pattern", {"role": "r", "match": "heading"}, False),
+    (
+        "heading with parent_role",
+        {"role": "r", "match": "heading", "pattern": "^x", "parent_role": "p"},
+        False,
+    ),
+    (
+        "ancestor_heading with pattern",
+        {"role": "r", "match": "ancestor_heading", "pattern": "^x"},
+        True,
+    ),
+    ("ancestor_heading without pattern", {"role": "r", "match": "ancestor_heading"}, False),
+    ("parent_role with parent_role", {"role": "r", "match": "parent_role", "parent_role": "p"}, True),
+    ("parent_role without parent_role", {"role": "r", "match": "parent_role"}, False),
+    (
+        "parent_role with pattern",
+        {"role": "r", "match": "parent_role", "parent_role": "p", "pattern": "^x"},
+        False,
+    ),
+]
+
+
+@pytest.mark.parametrize(
+    ("label", "rule", "is_valid"),
+    [pytest.param(label, rule, ok, id=label) for label, rule, ok in _ROLE_RULE_CASES],
+)
+def test_role_rule_branches_load_exactly_when_they_should(
+    label: str, rule: dict[str, object], is_valid: bool
+) -> None:
+    """Acceptance and rejection, both directions -- not just that bad input fails."""
+    profile = {"name": "x", "role_rules": [rule]}
+    if is_valid:
+        assert load_profile(profile).role_rules[0].role == "r"
+    else:
+        with pytest.raises(ProfileError):
+            load_profile(profile)
+
+
+def test_schema_encodes_the_role_rule_conditionals_the_loader_enforces() -> None:
+    """A rule the schema calls valid must load; the schema must not be laxer than the code.
+
+    There is no jsonschema dependency to validate documents with (ADR-0028),
+    so this checks the conditional branches structurally instead.
+    """
+    branches = _schema()["definitions"]["roleRule"]["allOf"]
+    by_match: dict[str, dict[str, Any]] = {}
+    for branch in branches:
+        match_schema = branch["if"]["properties"]["match"]
+        for kind in match_schema.get("enum", [match_schema.get("const")]):
+            by_match[kind] = branch["then"]
+
+    assert set(by_match) == set(ROLE_MATCH_KINDS), "every match kind needs a branch"
+    for kind in ("heading", "ancestor_heading"):
+        assert by_match[kind]["required"] == ["pattern"]
+        assert by_match[kind]["not"]["required"] == ["parent_role"]
+    assert by_match["parent_role"]["required"] == ["parent_role"]
+    assert by_match["parent_role"]["not"]["required"] == ["pattern"]
 
 
 @pytest.mark.parametrize("definition_name", sorted(_EXEMPLARS))
