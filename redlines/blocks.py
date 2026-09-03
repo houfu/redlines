@@ -226,7 +226,9 @@ class Span:
 
     Offsets are into the owning block's ``text``, never into the document, so
     a span survives a block moving. Spans are output, not input: they never
-    drive alignment or diffing (R2).
+    drive alignment or diffing (R2). A span on its own only knows that its
+    ``end`` is not before its ``start``; that it lies *within* the text is
+    `Block`'s to check, because only the block has the text.
 
     :param type: an open span type; see `RECOMMENDED_SPAN_TYPES`.
     :param start: the first character offset, counting from 0.
@@ -369,7 +371,9 @@ class Block:
     :param role: the optional semantic role (R1a); open vocabulary, see
         `RECOMMENDED_ROLES`.
     :param spans: typed ranges inside ``text``; open vocabulary, see
-        `RECOMMENDED_SPAN_TYPES`.
+        `RECOMMENDED_SPAN_TYPES`. Every span must lie within ``text``: one that
+        ends past it raises, because it describes text this block does not
+        have. `redlines.semantic` is what normally fills this in.
     :param matched_by: the rule that recognised this block (ADR-0030).
         Defaults to `MATCHED_BY_FALLBACK`, which is the honest answer for a
         block nothing recognised -- except on a ``document`` block, where the
@@ -399,6 +403,16 @@ class Block:
         object.__setattr__(self, "attrs", dict(self.attrs))
         if self.level < 0:
             raise ValueError(f"level must not be negative, got {self.level}")
+        for span in self.spans:
+            # A span is offsets into *this* block's text (R1a), so a span that
+            # runs past the end of it is not a range of anything. Caught here
+            # rather than at the first attempt to render it, because by then
+            # the block that produced it is long gone.
+            if span.end > len(self.text):
+                raise ValueError(
+                    f"span {span.type!r} ends at {span.end}, past the end of "
+                    f"{len(self.text)} characters of text"
+                )
         if not self.matched_by:
             raise ValueError(
                 "matched_by must name the rule that recognised the block; "

@@ -266,6 +266,8 @@ def test_attrs_are_copied_not_aliased() -> None:
 def test_children_and_spans_are_frozen_into_tuples() -> None:
     block = Block(
         kind=BlockKind.SECTION,
+        # Text for the span to lie inside, which `Block` now checks.
+        text="x",
         children=[Block(kind=BlockKind.PARAGRAPH)],  # type: ignore[arg-type]
         spans=[Span(type="date", start=0, end=1)],  # type: ignore[arg-type]
     )
