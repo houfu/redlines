@@ -17,6 +17,7 @@ import pytest
 
 from redlines.blocks import Block, BlockKind, BlockTree, Span
 from redlines.profiles import Profile, builtin_profile, profile_from_mapping
+from redlines.readers.markdown import MarkdownReader
 from redlines.readers.text import PlainTextReader
 from redlines.semantic import (
     DEFINITION_ROLE,
@@ -871,128 +872,74 @@ def test_the_pass_keeps_the_shape_the_reader_gave_it(contract: Profile) -> None:
 # --- the twin promise (PRD § 6b) -------------------------------------------
 #
 # "A markdown contract with `## 7. Termination` and `1.` list items therefore
-# gets the same roles and labels as its plain-text twin." The markdown reader
-# is #103; these are the two trees the two readers produce, built by hand, so
-# the promise is pinned at the role level now.
+# gets the same roles and labels as its plain-text twin." Now that the
+# markdown reader (#103) is merged, the promise is tested on what the two
+# readers actually build from the twin pair in tests/corpus/markdown_cases/ --
+# the same agreement written once in markdown and once in plain text -- rather
+# than on trees written out by hand here.
+#
+# The same promise over the milestone's own forty-clause document, spans and
+# cross-reference values included, is tests/test_sample_pair.py (#108).
+
+MARKDOWN_CASES = Path(__file__).parent / "corpus" / "markdown_cases"
 
 
-def plain_text_twin() -> BlockTree:
-    """What `PlainTextReader` builds for the twin document under ``contract``."""
-    return BlockTree.build(
-        block(
-            BlockKind.DOCUMENT,
-            matched_by="document",
-            children=(
-                block(
-                    BlockKind.SECTION,
-                    matched_by="label:decimal",
-                    children=(
-                        block(
-                            BlockKind.HEADING,
-                            text="Termination",
-                            label="7",
-                            level=1,
-                            matched_by="label:decimal",
-                        ),
-                        block(
-                            BlockKind.LIST_ITEM,
-                            text="Either party may terminate under clause 7.2.",
-                            label="1",
-                            level=2,
-                            matched_by="label:decimal",
-                        ),
-                    ),
-                ),
-                block(
-                    BlockKind.SECTION,
-                    matched_by="heading:schedule",
-                    children=(
-                        block(
-                            BlockKind.HEADING,
-                            text="",
-                            label="Schedule 1",
-                            matched_by="heading:schedule",
-                        ),
-                        block(
-                            BlockKind.LIST_ITEM,
-                            text="The Services comprise hosting.",
-                            label="1",
-                            level=1,
-                            matched_by="label:decimal",
-                        ),
-                    ),
-                ),
-            ),
-        )
+def twin_trees() -> tuple[BlockTree, BlockTree]:
+    """The twin pair after the semantic pass: the plain text read by
+    `PlainTextReader` under ``contract``, the markdown read by `MarkdownReader`
+    under ``markdown``."""
+    contract, markdown = builtin_profile("contract"), builtin_profile("markdown")
+    plain = apply_semantics(
+        PlainTextReader().read(
+            (MARKDOWN_CASES / "twin_contract.txt").read_text(encoding="utf-8"),
+            profile=contract,
+        ),
+        contract,
     )
-
-
-def markdown_twin() -> BlockTree:
-    """The same document as `MarkdownReader` (#103) builds it: syntax, then labels."""
-    return BlockTree.build(
-        block(
-            BlockKind.DOCUMENT,
-            matched_by="document",
-            children=(
-                block(
-                    BlockKind.SECTION,
-                    matched_by="markdown:atx",
-                    children=(
-                        block(
-                            BlockKind.HEADING,
-                            text="Termination",
-                            label="7",
-                            level=1,
-                            matched_by="markdown:atx",
-                        ),
-                        block(
-                            BlockKind.LIST_ITEM,
-                            text="Either party may terminate under clause 7.2.",
-                            label="1",
-                            level=2,
-                            matched_by="markdown:list",
-                        ),
-                    ),
-                ),
-                block(
-                    BlockKind.SECTION,
-                    matched_by="markdown:atx",
-                    children=(
-                        block(
-                            BlockKind.HEADING,
-                            text="",
-                            label="Schedule 1",
-                            matched_by="markdown:atx",
-                        ),
-                        block(
-                            BlockKind.LIST_ITEM,
-                            text="The Services comprise hosting.",
-                            label="1",
-                            level=1,
-                            matched_by="markdown:list",
-                        ),
-                    ),
-                ),
-            ),
-        )
+    marked = apply_semantics(
+        MarkdownReader().read(
+            (MARKDOWN_CASES / "twin_contract.md").read_text(encoding="utf-8"),
+            profile=markdown,
+        ),
+        markdown,
     )
+    return plain, marked
 
 
 def test_a_markdown_contract_gets_the_same_roles_as_its_plain_text_twin() -> None:
-    plain = apply_semantics(plain_text_twin(), builtin_profile("contract"))
-    marked = apply_semantics(markdown_twin(), builtin_profile("markdown"))
+    plain, marked = twin_trees()
 
     assert roles(plain) == roles(marked)
     assert roles(plain) == [
+        ("Master Services Agreement", None),
+        (
+            "This Agreement is made between Acme Analytics Ltd and Beta Retail plc.",
+            None,
+        ),
+        ("3", None),
+        ("3.1", None),
+        ("The Supplier issues invoices monthly in arrears.", None),
+        ("(a)", None),
+        ("(b)", None),
         ("7", None),
-        ("1", None),
+        ("7.1", None),
+        ("7.2", None),
         ("Schedule 1", "schedule"),
         ("1", "schedule"),
+        ("2", "schedule"),
     ]
-    # And the spans agree too, cross-reference values included.
-    clause = plain.block_at("/section[1]/list_item[1]")
-    twin = marked.block_at("/section[1]/list_item[1]")
-    assert [(span.type, span.value) for span in clause.spans] == [
-        (span.type, span.value) for span in twin.spans
-    ]
-    assert [span.value for span in clause.spans] == ["7.2"]
+
+
+def test_the_twins_carry_the_same_spans_block_by_block() -> None:
+    """Spans are compared by type and value, never by offset: the markdown
+    syntax the reader strips would shift every offset in the block."""
+    plain, marked = twin_trees()
+
+    assert [
+        [(span.type, span.value) for span in block.spans] for block in plain.walk()
+    ] == [[(span.type, span.value) for span in block.spans] for block in marked.walk()]
+    # And there is something to compare: the party spans the contract and
+    # markdown profiles both extract.
+    assert [
+        (span.type, span.value) for block in plain.walk() for span in block.spans
+    ] == [("party", None), ("party", None)]

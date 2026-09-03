@@ -30,9 +30,11 @@ from redlines.processor import (
 CORPUS_DIR = Path(__file__).parent / "corpus"
 
 # Directories under tests/corpus/ that are fixtures for something else and have
-# no golden output of their own: the PRD section 6b reader fixtures (#102) and
-# the markdown reader's construct and twin fixtures (#103).
-NOT_GOLDEN_CASES = {"hard_cases", "markdown_cases"}
+# no golden output of their own: the PRD section 6b reader fixtures (#102), the
+# markdown reader's construct and twin fixtures (#103), and the PRD section 3a
+# sample pair (#108), whose goldens are block trees under its own expected/
+# directory and are checked by tests/test_sample_pair.py.
+NOT_GOLDEN_CASES = {"hard_cases", "markdown_cases", "sample_pair"}
 
 CASES = sorted(
     p.name
