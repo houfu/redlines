@@ -1,0 +1,58 @@
+# Built-in structure profile: generic (issue #101, PRD D30/R1d).
+#
+# Pick this one when the document family is unknown or when none of the
+# other built-ins fits: it declares no labels, no numbering resets and no
+# roles, so a reader falls back to one block per paragraph -- which is the
+# behaviour PRD D30 promises when nothing matches, with alignment still
+# working. It is also the profile to start from when writing your own: copy
+# it, add the label patterns your family actually uses, and stop there.
+#
+# There is deliberately little here. A profile is short enough to read
+# whole (ADR-0028), and an empty list is a real answer, not an omission.
+
+name: generic
+description: >-
+  No structure beyond paragraphs: no label patterns, no numbering resets and
+  no roles, with only the format-independent date and amount spans.
+
+# No `label_patterns`: nothing is treated as a clause label, so every
+# paragraph stands on its own and the reader records `matched_by:
+# "fallback"` for it (ADR-0030). The tree's fallback count will therefore be
+# high under this profile, by design.
+
+# No `heading_resets`: with no labels there is no numbering stack to clear.
+
+# No `heading_rule` either, so the reader's defaults apply (max_words 8,
+# all-caps and title-case admitted, terminal punctuation refused). The
+# format has no switch for "never score a heading"; short title-case lines
+# will still be picked up, which is usually what a reader of an unknown
+# document wants.
+
+# No `role_rules`: "definitions", "recital" and the rest are contract
+# conventions, and guessing them on an unknown document family would put a
+# wrong role on a block rather than leaving the honest `None`.
+
+# --- spans -----------------------------------------------------------------
+#
+# The two span types that are facts about text rather than conventions of a
+# document family. Dates and amounts read the same in a contract, a memo or
+# a set of meeting minutes, so they are safe to look for anywhere; defined
+# terms and cross-references are not, and are left to `contract` and
+# `markdown`.
+span_extractors:
+  # "1 January 2026", "1st day of January 2026".
+  - type: date
+    pattern: '\b(\d{1,2}(?:st|nd|rd|th)?\s+(?:day\s+of\s+)?(?:January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{4})\b'
+    group: 1
+  # "January 1, 2026".
+  - type: date
+    pattern: '\b((?:January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{1,2},?\s+\d{4})\b'
+    group: 1
+  # "2026-01-31".
+  - type: date
+    pattern: '\b(\d{4}-\d{2}-\d{2})\b'
+    group: 1
+  # "USD 5,000.00", "US$1,000,000", "£99.50".
+  - type: amount
+    pattern: '((?:US\$|S\$|A\$|NZ\$|HK\$|USD|SGD|EUR|GBP|AUD|\$|£|€)\s?\d[\d,]*(?:\.\d{1,2})?)'
+    group: 1

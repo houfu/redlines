@@ -1,0 +1,184 @@
+# Built-in structure profile: markdown documents (issue #101, PRD D30/R1d).
+#
+# Pick this one for `.md` files -- it is what a `.md` extension selects by
+# default (PRD § 6b "Profiles"). The markdown reader (#103) takes headings,
+# list nesting, tables and code fences from the syntax itself, so this
+# profile only has to describe what is left once the syntax is stripped:
+# the label text inside a list item or paragraph, the headings that restart
+# numbering, and the semantics. A markdown contract with `## 7. Termination`
+# and `1.` list items therefore comes out with the same labels and roles as
+# its plain-text twin under `contract`.
+#
+# Every pattern is Python `re` syntax in a single-quoted YAML scalar, so
+# backslashes are literal (ADR-0028). See redlines/profiles/schema.json.
+
+name: markdown
+description: >-
+  Markdown documents, including markdown contracts: headings and lists come
+  from the syntax, while clause labels, schedules, defined terms,
+  cross-references, dates and amounts are recognised in the stripped text.
+
+# --- labels ----------------------------------------------------------------
+#
+# Run against the text of a list item or paragraph *after* the reader has
+# removed the markdown marker, so `1. Definitions` as a list item arrives as
+# "Definitions" with no label, while a clause literally written "7.2 The
+# Supplier shall..." still carries one. Tried in order, first match wins;
+# group 1 is the label.
+#
+# Deliberately shorter than `contract`'s list: the statute forms
+# ("4.—(1)", "§ 4") are not markdown idioms and belong to the `legislation`
+# profile, which is 1.1 work (PRD R1d).
+label_patterns:
+  # "1.", "1.2", "1.2.3" written as text -- the usual way a markdown
+  # contract keeps stable clause numbers, since markdown's own ordered
+  # lists renumber themselves. Depth comes from the dotted groups.
+  - name: decimal
+    pattern: '^(\d+(?:\.\d+)*)\.?(?:\s+|$)'
+    style: decimal
+    depth_mode: arithmetic
+
+  # "Article 5", "Schedule 2", "Annex A", "Part IV" -- most often the text
+  # of an ATX heading (`## Schedule 2`), where the reader has already
+  # stripped the `#`s. The whole phrase is the label. As in `contract`,
+  # "Clause" is left out: it appears in prose, not as a label.
+  - name: word_label
+    pattern: '(?i)^((?:article|section|schedule|annex(?:ure)?|appendix|exhibit|attachment|part)\s+(?:\d+(?:\.\d+)*|[ivxlcdm]+|[a-z]))\b\.?(?:\s+|$)'
+    style: word
+    depth_mode: stack
+
+  # "(a)", "(A)". Single letters are alpha, which means "(i)" is read as
+  # alpha here too -- the same resolution of the PRD § 6b ambiguity that
+  # `contract` makes, for the same reason. Nesting depth still comes from
+  # the stack; in markdown the reader also knows the list's own nesting,
+  # which is a second signal a plain-text document does not offer.
+  - name: alpha_paren
+    pattern: '^\(([A-Za-z])\)(?:\s+|$)'
+    style: alpha
+    depth_mode: stack
+
+  # "(ii)", "(iv)" -- two letters or more, so it cannot collide with
+  # `alpha_paren`.
+  - name: roman_paren
+    pattern: '^\(([ivxlcdm]{2,}|[IVXLCDM]{2,})\)(?:\s+|$)'
+    style: roman
+    depth_mode: stack
+
+  # "IV.", "VIII." -- an upper-case roman numeral, most often the text of an
+  # ATX heading (`## IV. Miscellaneous`) in a document migrated from a
+  # plain-text contract. Kept so that heading reads the same here as under
+  # `contract`. Two letters or more, as in `roman_paren`.
+  - name: roman_dot
+    pattern: '^([IVXLCDM]{2,})\.(?:\s+|$)'
+    style: roman
+    depth_mode: stack
+
+  # "A.", "a." -- last, because it is the loosest pattern here.
+  - name: alpha_dot
+    pattern: '^([A-Za-z])\.(?:\s+|$)'
+    style: alpha
+    depth_mode: stack
+
+# --- numbering resets ------------------------------------------------------
+#
+# A schedule heading clears the label-depth stack, so a schedule restarting
+# at "1." is not read as continuing the body's numbering. `contract`'s
+# second reset for "Part IV" is not repeated: in markdown a part is written
+# as a heading level and the reader takes that nesting from the `#`s.
+heading_resets:
+  - name: schedule
+    pattern: '(?i)^(schedule|annex(?:ure)?|appendix|exhibit|attachment)\b'
+
+# --- unlabelled headings ---------------------------------------------------
+#
+# Headings normally come from `#`, so this only narrows the candidates for
+# the leftover case of a heading-shaped line the author never marked up.
+# All-caps is off: in markdown an upper-case line is emphasis or a shout,
+# not the heading convention it is in a plain-text contract.
+heading_rule:
+  max_words: 8
+  allow_all_caps: false
+  allow_title_case: true
+  forbid_terminal_punctuation: true
+
+# --- roles -----------------------------------------------------------------
+#
+# Tried in order, first match wins; matched against heading text with the
+# `#`s and any label already stripped, so '^Background' matches
+# "## 3. Background".
+role_rules:
+  - role: definitions
+    match: heading
+    pattern: '(?i)^(definitions?|interpretation|defined terms)\b'
+  - role: definition
+    match: parent_role
+    parent_role: definitions
+  - role: recital
+    match: heading
+    pattern: '(?i)^(recitals?|background|whereas|preamble)\b'
+  # `note` is the one role rule `contract` does not carry. Markdown is the
+  # drafting format, where a "Notes" or "Drafting note" section is a working
+  # aside rather than part of the agreement -- worth tagging so a summary or
+  # a filter can leave it out.
+  - role: note
+    match: heading
+    pattern: '(?i)^(notes?|drafting note|to do|todo)\b'
+  # As in `contract`: `heading` labels the "Schedule 2" heading itself,
+  # `ancestor_heading` labels everything underneath it.
+  - role: schedule
+    match: heading
+    pattern: '(?i)^(schedule|annex(?:ure)?|appendix|exhibit|attachment)\b'
+  - role: schedule
+    match: ancestor_heading
+    pattern: '(?i)^(schedule|annex(?:ure)?|appendix|exhibit|attachment)\b'
+  - role: signature
+    match: heading
+    pattern: '(?i)^(signatures?|signed|execution|executed|in witness whereof)\b'
+
+# --- spans -----------------------------------------------------------------
+#
+# Every extractor runs and every match is kept. Emphasis is not here on
+# purpose: `**bold**` is syntax, so the markdown reader emits an `emphasis`
+# span itself from the markers it strips, and a pattern in this file would
+# be looking for markers that are already gone.
+span_extractors:
+  # '"Confidential Information" means ...'. Only the straight-quote form:
+  # markdown is source text typed with ASCII quotes, and curling them is a
+  # rendering decision made downstream.
+  - type: defined_term
+    pattern: '"([^"\n]{1,120})"\s+(?:means|shall mean|has the meaning|shall have the meaning)\b'
+    group: 1
+  # 'Acme Widgets Pte Ltd (the "Supplier")'.
+  - type: party
+    pattern: '\(\s*(?:the|each,?\s+an?|collectively,?\s+the)?\s*"([^"\n]{1,80})"\s*\)'
+    group: 1
+  - type: party
+    pattern: '\b[Tt]he\s+(Supplier|Customer|Client|Company|Contractor|Purchaser|Vendor|Licensor|Licensee|Buyer|Seller|Disclosing Party|Receiving Party)\b'
+    group: 1
+  # "clause 7.2" -- group 1 is the bare label. A markdown link written
+  # `[clause 7.2](#clause-72)` arrives here as its link text, so the same
+  # pattern covers it.
+  - type: cross_reference
+    pattern: '(?i)\b(?:clauses?|sub-?clauses?|sections?|paragraphs?)\s+(\d+(?:\.\d+)*)\b'
+    group: 1
+  # The second reference in "Clauses 7.2 and 7.3"; a third in the same run
+  # is still missed (ADR-0028: no sequence awareness in the format).
+  - type: cross_reference
+    pattern: '(?i)\b(?:clauses|sub-?clauses|sections|paragraphs)\s+\d+(?:\.\d+)*(?:\s*,\s*|\s+(?:and|to|through)\s+)(\d+(?:\.\d+)*)\b'
+    group: 1
+  # "Schedule 2", "Part IV", "Article 5" cited in prose, captured whole.
+  - type: cross_reference
+    pattern: '(?i)\b((?:schedules?|annex(?:ure)?e?s?|appendix|appendices|exhibits?|attachments?|parts?|articles?)\s+(?:\d+(?:\.\d+)*|[ivxlcdm]+|[a-z]))\b'
+    group: 1
+  - type: date
+    pattern: '\b(\d{1,2}(?:st|nd|rd|th)?\s+(?:day\s+of\s+)?(?:January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{4})\b'
+    group: 1
+  - type: date
+    pattern: '\b((?:January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{1,2},?\s+\d{4})\b'
+    group: 1
+  - type: date
+    pattern: '\b(\d{4}-\d{2}-\d{2})\b'
+    group: 1
+  - type: amount
+    pattern: '((?:US\$|S\$|A\$|NZ\$|HK\$|USD|SGD|EUR|GBP|AUD|\$|£|€)\s?\d[\d,]*(?:\.\d{1,2})?)'
+    group: 1

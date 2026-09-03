@@ -1,0 +1,228 @@
+# Built-in structure profile: commercial contracts (issue #101, PRD D30/R1d).
+#
+# Pick this one for agreements, deeds, terms of service and precedent-bank
+# documents in plain text: numbered clauses, lettered and roman sub-clauses,
+# word-labelled Articles and Schedules, defined terms, cross-references.
+# It is the default for plain text (PRD § 6b "Profiles"); `.md` files get
+# `markdown` and anything else `generic`.
+#
+# Every pattern below is Python `re` syntax written as a single-quoted YAML
+# scalar, so backslashes are literal (ADR-0028). See
+# redlines/profiles/schema.json for what each field means.
+
+name: contract
+description: >-
+  Commercial contracts and agreements in plain text: decimal clause
+  numbering, lettered and roman sub-clauses, Article/Section/Schedule word
+  labels, schedules that restart numbering, defined terms, cross-references,
+  parties, dates and amounts.
+
+# --- labels ----------------------------------------------------------------
+#
+# Tried in order; the first match wins, so the more specific forms come
+# first. Every pattern captures the label in group 1 and consumes the
+# separator after it, and each accepts a label sitting alone on its own line
+# (the `|$` arm) as well as one followed by text.
+#
+# What a pattern cannot say -- and what the reader (#102) therefore owns --
+# is whether a label makes sense in sequence: a paragraph opening
+# "2019 saw the parties..." matches `decimal` here, and only the reader,
+# which sees the numbering run, can score that down. Watch `matched_by` and
+# `confidence` on the block rather than expecting this list to be exact
+# (ADR-0028 Consequences, ADR-0030).
+label_patterns:
+  # UK/Commonwealth statute-style section and subsection run together:
+  # "4.—(1) The Supplier shall...". Must precede `decimal`, which would
+  # otherwise have to be loosened to reach the same text. Depth is
+  # arithmetic because the label genuinely names two levels (section 4,
+  # subsection 1) and its dot-separated groups count them.
+  - name: statute_subsection
+    pattern: '^(\d+\.?\s*[—–-]\s*\(\d+\))(?:\s+|$)'
+    style: decimal
+    depth_mode: arithmetic
+
+  # The workhorse: "1.", "1.2", "1.2.3" (with or without a trailing dot).
+  # Decimal labels carry their own depth, so depth_mode is arithmetic.
+  - name: decimal
+    pattern: '^(\d+(?:\.\d+)*)\.?(?:\s+|$)'
+    style: decimal
+    depth_mode: arithmetic
+
+  # US-style section symbol: "§ 4", "§4.2", "§§ 7". Captured with the symbol
+  # so the label reads the way it is cited. Arithmetic for the same reason
+  # as `decimal` -- "§ 4.2" is one level under "§ 4".
+  - name: section_symbol
+    pattern: '^(§{1,2}\s*\d+(?:\.\d+)*)\.?(?:\s+|$)'
+    style: word
+    depth_mode: arithmetic
+
+  # Word-introduced labels: "Article 5", "Section 3", "Schedule 2",
+  # "Annex A", "Part IV". The whole phrase is the label, because that is how
+  # it is cited. "Clause" is deliberately absent: contracts number clauses
+  # "7.2", not "Clause 7.2", so the word only shows up in prose ("Clause 7.2
+  # is amended by...") where treating it as a label would be wrong. It is
+  # picked up as a cross_reference span instead.
+  # Stack depth, so consecutive Articles stay at one level and a decimal
+  # label underneath nests one deeper.
+  - name: word_label
+    pattern: '(?i)^((?:article|section|schedule|annex(?:ure)?|appendix|exhibit|attachment|part)\s+(?:\d+(?:\.\d+)*|[ivxlcdm]+|[a-z]))\b\.?(?:\s+|$)'
+    style: word
+    depth_mode: stack
+
+  # "(a)", "(A)" -- a single parenthesised letter. This is matched before
+  # `roman_paren` and, being a single letter, it also swallows "(i)", "(v)"
+  # and "(x)". That is the deliberate resolution of the PRD § 6b alpha/roman
+  # ambiguity: a list running (a), (b), ... (h) reaches "(i)" as its ninth
+  # item far more often than a roman list starts, so single letters are
+  # alpha and only two-or-more-letter forms are roman. Depth still comes
+  # from the stack, so "(i)" nesting under "7.2" lands a level deeper than
+  # "(i)" continuing "(h)".
+  - name: alpha_paren
+    pattern: '^\(([A-Za-z])\)(?:\s+|$)'
+    style: alpha
+    depth_mode: stack
+
+  # "(ii)", "(iv)", "(VIII)" -- two letters or more, so it cannot collide
+  # with `alpha_paren` above.
+  - name: roman_paren
+    pattern: '^\(([ivxlcdm]{2,}|[IVXLCDM]{2,})\)(?:\s+|$)'
+    style: roman
+    depth_mode: stack
+
+  # "IV.", "VIII." -- an upper-case roman numeral heading a part or article.
+  # Two letters or more, for the same reason as `roman_paren`.
+  - name: roman_dot
+    pattern: '^([IVXLCDM]{2,})\.(?:\s+|$)'
+    style: roman
+    depth_mode: stack
+
+  # "A.", "a." -- a single letter and a dot. Last, because it is the
+  # loosest: an initial in a name would match it, so the reader's heading
+  # and continuation scoring is what keeps it honest.
+  - name: alpha_dot
+    pattern: '^([A-Za-z])\.(?:\s+|$)'
+    style: alpha
+    depth_mode: stack
+
+# --- numbering resets ------------------------------------------------------
+#
+# Headings that open a new section and clear the label-depth stack, so a
+# schedule restarting at "1." or "(a)" is not read as a continuation of the
+# body's numbering (PRD § 6b, "numbering that restarts inside schedules").
+# These only touch the stack; the role rules below assign the role.
+heading_resets:
+  - name: schedule
+    pattern: '(?i)^(schedule|annex(?:ure)?|appendix|exhibit|attachment)\b'
+  # "Part IV", "Part 2" -- a number or numeral is required so that headings
+  # such as "Particulars" or "Parties" are left alone.
+  - name: part
+    pattern: '(?i)^part\s+(\d+|[ivxlcdm]+|[a-z])\b'
+
+# --- unlabelled headings ---------------------------------------------------
+#
+# Only narrows the candidates the reader scores. 10 words rather than the
+# default 8: contract headings such as "Representations, Warranties and
+# Undertakings of the Supplier" run long, and refusing terminal punctuation
+# is what keeps a one-line clause ("The Supplier shall indemnify the
+# Customer.") out -- another PRD § 6b hard case.
+heading_rule:
+  max_words: 10
+  allow_all_caps: true
+  allow_title_case: true
+  forbid_terminal_punctuation: true
+
+# --- roles -----------------------------------------------------------------
+#
+# Tried in order, first match wins, and a block sees its ancestors' roles
+# already assigned. Order matters twice here: `definition` must follow the
+# `definitions` rule it builds on, and both must precede the schedule rules
+# so that a definitions section *inside* a schedule still yields definitions.
+role_rules:
+  - role: definitions
+    match: heading
+    pattern: '(?i)^(definitions?|interpretation|defined terms)\b'
+  # Everything directly under that heading is one definition.
+  - role: definition
+    match: parent_role
+    parent_role: definitions
+  - role: recital
+    match: heading
+    pattern: '(?i)^(recitals?|background|whereas|preamble)\b'
+  # Two rules for schedules, because the schema's three match kinds land on
+  # different blocks: `heading` labels the "Schedule 1" heading itself so a
+  # filter or renderer can find it, `ancestor_heading` labels everything
+  # underneath it.
+  - role: schedule
+    match: heading
+    pattern: '(?i)^(schedule|annex(?:ure)?|appendix|exhibit|attachment)\b'
+  - role: schedule
+    match: ancestor_heading
+    pattern: '(?i)^(schedule|annex(?:ure)?|appendix|exhibit|attachment)\b'
+  - role: signature
+    match: heading
+    pattern: '(?i)^(signatures?|signed|execution|executed|in witness whereof)\b'
+
+# --- spans -----------------------------------------------------------------
+#
+# Unlike the two lists above, every extractor runs and every match is kept,
+# so several patterns may share one type -- which is how the variants below
+# are written.
+span_extractors:
+  # '"Confidential Information" means ...' -- the quoted-term-plus-means
+  # shape. Group 1 is the term without its quotes.
+  - type: defined_term
+    pattern: '"([^"\n]{1,120})"\s+(?:means|shall mean|has the meaning|shall have the meaning)\b'
+    group: 1
+  # The same shape after a word processor has curled the quotes.
+  - type: defined_term
+    pattern: '“([^”\n]{1,120})”\s+(?:means|shall mean|has the meaning|shall have the meaning)\b'
+    group: 1
+  # 'Acme Widgets Pte Ltd (the "Supplier")' -- the parenthesised naming
+  # convention that introduces a party.
+  - type: party
+    pattern: '\(\s*(?:the|each,?\s+an?|collectively,?\s+the)?\s*"([^"\n]{1,80})"\s*\)'
+    group: 1
+  # The party names those definitions then use. A house list: extend it in
+  # your own profile rather than expecting it to be exhaustive.
+  - type: party
+    pattern: '\b[Tt]he\s+(Supplier|Customer|Client|Company|Contractor|Purchaser|Vendor|Licensor|Licensee|Buyer|Seller|Disclosing Party|Receiving Party)\b'
+    group: 1
+  # "clause 7.2", "sub-clause 3.1", "paragraph 4" -- group 1 is the bare
+  # label, which is what lets a later renumbering be reported as a
+  # cross-reference update rather than a text edit (PRD § 6b).
+  - type: cross_reference
+    pattern: '(?i)\b(?:clauses?|sub-?clauses?|sections?|paragraphs?)\s+(\d+(?:\.\d+)*)\b'
+    group: 1
+  # The second reference in an enumeration -- "Clauses 7.2 and 7.3",
+  # "clauses 7.2, 7.3" -- which the pattern above cannot reach because it
+  # needs the introducing word. A third reference in the same run is still
+  # missed: the format has no "repeat this group" and no sequence
+  # awareness (ADR-0028 Consequences).
+  - type: cross_reference
+    pattern: '(?i)\b(?:clauses|sub-?clauses|sections|paragraphs)\s+\d+(?:\.\d+)*(?:\s*,\s*|\s+(?:and|to|through)\s+)(\d+(?:\.\d+)*)\b'
+    group: 1
+  # "Schedule 2", "Part IV", "Article 5" cited in prose. Captured whole,
+  # because the word is part of how the target is named. This also matches
+  # a word label sitting at the start of its own block; a span is a typed
+  # range of text, so that is a true statement about the text either way.
+  - type: cross_reference
+    pattern: '(?i)\b((?:schedules?|annex(?:ure)?e?s?|appendix|appendices|exhibits?|attachments?|parts?|articles?)\s+(?:\d+(?:\.\d+)*|[ivxlcdm]+|[a-z]))\b'
+    group: 1
+  # "1 January 2026", "1st day of January 2026".
+  - type: date
+    pattern: '\b(\d{1,2}(?:st|nd|rd|th)?\s+(?:day\s+of\s+)?(?:January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{4})\b'
+    group: 1
+  # "January 1, 2026".
+  - type: date
+    pattern: '\b((?:January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{1,2},?\s+\d{4})\b'
+    group: 1
+  # "2026-01-31".
+  - type: date
+    pattern: '\b(\d{4}-\d{2}-\d{2})\b'
+    group: 1
+  # "USD 5,000.00", "US$1,000,000", "S$250", "£99.50". Longer currency
+  # markers come first in the alternation so "US$" is not read as a bare
+  # dollar sign.
+  - type: amount
+    pattern: '((?:US\$|S\$|A\$|NZ\$|HK\$|USD|SGD|EUR|GBP|AUD|\$|£|€)\s?\d[\d,]*(?:\.\d{1,2})?)'
+    group: 1
