@@ -32,11 +32,13 @@ def batch_compare(dir1: Path, dir2: Path, pattern: str = "*.txt") -> list[dict]:
         file2 = dir2 / file1.relative_to(dir1)
 
         if not file2.exists():
-            results.append({
-                "file": str(file1.relative_to(dir1)),
-                "status": "missing_in_dir2",
-                "changes": None
-            })
+            results.append(
+                {
+                    "file": str(file1.relative_to(dir1)),
+                    "status": "missing_in_dir2",
+                    "changes": None,
+                }
+            )
             continue
 
         try:
@@ -46,23 +48,27 @@ def batch_compare(dir1: Path, dir2: Path, pattern: str = "*.txt") -> list[dict]:
             diff = Redlines(source, test)
             stats = diff.stats()
 
-            results.append({
-                "file": str(file1.relative_to(dir1)),
-                "status": "compared",
-                "changes": stats.total_changes,
-                "change_ratio": stats.change_ratio,
-                "insertions": stats.insertions,
-                "deletions": stats.deletions,
-                "replacements": stats.replacements,
-                "chars_net_change": stats.chars_net_change
-            })
+            results.append(
+                {
+                    "file": str(file1.relative_to(dir1)),
+                    "status": "compared",
+                    "changes": stats.total_changes,
+                    "change_ratio": stats.change_ratio,
+                    "insertions": stats.insertions,
+                    "deletions": stats.deletions,
+                    "replacements": stats.replacements,
+                    "chars_net_change": stats.chars_net_change,
+                }
+            )
 
         except Exception as e:
-            results.append({
-                "file": str(file1.relative_to(dir1)),
-                "status": "error",
-                "error": str(e)
-            })
+            results.append(
+                {
+                    "file": str(file1.relative_to(dir1)),
+                    "status": "error",
+                    "error": str(e),
+                }
+            )
 
     return results
 

@@ -123,7 +123,5 @@ def test_repetitive_schedule_reproduces_autojunk_pathology() -> None:
     test = read_exact(case_dir / "test.txt")
 
     redline = Redlines(source, test, processor=WholeDocumentProcessor(autojunk=True))
-    max_span = max(
-        op[2] - op[1] for op in redline.opcodes if op[0] != "equal"
-    )
+    max_span = max(op[2] - op[1] for op in redline.opcodes if op[0] != "equal")
     assert max_span > 500

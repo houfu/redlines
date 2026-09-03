@@ -282,7 +282,9 @@ class Redlines:
         :param options: Additional options for comparison and output formatting.
         :type options: RedlinesOptions
         """
-        self.processor = processor if processor is not None else WholeDocumentProcessor()
+        self.processor = (
+            processor if processor is not None else WholeDocumentProcessor()
+        )
         self.source = source.text if isinstance(source, Document) else source
         self.options = options
         self._diff_operations = None

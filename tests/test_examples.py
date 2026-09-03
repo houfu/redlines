@@ -95,7 +95,9 @@ class TestCompareFiles:
         assert result.returncode == 0, result.stderr
         assert "No changes detected" in result.stdout
 
-    def test_missing_file_exits_one(self, tmp_path: Path, file_pair: tuple[Path, Path]) -> None:
+    def test_missing_file_exits_one(
+        self, tmp_path: Path, file_pair: tuple[Path, Path]
+    ) -> None:
         old, _ = file_pair
         result = run_example("compare_files.py", str(old), str(tmp_path / "absent.txt"))
 
@@ -126,7 +128,9 @@ class TestBatchDiff:
         # The default pattern is *.txt, so the markdown file is not compared.
         assert "notes.md" not in result.stdout
 
-    def test_pattern_argument_selects_other_files(self, dir_pair: tuple[Path, Path]) -> None:
+    def test_pattern_argument_selects_other_files(
+        self, dir_pair: tuple[Path, Path]
+    ) -> None:
         old_dir, new_dir = dir_pair
         result = run_example("batch_diff.py", str(old_dir), str(new_dir), "*.md")
 
@@ -134,7 +138,9 @@ class TestBatchDiff:
         assert "notes.md" in result.stdout
         assert "changed.txt" not in result.stdout
 
-    def test_missing_directory_exits_one(self, tmp_path: Path, dir_pair: tuple[Path, Path]) -> None:
+    def test_missing_directory_exits_one(
+        self, tmp_path: Path, dir_pair: tuple[Path, Path]
+    ) -> None:
         old_dir, _ = dir_pair
         result = run_example("batch_diff.py", str(old_dir), str(tmp_path / "absent"))
 
@@ -149,7 +155,9 @@ class TestGenerateReport:
         old_dir, new_dir = dir_pair
         report = tmp_path / "report.html"
 
-        result = run_example("generate_report.py", str(old_dir), str(new_dir), str(report))
+        result = run_example(
+            "generate_report.py", str(old_dir), str(new_dir), str(report)
+        )
 
         assert result.returncode == 0, result.stderr
         assert report.exists()
@@ -198,7 +206,9 @@ def git_repo(tmp_path: Path) -> Path:
 
     git("checkout", "-b", "feature", cwd=repo)
     (repo / "guide.md").write_text(CHANGED_TEXT, encoding="utf-8")
-    (repo / "new_page.md").write_text("A page that did not exist before.\n", encoding="utf-8")
+    (repo / "new_page.md").write_text(
+        "A page that did not exist before.\n", encoding="utf-8"
+    )
     git("add", ".", cwd=repo)
     git("commit", "-m", "edit the guide", cwd=repo)
 
@@ -218,7 +228,9 @@ class TestCiCheck:
         # The pattern filters out the python file that also changed.
         assert "unrelated.py" not in result.stdout
 
-    def test_writes_a_github_actions_summary(self, git_repo: Path, tmp_path: Path) -> None:
+    def test_writes_a_github_actions_summary(
+        self, git_repo: Path, tmp_path: Path
+    ) -> None:
         summary = tmp_path / "step_summary.md"
         env = {**os.environ, "GITHUB_STEP_SUMMARY": str(summary)}
 

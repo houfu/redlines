@@ -297,8 +297,14 @@ def test_whitespace_preserved_at_change_boundary(
     [
         ("A B", "A B C"),
         ("foo(bar)", "foo new(bar)"),
-        ("The quick brown fox jumps over the dog.", "The quick brown fox jumps over the lazy dog."),
-        ("The quick brown fox jumps over the lazy dog.", "The quick brown fox walks past the lazy dog."),
+        (
+            "The quick brown fox jumps over the dog.",
+            "The quick brown fox jumps over the lazy dog.",
+        ),
+        (
+            "The quick brown fox jumps over the lazy dog.",
+            "The quick brown fox walks past the lazy dog.",
+        ),
     ],
 )
 def test_removing_deletions_reproduces_test_text(

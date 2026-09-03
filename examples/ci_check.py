@@ -27,7 +27,7 @@ def get_file_content(branch: str, filepath: str) -> str | None:
             ["git", "show", f"{branch}:{filepath}"],
             capture_output=True,
             text=True,
-            check=True
+            check=True,
         )
         return result.stdout
     except subprocess.CalledProcessError:
@@ -42,7 +42,7 @@ def get_changed_files(base_branch: str, pattern: str = "*") -> list[str]:
             ["git", "diff", "--name-only", base_branch, "HEAD"],
             capture_output=True,
             text=True,
-            check=True
+            check=True,
         )
         all_files = result.stdout.strip().split("\n")
 
@@ -68,7 +68,7 @@ def check_file_changes(base_branch: str, files: list[str]) -> dict:
         "total_files": 0,
         "files_with_changes": 0,
         "total_changes": 0,
-        "files": []
+        "files": [],
     }
 
     for filepath in files:
@@ -76,11 +76,9 @@ def check_file_changes(base_branch: str, files: list[str]) -> dict:
         current_path = Path(filepath)
         if not current_path.exists():
             # File was deleted
-            results["files"].append({
-                "path": filepath,
-                "status": "deleted",
-                "changes": 0
-            })
+            results["files"].append(
+                {"path": filepath, "status": "deleted", "changes": 0}
+            )
             continue
 
         # Get base version
@@ -88,11 +86,7 @@ def check_file_changes(base_branch: str, files: list[str]) -> dict:
 
         if base_content is None:
             # New file
-            results["files"].append({
-                "path": filepath,
-                "status": "new",
-                "changes": 0
-            })
+            results["files"].append({"path": filepath, "status": "new", "changes": 0})
             continue
 
         # Compare versions
@@ -107,23 +101,23 @@ def check_file_changes(base_branch: str, files: list[str]) -> dict:
                 results["files_with_changes"] += 1
                 results["total_changes"] += stats.total_changes
 
-            results["files"].append({
-                "path": filepath,
-                "status": "modified",
-                "changes": stats.total_changes,
-                "insertions": stats.insertions,
-                "deletions": stats.deletions,
-                "replacements": stats.replacements,
-                "change_ratio": stats.change_ratio,
-                "chars_net_change": stats.chars_net_change
-            })
+            results["files"].append(
+                {
+                    "path": filepath,
+                    "status": "modified",
+                    "changes": stats.total_changes,
+                    "insertions": stats.insertions,
+                    "deletions": stats.deletions,
+                    "replacements": stats.replacements,
+                    "change_ratio": stats.change_ratio,
+                    "chars_net_change": stats.chars_net_change,
+                }
+            )
 
         except Exception as e:
-            results["files"].append({
-                "path": filepath,
-                "status": "error",
-                "error": str(e)
-            })
+            results["files"].append(
+                {"path": filepath, "status": "error", "error": str(e)}
+            )
 
     return results
 
@@ -141,8 +135,12 @@ def print_results(results: dict) -> None:
 
     # Group files by status
     new_files = [f for f in results["files"] if f["status"] == "new"]
-    modified_files = [f for f in results["files"] if f["status"] == "modified" and f["changes"] > 0]
-    unchanged_files = [f for f in results["files"] if f["status"] == "modified" and f["changes"] == 0]
+    modified_files = [
+        f for f in results["files"] if f["status"] == "modified" and f["changes"] > 0
+    ]
+    unchanged_files = [
+        f for f in results["files"] if f["status"] == "modified" and f["changes"] == 0
+    ]
     deleted_files = [f for f in results["files"] if f["status"] == "deleted"]
     error_files = [f for f in results["files"] if f["status"] == "error"]
 
@@ -156,7 +154,9 @@ def print_results(results: dict) -> None:
         for file in modified_files:
             print(f"  △ {file['path']}")
             print(f"      Changes: {file['changes']} ({file['change_ratio']:.1%})")
-            print(f"      +{file['insertions']} -{file['deletions']} ↻{file['replacements']}")
+            print(
+                f"      +{file['insertions']} -{file['deletions']} ↻{file['replacements']}"
+            )
             print(f"      Net: {file['chars_net_change']:+d} characters")
 
     if unchanged_files:
@@ -185,11 +185,15 @@ def generate_github_summary(results: dict) -> str:
     summary += f"- **Files with changes:** {results['files_with_changes']}\n"
     summary += f"- **Total changes:** {results['total_changes']}\n\n"
 
-    modified_files = [f for f in results["files"] if f["status"] == "modified" and f["changes"] > 0]
+    modified_files = [
+        f for f in results["files"] if f["status"] == "modified" and f["changes"] > 0
+    ]
 
     if modified_files:
         summary += "### Modified Files\n\n"
-        summary += "| File | Changes | Ratio | Insertions | Deletions | Replacements |\n"
+        summary += (
+            "| File | Changes | Ratio | Insertions | Deletions | Replacements |\n"
+        )
         summary += "|------|---------|-------|------------|-----------|-------------|\n"
 
         for file in modified_files:

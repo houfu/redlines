@@ -24,7 +24,10 @@ class TestPropertyAccessErrors:
         assert "Cause:" in error_message
         assert "To fix:" in error_message
         assert "Initialize Redlines" in error_message
-        assert "redlines_obj = Redlines(source='original', test='modified')" in error_message
+        assert (
+            "redlines_obj = Redlines(source='original', test='modified')"
+            in error_message
+        )
 
     def test_test_property_error_message(self) -> None:
         """Test that accessing test property before setting it raises a helpful error."""
@@ -40,7 +43,10 @@ class TestPropertyAccessErrors:
         assert "Cause:" in error_message
         assert "To fix:" in error_message
         assert "Initialize Redlines" in error_message
-        assert "redlines_obj = Redlines(source='original', test='modified')" in error_message
+        assert (
+            "redlines_obj = Redlines(source='original', test='modified')"
+            in error_message
+        )
 
     def test_diff_operations_error_message(self) -> None:
         """Test that accessing diff operations before comparison raises a helpful error."""
@@ -92,10 +98,7 @@ class TestGetChangesErrors:
 
     def test_invalid_operation_type_error_message(self) -> None:
         """Test that passing invalid operation type raises a helpful error."""
-        redlines_obj = Redlines(
-            source="The quick brown fox",
-            test="The quick red fox"
-        )
+        redlines_obj = Redlines(source="The quick brown fox", test="The quick red fox")
 
         with pytest.raises(ValueError) as exc_info:
             redlines_obj.get_changes(operation="invalid")
@@ -117,13 +120,16 @@ class TestGetChangesErrors:
 class TestErrorMessageStructure:
     """Test that all error messages follow the what/why/how structure."""
 
-    @pytest.mark.parametrize("error_scenario", [
-        "source_property",
-        "test_property",
-        "diff_operations",
-        "compare_without_test",
-        "invalid_operation",
-    ])
+    @pytest.mark.parametrize(
+        "error_scenario",
+        [
+            "source_property",
+            "test_property",
+            "diff_operations",
+            "compare_without_test",
+            "invalid_operation",
+        ],
+    )
     def test_error_messages_have_required_sections(self, error_scenario: str) -> None:
         """Test that all error messages contain What, Why (Cause), and How (To fix) sections."""
         error_message = None
