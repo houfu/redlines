@@ -301,6 +301,65 @@ class TestPreCommitHook:
         assert "Pre-commit checks passed" in result.stdout
 
 
+CLAUSE_FILE = """\
+TITLE: Supply Agreement
+SECTION: 1. Definitions
+CLAUSE: 1.1 "Goods" means the goods listed in the order form.
+An untagged line, which nothing recognises.
+APPENDIX: a tag the reader does not know
+"""
+
+
+class TestCustomReader:
+    """``custom_reader.py [clause_file]`` — the worked third-party reader.
+
+    It is the only example that touches the 1.0 block model, and it is what
+    makes PRD R7's "documented with a worked example so a third party can
+    contribute a reader without touching the core" a fact rather than a claim.
+    """
+
+    def test_reads_the_built_in_sample(self) -> None:
+        result = run_example("custom_reader.py")
+
+        assert result.returncode == 0, result.stderr
+        # The reader registered itself, for a format core knows nothing about.
+        assert "clause-file" in result.stdout
+        assert "isinstance(reader, Reader): True" in result.stdout
+        # Addresses follow ADR-0029: kind[index], counted among same-kind
+        # siblings, hanging off the root.
+        assert "/section[1]/heading[1]" in result.stdout
+        assert "/section[2]/list_item[2]" in result.stdout
+        # What was recognised, what was not, and what was thrown away.
+        assert "clause-file:CLAUSE" in result.stdout
+        assert "Fallback blocks: 1" in result.stdout
+        assert "unknown_tag x1" in result.stdout
+        assert "Breadcrumb for /section[2]/list_item[2]: " in result.stdout
+
+    def test_reads_a_file_of_its_own(self, tmp_path: Path) -> None:
+        source = tmp_path / "supply.clf"
+        source.write_text(CLAUSE_FILE, encoding="utf-8")
+
+        result = run_example("custom_reader.py", str(source))
+
+        assert result.returncode == 0, result.stderr
+        assert "Supply Agreement" in result.stdout
+        assert "1.1" in result.stdout
+        assert "Fallback blocks: 1" in result.stdout
+        assert "'APPENDIX' is not a clause file record tag" in result.stdout
+
+    def test_missing_file_exits_one(self, tmp_path: Path) -> None:
+        result = run_example("custom_reader.py", str(tmp_path / "absent.clf"))
+
+        assert result.returncode == 1
+        assert "Error:" in result.stdout
+
+    def test_too_many_arguments_print_usage(self) -> None:
+        result = run_example("custom_reader.py", "one.clf", "two.clf")
+
+        assert result.returncode == 1
+        assert "Usage:" in result.stdout
+
+
 def test_every_example_is_exercised() -> None:
     """A new example without a test would otherwise be documentation nobody
     runs, which is the state this file exists to end."""
@@ -310,6 +369,7 @@ def test_every_example_is_exercised() -> None:
         "generate_report.py",
         "ci_check.py",
         "pre_commit_hook.sh",
+        "custom_reader.py",
     }
     present = {
         path.name

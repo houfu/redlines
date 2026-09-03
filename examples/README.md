@@ -233,6 +233,74 @@ DOCUMENTATION CHANGE REPORT
 
 ---
 
+### 6. `custom_reader.py` - A Third-Party Reader
+
+Write a reader for a format redlines has never heard of, register it, and read
+a document into a block tree — without touching anything in the core
+(PRD R7, [ADR-0006](../docs/adr/0006-structure-profiles.md)).
+
+`redlines.readers.Reader` is a `typing.Protocol`, so there is no base class:
+a class with a `name`, a `formats` tuple and a `read` method *is* a reader.
+This example implements one for a made-up line-oriented "clause file", claims
+the format name and the `.clf` extension, then prints the tree it produces.
+
+**Usage:**
+```bash
+python custom_reader.py              # read the built-in sample
+python custom_reader.py deal.clf     # read a clause file of your own
+```
+
+**The format it reads** — one record per line, `TAG: text`:
+```
+# lines starting with a hash are comments
+TITLE: Master Services Agreement
+SECTION: 1. Interpretation
+CLAUSE: 1.1 In this agreement, "Services" means the services in Schedule 1.
+NOTE: Clause 1.2 is standard and was not negotiated.
+An untagged line is a plain paragraph.
+SIGNATURE_IMAGE: a tag the reader does not know
+```
+
+**What it demonstrates:**
+- Satisfying the `Reader` protocol by structure, with no inheritance
+- `register_reader` and `reader_for`, and `register_extension` so
+  `detect_format` knows the new extension too
+- Building a frozen block tree bottom up and letting `BlockTree.build` assign
+  every address ([ADR-0029](../docs/adr/0029-address-syntax.md))
+- `matched_by` and `confidence` per block, including the `fallback` a block
+  gets when nothing recognises it
+  ([ADR-0030](../docs/adr/0030-matched-by-and-confidence.md))
+- `dropped` reporting for the record tags it does not understand (PRD R3)
+
+**Example output:**
+```
+A third-party reader for redlines
+============================================================
+Registered formats: clause-file, text
+Detection of 'deal.clf': clause-file
+Reader for 'clause-file': clause-file
+isinstance(reader, Reader): True
+
+Paths, labels and how each block was recognised:
+  path                             label  role      matched_by           text
+  --------------------------------------------------------------------------
+  /                                -      -         document
+  /heading[1]                      -      title     clause-file:TITLE    Master Services Agreement
+  /section[1]                      1      -         clause-file:SECTION
+  /section[1]/heading[1]           1      -         clause-file:SECTION  Interpretation
+  /section[1]/list_item[1]         1.1    clause    clause-file:CLAUSE   In this agreement, "Services" m...
+  /section[1]/paragraph[1]         -      -         fallback             This line carries no tag, so no...
+
+Blocks: 12
+Fallback blocks: 1
+Dropped:
+  unknown_tag x1: 'SIGNATURE_IMAGE' is not a clause file record tag, so the line was skipped
+
+Breadcrumb for /section[2]/list_item[2]: Master Services Agreement > Term
+```
+
+---
+
 ## Common Patterns
 
 ### Pattern 1: Check if Two Files Are Identical
