@@ -1,0 +1,76 @@
+# Example structure profile for a commercial contract.
+#
+# This is a worked example for R1f (docs/PRD.md), not the shipped `contract`
+# built-in (that is issue #101) -- it exists to prove the format is legible
+# enough for a model to write correctly from the schema in a single turn.
+# See redlines/profiles/schema.json for the published schema.
+
+name: example-contract
+description: >-
+  Commercial contracts: numbered clauses, lettered sub-clauses, schedules,
+  defined terms.
+
+# Label patterns are tried in order; the first match wins. Decimal labels
+# ("1.2.3") carry their own depth. Alpha and roman labels are ambiguous on
+# their own -- "(i)" could be a first alpha item or a fourth roman one --
+# so they resolve their depth from the stack of styles already open.
+label_patterns:
+  - name: decimal
+    pattern: '^(\d+(?:\.\d+)*)\.?\s+'
+    style: decimal
+    depth_mode: arithmetic
+  - name: alpha_paren
+    pattern: '^\(([a-z])\)\s+'
+    style: alpha
+    depth_mode: stack
+  - name: roman_paren
+    pattern: '^\(([ivxlcdm]+)\)\s+'
+    style: roman
+    depth_mode: stack
+
+# Headings matching any of these open a new section and clear the numbering
+# stack, so "(a)" right after "Schedule 1" is unambiguously alpha again.
+heading_resets:
+  - name: schedule
+    pattern: '(?i)^(schedule|annex|appendix)\b'
+
+heading_rule:
+  max_words: 8
+  allow_all_caps: true
+  allow_title_case: true
+  forbid_terminal_punctuation: true
+
+# Role rules: a "Definitions" section's children are definitions; anything
+# under a Schedule heading gets the schedule role; recitals and the
+# signature block are recognised by their own headings.
+role_rules:
+  - role: definitions
+    match: heading
+    pattern: '(?i)^definitions?\b'
+  - role: definition
+    match: parent_role
+    parent_role: definitions
+  - role: schedule
+    match: ancestor_heading
+    pattern: '(?i)^(schedule|annex|appendix)\b'
+  - role: recital
+    match: heading
+    pattern: '(?i)^(recitals|background)\b'
+  - role: signature
+    match: heading
+    pattern: '(?i)^(signatures?|execution)\b'
+
+# Span extractors pull semantic sub-strings out of block text.
+span_extractors:
+  - type: defined_term
+    pattern: '"([A-Z][^"]*)"\s+means\b'
+    group: 1
+  - type: cross_reference
+    pattern: '(?i)\b(?:clause|section|schedule|article)\s+(\d+(?:\.\d+)*)\b'
+    group: 1
+  - type: date
+    pattern: '\b(\d{1,2}\s+\w+\s+\d{4})\b'
+    group: 1
+  - type: amount
+    pattern: '(?:USD|US\$|\$)\s?([\d,]+(?:\.\d+)?)'
+    group: 1

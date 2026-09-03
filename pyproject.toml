@@ -24,6 +24,7 @@ dependencies = [
     "click-default-group>=1.2.4",
     "rich-click>=1.6.1",
     "rich>=13.3.5",
+    "PyYAML>=6.0.1",
 ]
 
 [project.urls]
@@ -49,6 +50,7 @@ dev = [
     "pytest>=7.4.2",
     "pytest-cov>=3.0.0",
     "pytest-sugar>=0.9.7",
+    "types-PyYAML>=6.0.12",
 ]
 
 [build-system]
