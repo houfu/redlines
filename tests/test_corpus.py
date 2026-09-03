@@ -29,7 +29,15 @@ from redlines.processor import (
 
 CORPUS_DIR = Path(__file__).parent / "corpus"
 
-CASES = sorted(p.name for p in CORPUS_DIR.iterdir() if p.is_dir())
+# Directories under tests/corpus/ that are fixtures for something else and have
+# no golden output of their own: the PRD section 6b reader fixtures (#102).
+NOT_GOLDEN_CASES = {"hard_cases"}
+
+CASES = sorted(
+    p.name
+    for p in CORPUS_DIR.iterdir()
+    if p.is_dir() and p.name not in NOT_GOLDEN_CASES
+)
 
 STYLES = [style.value for style in MarkdownStyle]
 

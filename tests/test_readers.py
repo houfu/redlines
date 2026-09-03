@@ -112,12 +112,14 @@ def test_a_reader_declares_a_name_and_the_formats_it_claims() -> None:
 # --- the registry ----------------------------------------------------------
 
 
-def test_the_paragraph_reader_is_registered_for_text() -> None:
-    assert isinstance(reader_for("text"), ParagraphReader)
+def test_the_plain_text_reader_is_registered_for_text() -> None:
+    """#102's plain-text reader took ``"text"`` over from this placeholder."""
+    assert reader_for("text").name == "text"
+    assert not isinstance(reader_for("text"), ParagraphReader)
 
 
 def test_readers_maps_format_names_to_readers() -> None:
-    assert readers()["text"].name == "paragraph"
+    assert readers()["text"].name == "text"
 
 
 def test_readers_is_sorted_and_a_copy() -> None:
@@ -146,9 +148,9 @@ def test_registering_over_a_claimed_format_is_refused(clean_registry: None) -> N
         ) -> BlockTree:
             return BlockTree.build(Block(kind=BlockKind.DOCUMENT))
 
-    with pytest.raises(ValueError, match="already read by 'paragraph'"):
+    with pytest.raises(ValueError, match="already read by 'text'"):
         register_reader(Rival())
-    assert reader_for("text").name == "paragraph"
+    assert reader_for("text").name == "text"
 
 
 def test_replace_takes_a_format_over(clean_registry: None) -> None:

@@ -300,3 +300,10 @@ class ParagraphReader:
 
 
 register_reader(ParagraphReader())
+
+# Imported for its side effect: redlines.readers.text registers the plain-text
+# reader of #102 for "text", taking the format over from the placeholder above
+# (which stays importable, and stays the behaviour every reader degrades to).
+# It sits at the bottom because it imports this module, and here that import
+# finds everything it needs already defined.
+from . import text  # noqa: E402,F401
