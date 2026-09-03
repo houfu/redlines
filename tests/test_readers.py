@@ -132,7 +132,9 @@ def test_readers_is_sorted_and_a_copy() -> None:
 def test_a_third_party_reader_can_claim_a_new_format(clean_registry: None) -> None:
     register_reader(ClauseReader())
 
-    assert set(readers()) == {"text", "clause"}
+    # "text" and "markdown" are the built-ins that register on import (#102,
+    # #103); the point here is that a third party's format joins them.
+    assert set(readers()) == {"text", "markdown", "clause"}
     found = reader_for("clause")
     assert found.name == "clause"
     assert found.read("1.1 A clause.\n1.2 Another.").fallback_count == 0

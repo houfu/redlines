@@ -307,3 +307,9 @@ register_reader(ParagraphReader())
 # It sits at the bottom because it imports this module, and here that import
 # finds everything it needs already defined.
 from . import text  # noqa: E402,F401
+
+# Imported for its side effect too: redlines.readers.markdown registers the
+# markdown reader of #103 for "markdown", the format redlines.readers.detect
+# returns for ".md" and ".markdown". It follows the text reader because it
+# reuses that module's segmentation and its record of what each stage decided.
+from . import markdown  # noqa: E402,F401
