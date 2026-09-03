@@ -649,20 +649,36 @@ class HierarchyStack:
         a label whose style is open at some other value; a label whose value is
         a readable position at all; anything else. Profile order breaks a tie,
         which is what makes it precedence.
+
+        Two candidates whose styles are *both* open tie on rank alone, and
+        profile order is the wrong answer there: after ``(a) (b) (i) … (v)``
+        the label ``(x)`` continues neither run exactly, yet it is a jump of
+        five in the open roman run against a jump of twenty-two in the open
+        alpha one, and reading it as ``(x)`` the twenty-fourth letter would pop
+        the roman sub-clauses shut. So within that rank the smaller forward
+        jump wins, and a value that runs *backwards* in its style loses to one
+        that runs forwards. The result is still a heuristic --
+        `CONFIDENCE_STACK_ORDER`, with every candidate recorded in
+        `Placement.considered` (ADR-0030) -- it is simply the better guess.
         """
-        best_rank = -1
+        best_key = (-1, _NO_TIE_BREAK)
         best = candidates[0]
         best_reason = "only" if len(candidates) == 1 else "profile_order"
         for candidate in candidates:
-            rank, reason = self._rank(candidate)
-            if rank > best_rank:
-                best_rank, best, best_reason = rank, candidate, reason
+            rank, closeness, reason = self._rank(candidate)
+            if (rank, closeness) > best_key:
+                best_key, best, best_reason = (rank, closeness), candidate, reason
         if len(candidates) == 1:
             return best, "only"
         return best, best_reason
 
-    def _rank(self, candidate: LabelMatch) -> tuple[int, str]:
-        """Score one candidate against the open styles; see `_choose`."""
+    def _rank(self, candidate: LabelMatch) -> tuple[int, tuple[int, int], str]:
+        """Score one candidate against the open styles; see `_choose`.
+
+        :return: the rank, a within-rank tie-break (higher is better,
+            `_NO_TIE_BREAK` where the rank has nothing more to say) and the
+            `Placement.style_reason`.
+        """
         entry = next(
             (entry for entry in self._entries if entry.style == candidate.style), None
         )
@@ -673,14 +689,43 @@ class HierarchyStack:
             and entry.index is not None
             and index == entry.index + 1
         ):
-            return 4, "sequence"
+            return 4, _NO_TIE_BREAK, "sequence"
         if entry is None and index == 1:
-            return 3, "first_value"
+            return 3, _NO_TIE_BREAK, "first_value"
         if entry is not None:
-            return 2, "open_style"
+            return 2, _jump_closeness(index, entry.index), "open_style"
         if index is not None:
-            return 1, "known_index"
-        return 0, "profile_order"
+            return 1, _NO_TIE_BREAK, "known_index"
+        return 0, _NO_TIE_BREAK, "profile_order"
+
+
+_JUMP_FORWARD = 2
+_JUMP_UNKNOWN = 1
+_JUMP_BACKWARDS = 0
+_NO_TIE_BREAK = (0, 0)
+"""`HierarchyStack._rank`'s tie-break where the rank itself settles the order."""
+
+
+def _jump_closeness(index: int | None, last: int | None) -> tuple[int, int]:
+    """Rate how well ``index`` follows ``last`` in the same open run; higher is better.
+
+    The tie-break between two candidates whose styles are both open and neither
+    of which continues its run exactly (`HierarchyStack._choose`). A value that
+    runs forwards beats one that runs backwards or stands still, and the shorter
+    forward jump beats the longer one -- ``(x)`` after a roman run at ``(v)`` is
+    a jump of five, against twenty-two for the alpha run it would otherwise be
+    read into.
+
+    :param index: the candidate's `LabelMatch.index`.
+    :param last: the last value of the open run in that style.
+    :return: a sort key, comparable only against another `_jump_closeness`.
+    """
+    if index is None or last is None:
+        return (_JUMP_UNKNOWN, 0)
+    jump = index - last
+    if jump > 0:
+        return (_JUMP_FORWARD, -jump)
+    return (_JUMP_BACKWARDS, jump)
 
 
 def _run_reason(index: int | None, prior: _Entry | None) -> str:

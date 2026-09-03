@@ -47,27 +47,31 @@ label_patterns:
     style: word
     depth_mode: stack
 
-  # "(a)", "(A)". Single letters are alpha, which means "(i)" is read as
-  # alpha here too -- the same resolution of the PRD § 6b ambiguity that
-  # `contract` makes, for the same reason. Nesting depth still comes from
-  # the stack; in markdown the reader also knows the list's own nesting,
-  # which is a second signal a plain-text document does not offer.
+  # "(a)", "(A)". Listed first, so it wins where nothing can tell the two
+  # apart.
   - name: alpha_paren
     pattern: '^\(([A-Za-z])\)(?:\s+|$)'
     style: alpha
     depth_mode: stack
 
-  # "(ii)", "(iv)" -- two letters or more, so it cannot collide with
-  # `alpha_paren`.
+  # "(i)", "(ii)", "(iv)" -- one roman letter or more, so it deliberately
+  # collides with `alpha_paren` on "(i)", "(v)" and "(x)". Character for
+  # character what `contract` says, and for the same reason: PRD § 6b's
+  # alpha/roman ambiguity is real in a markdown list item too, and only the
+  # numbering stack can settle it. In markdown the reader also knows the
+  # list's own nesting, which is a second signal a plain-text document does
+  # not offer.
   - name: roman_paren
-    pattern: '^\(([ivxlcdm]{2,}|[IVXLCDM]{2,})\)(?:\s+|$)'
+    pattern: '^\(([ivxlcdm]+|[IVXLCDM]+)\)(?:\s+|$)'
     style: roman
     depth_mode: stack
 
   # "IV.", "VIII." -- an upper-case roman numeral, most often the text of an
   # ATX heading (`## IV. Miscellaneous`) in a document migrated from a
   # plain-text contract. Kept so that heading reads the same here as under
-  # `contract`. Two letters or more, as in `roman_paren`.
+  # `contract`. Two letters or more -- unlike `roman_paren`, and again as in
+  # `contract`: a bare "I." is an initial or an alpha item far more often
+  # than a roman one.
   - name: roman_dot
     pattern: '^([IVXLCDM]{2,})\.(?:\s+|$)'
     style: roman

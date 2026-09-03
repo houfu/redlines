@@ -17,6 +17,7 @@ from redlines.readers.labels import (
     CONFIDENCE_ARITHMETIC_OUT_OF_SEQUENCE,
     CONFIDENCE_STACK,
     CONFIDENCE_STACK_FIRST_VALUE,
+    CONFIDENCE_STACK_ORDER,
     CONFIDENCE_STACK_SEQUENCE,
     HEADING_THRESHOLD,
     NEXT_DEEPER,
@@ -387,6 +388,54 @@ def test_a_roman_c_does_not_hijack_an_alpha_sequence(profile: Profile) -> None:
 
     assert placement.match.style == "alpha"
     assert placement.level == 1
+
+
+def test_a_gap_in_an_open_roman_run_does_not_fall_back_to_alpha(
+    profile: Profile,
+) -> None:
+    """``(x)`` after ``(v)`` is the tenth numeral, not the twenty-fourth letter.
+
+    Both styles are open -- an alpha run at ``(b)`` and a roman one at ``(v)``
+    inside it -- and ``(x)`` continues neither exactly, so rank alone ties and
+    profile order used to hand it to ``alpha_paren``, popping the roman
+    sub-clauses shut. The jump decides instead: five in the roman run against
+    twenty-two in the alpha one.
+    """
+    stack = HierarchyStack()
+    stack.place(label_candidates("7.2 Fees.", profile=profile))
+    for letter in ("a", "b"):
+        stack.place(label_candidates(f"({letter}) An item.", profile=profile))
+    for numeral in ("i", "ii", "iii", "iv", "v"):
+        stack.place(label_candidates(f"({numeral}) A step.", profile=profile))
+
+    placement = stack.place(label_candidates("(x) A tenth step.", profile=profile))
+
+    assert placement.match.style == "roman"
+    assert placement.match.name == "roman_paren"
+    assert placement.level == 4
+    assert placement.style_reason == "open_style"
+    assert placement.run_reason == RUN_OUT_OF_SEQUENCE
+    assert placement.considered == ("alpha_paren", "roman_paren")
+    # Still only a guess: nothing continued its run, so it stays in the low
+    # band and both candidates are on the record (ADR-0030).
+    assert placement.confidence == CONFIDENCE_STACK_ORDER
+
+
+def test_a_gap_in_an_open_alpha_run_does_not_jump_to_roman(
+    profile: Profile,
+) -> None:
+    """The mirror image: ``(d)`` after ``(b)`` is a jump of two, not of 497."""
+    stack = HierarchyStack()
+    stack.place(label_candidates("7.2 Fees.", profile=profile))
+    for letter in ("a", "b"):
+        stack.place(label_candidates(f"({letter}) An item.", profile=profile))
+    for numeral in ("i", "ii", "iii"):
+        stack.place(label_candidates(f"({numeral}) A step.", profile=profile))
+
+    placement = stack.place(label_candidates("(d) A fourth item.", profile=profile))
+
+    assert placement.match.style == "alpha"
+    assert placement.level == 3
 
 
 def test_a_reset_makes_the_next_label_level_one_again(profile: Profile) -> None:

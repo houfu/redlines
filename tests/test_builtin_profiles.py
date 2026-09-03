@@ -138,6 +138,10 @@ PRD_LABELS = [
     ("1.2", "decimal", "1.2"),
     ("1.2.3", "decimal", "1.2.3"),
     ("(a)", "alpha_paren", "a"),
+    # "(i)" is claimed by `roman_paren` too; `first_label` reports the first
+    # pattern in profile order, which is the reading the reader falls back to
+    # when the numbering stack has nothing to say. See
+    # `test_a_single_parenthesised_roman_letter_is_claimed_twice`.
     ("(i)", "alpha_paren", "i"),
     ("Article 5", "word_label", "Article 5"),
     ("Section 3", "word_label", "Section 3"),
@@ -189,22 +193,45 @@ def test_contract_matches_the_neighbouring_label_forms(
     assert by_name[pattern_name].style == style
 
 
-def test_a_single_parenthesised_letter_is_alpha_by_design() -> None:
-    """The PRD § 6b alpha/roman ambiguity, resolved in the profile.
+@pytest.mark.parametrize("name", ["contract", "markdown"])
+def test_a_single_parenthesised_roman_letter_is_claimed_twice(name: str) -> None:
+    """The PRD § 6b alpha/roman ambiguity, stated by the profile rather than hidden.
 
-    "(i)" is far more often the ninth item of an (a), (b), ... run than the
-    first of a roman one, so single letters are claimed by ``alpha_paren``
-    and only two-letter-or-longer forms reach ``roman_paren``. Which *depth*
-    it lands at is still the reader's stack to resolve; the profile cannot
-    express "ambiguous until you have seen the siblings".
+    "(i)" after "(h)" is alphabetic and "(i)" after "7.2" is roman and one
+    level deeper, and no pattern can tell which -- so ``alpha_paren`` and
+    ``roman_paren`` both claim it, both at ``stack`` depth, and the reader's
+    `redlines.readers.labels.HierarchyStack` settles it against the numbering
+    already open. A profile that let only one of them match would decide the
+    question in the wrong place, which is what
+    ``test_reader_profiles_integration`` pins from the reader's end.
     """
-    contract = builtin_profile("contract")
-    matched = first_label(contract, "(i) the ninth item")
-    assert matched is not None and matched[0] == "alpha_paren"
-    by_name = {pattern.name: pattern for pattern in contract.label_patterns}
+    profile = builtin_profile(name)
+    claimants = [
+        pattern.name
+        for pattern in profile.label_patterns
+        if pattern.compiled().match("(i) the item")
+    ]
+    assert claimants == ["alpha_paren", "roman_paren"]
+
+    by_name = {pattern.name: pattern for pattern in profile.label_patterns}
     assert by_name["alpha_paren"].style == "alpha"
+    assert by_name["roman_paren"].style == "roman"
     assert by_name["alpha_paren"].depth_mode == "stack"
+    assert by_name["roman_paren"].depth_mode == "stack"
     assert by_name["decimal"].depth_mode == "arithmetic"
+
+
+@pytest.mark.parametrize("name", ["contract", "markdown"])
+def test_an_unparenthesised_single_letter_is_alpha_alone(name: str) -> None:
+    """`roman_dot` keeps its two-letter minimum: "I." is an initial far more
+    often than a numeral, and PRD § 6b names the ambiguity at "(i)" only."""
+    profile = builtin_profile(name)
+    claimants = [
+        pattern.name
+        for pattern in profile.label_patterns
+        if pattern.compiled().match("I. Smith is the Supplier's agent")
+    ]
+    assert claimants == ["alpha_dot"]
 
 
 def test_contract_does_not_label_ordinary_prose() -> None:

@@ -28,7 +28,13 @@ from redlines.readers import (
     reader_for,
     readers,
 )
-from redlines.readers.text import PlainTextReader, Paragraph, normalise, segment
+from redlines.readers.text import (
+    WRAP_MIN_CHARS,
+    Paragraph,
+    PlainTextReader,
+    normalise,
+    segment,
+)
 
 EXAMPLE_PROFILE = Path(__file__).parent / "profiles" / "example_contract.yaml"
 HARD_CASES = Path(__file__).parent / "corpus" / "hard_cases"
@@ -291,6 +297,109 @@ def test_a_wrapped_line_starting_with_a_capital_is_still_rejoined(
     assert PlainTextReader().read(text, profile=profile).root.children[0].text == (
         "This agreement is between Acme Analytics Ltd and Beta Retail plc."
     )
+
+
+def test_a_capitalised_line_does_not_join_a_short_label_led_heading(
+    profile: Profile,
+) -> None:
+    """PRD section 6b's lowercase half, and the commonest plain-text clause shape.
+
+    "2. Charges" ends without a full stop, but it is a clause heading, not half
+    a sentence: joining the body under it to it would lose the body as a block
+    of its own, which is the one thing the re-join rule must never do.
+    """
+    text = "2. Charges\nThe Client shall pay the Fees within thirty days.\n"
+
+    root = PlainTextReader().read(text, profile=profile).root
+    blocks = _walk(root)
+
+    assert [block.text for block in blocks if block.kind is BlockKind.HEADING] == [
+        "Charges"
+    ]
+    assert [block.text for block in blocks if block.kind is BlockKind.PARAGRAPH] == [
+        "The Client shall pay the Fees within thirty days."
+    ]
+
+
+def test_the_two_spellings_of_a_clause_heading_give_the_same_tree(
+    profile: Profile,
+) -> None:
+    """A blank line between heading and body is optional, so it changes nothing."""
+    single = (
+        "2. Charges\n"
+        "The Client shall pay the Fees within thirty days.\n"
+        "\n"
+        "3. Term\n"
+        "This Agreement starts on the Effective Date.\n"
+    )
+    blank = (
+        "2. Charges\n"
+        "\n"
+        "The Client shall pay the Fees within thirty days.\n"
+        "\n"
+        "3. Term\n"
+        "\n"
+        "This Agreement starts on the Effective Date.\n"
+    )
+
+    assert (
+        PlainTextReader().read(single, profile=profile).to_dict()
+        == PlainTextReader().read(blank, profile=profile).to_dict()
+    )
+
+
+def test_a_lowercase_line_joins_however_short_the_line_above(
+    profile: Profile,
+) -> None:
+    """The PRD rule itself: a lower-case start is the wrap, whatever precedes it."""
+    text = "1. Charges and\ninvoicing are dealt with here.\n"
+
+    block = PlainTextReader().read(text, profile=profile).root.children[0]
+
+    assert block.text == "Charges and invoicing are dealt with here."
+    assert block.attrs["rejoined_lines"] == 2
+
+
+def test_a_capitalised_line_does_not_join_a_short_unlabelled_heading(
+    profile: Profile,
+) -> None:
+    """The same guard with no label to strip: "Charges" is heading-shaped alone."""
+    text = "Charges\nThe Client shall pay the Fees within thirty days.\n"
+
+    paragraphs = segment(normalise(text)[0], profile=profile)
+
+    assert [paragraph.text for paragraph in paragraphs] == [
+        "Charges",
+        "The Client shall pay the Fees within thirty days.",
+    ]
+
+
+def test_a_long_line_ending_mid_sentence_still_joins_a_proper_noun(
+    profile: Profile,
+) -> None:
+    """The case the wrap rule is protecting: a wrap resuming on a party name."""
+    text = (
+        "This agreement is made between Acme Analytics Ltd (the 'Supplier') and\n"
+        "Beta Retail plc (the 'Customer').\n"
+    )
+
+    paragraphs = segment(normalise(text)[0], profile=profile)
+
+    assert len(paragraphs) == 1
+    assert paragraphs[0].rejoined is True
+
+
+def test_the_wrap_length_gate_is_the_documented_constant(profile: Profile) -> None:
+    """A line one character short of the gate does not take the line below it."""
+    tail = "x" * (WRAP_MIN_CHARS - len("Alpha beta gamma and ") - 1)
+    short = f"Alpha beta gamma and {tail}"
+    assert len(short) == WRAP_MIN_CHARS - 1
+
+    joined = segment(normalise(f"{short}y\nDelta follows.\n")[0], profile=profile)
+    split = segment(normalise(f"{short}\nDelta follows.\n")[0], profile=profile)
+
+    assert len(joined) == 1
+    assert len(split) == 2
 
 
 def test_a_shouting_line_is_never_glued_to_the_line_above(profile: Profile) -> None:

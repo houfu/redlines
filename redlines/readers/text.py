@@ -68,12 +68,19 @@ from .labels import (
     HierarchyStack,
     Placement,
     continuation_for,
+    detect_label,
     heading_reset_name,
     heading_score,
     label_candidates,
 )
 
-__all__ = ["Paragraph", "PlainTextReader", "normalise", "segment"]
+__all__ = [
+    "WRAP_MIN_CHARS",
+    "Paragraph",
+    "PlainTextReader",
+    "normalise",
+    "segment",
+]
 
 
 _PARAGRAPH_BREAK = re.compile(r"\n\s*\n+")
@@ -81,6 +88,19 @@ _CONTROL_CHARS = re.compile(r"[\x00-\x08\x0b\x0e-\x1f\x7f]")
 _BULLETS = ("-", "*", "•", "–", "—", "·")
 _SENTENCE_ENDS = (".", "!", "?", ";", ":")
 _TAB_WIDTH = 4
+
+WRAP_MIN_CHARS = 45
+"""How long a line must be before a capitalised next line may still wrap onto it.
+
+Plain-text contracts are wrapped somewhere between 60 and 80 columns, so a line
+that stopped well short of that stopped because its author ended it -- it is a
+heading, a caption or a one-line clause -- not because a word would not fit.
+45 is deliberately generous: it only has to separate a clause heading ("2.
+Charges") from a wrapped sentence, and the second gate in `_is_plausible_wrap`
+catches the long heading this one lets through. Lowering the bar costs a
+paragraph break that was really a wrap; raising it swallows a heading, which is
+the worse error, because the block below it disappears into the block above.
+"""
 
 
 def normalise(text: str) -> tuple[str, int]:
@@ -145,16 +165,26 @@ def segment(text: str, *, profile: Profile | None = None) -> tuple[Paragraph, ..
       with one clause per line and no blank lines between them is common, and
       joining ``7.1`` to ``7.2`` because no blank line separated them would lose
       the whole document's structure;
-    - a line that is not a hard wrap of the one above it. A wrap is a line whose
-      predecessor ended mid-sentence -- no full stop, colon or semicolon -- and
-      which does not itself start a bullet or change case wholesale. That last
-      guard is what keeps an all-caps heading, or a page header extracted from a
-      PDF, from being glued onto the sentence above it.
+    - a line that is not a hard wrap of the one above it. PRD § 6b states that
+      rule as "a line ends mid-sentence and the next begins lowercase", and both
+      halves are required: ending mid-sentence alone would swallow the commonest
+      shape in a plain-text contract, a one-line clause heading with its body on
+      the next line ("2. Charges" / "The Client shall pay..."), which is a
+      heading and a paragraph and not one sentence.
 
-    PRD § 6b states the rule as "a line ends mid-sentence and the next begins
-    lowercase". Ending mid-sentence is the signal that carries it; a lower-case
-    start is recorded as confirmation but not required, because a wrapped line
-    routinely begins with a party name or a defined term.
+      A line beginning with a capital still joins where the line above it is a
+      *plausible* hard wrap: at least `WRAP_MIN_CHARS` long, and not
+      heading-shaped once its own label is stripped off the front. A label-led
+      line is therefore not excluded as such -- "1. This agreement is made
+      between Acme Analytics Ltd and" wraps like any other -- only one whose
+      body reads as a heading. That is what keeps "…made
+      between Acme Analytics Ltd and" / "Beta Retail plc." together, since a
+      wrapped line routinely resumes on a party name or a defined term, without
+      letting a short label-led heading claim the paragraph below it.
+
+      A line that starts a bullet, or that changes case wholesale, never joins:
+      that guard is what keeps an all-caps heading, or a page header extracted
+      from a PDF, out of the sentence it interrupts.
 
     :param text: text that has been through `normalise`.
     :param profile: the active profile, whose label patterns decide where a
@@ -171,7 +201,11 @@ def segment(text: str, *, profile: Profile | None = None) -> tuple[Paragraph, ..
         joins = 0
         for line in lines:
             starts_label = bool(label_candidates(line, profile=profile))
-            if buffer and not starts_label and _is_wrap(buffer[-1], line):
+            if (
+                buffer
+                and not starts_label
+                and _is_wrap(buffer[-1], line, profile=profile)
+            ):
                 buffer.append(line.strip())
                 joins += 1
                 continue
@@ -208,8 +242,14 @@ def _indent_of(line: str) -> int:
     return width
 
 
-def _is_wrap(previous: str, line: str) -> bool:
-    """Whether ``line`` is a hard wrap of ``previous`` rather than a new paragraph."""
+def _is_wrap(previous: str, line: str, *, profile: Profile | None = None) -> bool:
+    """Whether ``line`` is a hard wrap of ``previous`` rather than a new paragraph.
+
+    PRD § 6b's rule, with one documented widening: "a line ends mid-sentence and
+    the next begins lowercase" joins outright, and a next line beginning with a
+    capital joins only when `_is_plausible_wrap` says the line above it could
+    have been wrapped at all. See `segment`.
+    """
     before = previous.rstrip()
     after = line.strip()
     if not before or not after:
@@ -218,7 +258,28 @@ def _is_wrap(previous: str, line: str) -> bool:
         return False
     if after.startswith(_BULLETS):
         return False
-    return _is_shouting(before) == _is_shouting(after)
+    if _is_shouting(before) != _is_shouting(after):
+        return False
+    if after[:1].islower():
+        return True
+    return _is_plausible_wrap(before, profile=profile)
+
+
+def _is_plausible_wrap(before: str, *, profile: Profile | None) -> bool:
+    """Whether ``before`` could be a wrapped line rather than a heading of its own.
+
+    Two gates, both of which a one-line clause heading fails and a genuinely
+    wrapped line passes: a wrapped line is close to the document's wrap width,
+    and it does not look like a heading once its own label is off the front.
+    """
+    body = before.strip()
+    if len(body) < WRAP_MIN_CHARS:
+        return False
+    match = detect_label(body, profile=profile)
+    if match is not None:
+        body = match.text
+    rule = profile.heading_rule if profile is not None else None
+    return not heading_score(body, rule=rule).is_heading
 
 
 def _is_shouting(text: str) -> bool:

@@ -69,28 +69,38 @@ label_patterns:
     style: word
     depth_mode: stack
 
-  # "(a)", "(A)" -- a single parenthesised letter. This is matched before
-  # `roman_paren` and, being a single letter, it also swallows "(i)", "(v)"
-  # and "(x)". That is the deliberate resolution of the PRD § 6b alpha/roman
-  # ambiguity: a list running (a), (b), ... (h) reaches "(i)" as its ninth
-  # item far more often than a roman list starts, so single letters are
-  # alpha and only two-or-more-letter forms are roman. Depth still comes
-  # from the stack, so "(i)" nesting under "7.2" lands a level deeper than
-  # "(i)" continuing "(h)".
+  # "(a)", "(A)" -- a single parenthesised letter, including "(i)", "(v)"
+  # and "(x)". It is listed first, so it wins where nothing else can tell
+  # the two apart, which is the commoner reading.
   - name: alpha_paren
     pattern: '^\(([A-Za-z])\)(?:\s+|$)'
     style: alpha
     depth_mode: stack
 
-  # "(ii)", "(iv)", "(VIII)" -- two letters or more, so it cannot collide
-  # with `alpha_paren` above.
+  # "(i)", "(ii)", "(iv)", "(VIII)" -- one roman letter or more, so it
+  # deliberately *collides* with `alpha_paren` on "(i)", "(v)", "(x)",
+  # "(c)", "(d)", "(l)" and "(m)". That collision is the PRD § 6b
+  # alpha/roman ambiguity stated rather than hidden: "(i)" after "(h)" is
+  # alphabetic and "(i)" after "7.2" is roman and one level deeper, and no
+  # pattern can know which -- only the numbering already open can, so both
+  # patterns claim the text and `redlines.readers.labels.HierarchyStack`
+  # settles it from the label-style stack (a style already open at its next
+  # value beats a style opening at its first, which beats a style opening
+  # anywhere else; where two open styles tie there, the smaller jump in the
+  # run wins, so "(x)" after "(v)" stays roman). The block records the loser
+  # in ``attrs`` under
+  # ``label_candidates`` and carries a heuristic-band confidence, so a
+  # wrong call is visible (ADR-0030).
   - name: roman_paren
-    pattern: '^\(([ivxlcdm]{2,}|[IVXLCDM]{2,})\)(?:\s+|$)'
+    pattern: '^\(([ivxlcdm]+|[IVXLCDM]+)\)(?:\s+|$)'
     style: roman
     depth_mode: stack
 
   # "IV.", "VIII." -- an upper-case roman numeral heading a part or article.
-  # Two letters or more, for the same reason as `roman_paren`.
+  # Two letters or more, unlike `roman_paren`: PRD § 6b names the ambiguity
+  # at "(i)", and an unparenthesised single letter and a dot is far more
+  # often an initial ("I. Smith") or an alpha item than a roman one, so
+  # "I." is left to `alpha_dot` rather than made ambiguous for no gain.
   - name: roman_dot
     pattern: '^([IVXLCDM]{2,})\.(?:\s+|$)'
     style: roman
