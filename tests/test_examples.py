@@ -346,6 +346,10 @@ class TestCustomReader:
         assert "1.1" in result.stdout
         assert "Fallback blocks: 1" in result.stdout
         assert "'APPENDIX' is not a clause file record tag" in result.stdout
+        # The detection line names the file actually given, not a hardcoded
+        # stand-in -- it is a real path here, not the built-in sample's name.
+        assert f"Detection of {str(source)!r}: clause-file" in result.stdout
+        assert "Detection of 'deal.clf'" not in result.stdout
 
     def test_missing_file_exits_one(self, tmp_path: Path) -> None:
         result = run_example("custom_reader.py", str(tmp_path / "absent.clf"))

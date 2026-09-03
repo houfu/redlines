@@ -178,6 +178,31 @@ def test_a_recognisable_binary_signature_is_named(content: bytes, named: str) ->
     assert named in detected.reason
 
 
+def test_a_recognisable_binary_signature_is_named_even_as_decoded_text() -> None:
+    # A caller may have already decoded the bytes before calling in; a PDF's
+    # magic bytes are plain ASCII, so a str still carrying them is caught the
+    # same way raw bytes would be.
+    detected = detect_format(text="%PDF-1.7\n%\xe2\xe3\xcf\xd3\n")
+    assert detected.format is None
+    assert "PDF" in detected.reason
+
+
+@pytest.mark.parametrize(
+    ("content", "named"),
+    [
+        (b"%PDF-1.7\n%\xe2\xe3\xcf\xd3\n", "PDF"),
+        (b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1", "Office"),
+    ],
+)
+def test_a_recognisable_binary_signature_names_1_0_and_1_1(
+    content: bytes, named: str
+) -> None:
+    detected = detect_format(text=content)
+    assert detected.format is None
+    assert named in detected.reason
+    assert "coming in 1.1" in detected.reason
+
+
 def test_undecodable_bytes_are_reported_as_binary() -> None:
     detected = detect_format(text=b"\xff\xfe\x00\x01\x02\x03")
     assert detected.format is None

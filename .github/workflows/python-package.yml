@@ -63,3 +63,28 @@ jobs:
       - name: Test with pytest
         run: |
           uv run pytest
+
+  pyodide:
+    # Blocking: the wheel must import under Pyodide (WASM CPython) so that
+    # nothing in the browser-facing surface grows a dependency the browser
+    # cannot load (ADR-0019, PRD N5, issue #109).
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v7
+      - name: Install uv
+        uses: astral-sh/setup-uv@v10.0.1
+        with:
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
+      - name: Set up Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install pyodide npm package (pinned)
+        working-directory: .github/scripts
+        run: npm ci
+      - name: Build wheel
+        run: uv build --wheel --out-dir dist
+      - name: Import redlines under Pyodide
+        run: node .github/scripts/pyodide_check.mjs dist/redlines-*.whl

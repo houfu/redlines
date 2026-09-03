@@ -283,13 +283,19 @@ isinstance(reader, Reader): True
 
 Paths, labels and how each block was recognised:
   path                             label  role      matched_by           text
-  --------------------------------------------------------------------------
-  /                                -      -         document
+  ----------------------------------------------------------------------------------------------------
+  /                                -      -         document             
   /heading[1]                      -      title     clause-file:TITLE    Master Services Agreement
-  /section[1]                      1      -         clause-file:SECTION
+  /section[1]                      1      -         clause-file:SECTION  
   /section[1]/heading[1]           1      -         clause-file:SECTION  Interpretation
   /section[1]/list_item[1]         1.1    clause    clause-file:CLAUSE   In this agreement, "Services" m...
-  /section[1]/paragraph[1]         -      -         fallback             This line carries no tag, so no...
+  /section[1]/list_item[2]         1.2    clause    clause-file:CLAUSE   Headings are for convenience an...
+  /section[1]/paragraph[1]         -      note      clause-file:NOTE     Clause 1.2 is standard and was ...
+  /section[2]                      2      -         clause-file:SECTION  
+  /section[2]/heading[1]           2      -         clause-file:SECTION  Term
+  /section[2]/list_item[1]         2.1    clause    clause-file:CLAUSE   This agreement starts on the Co...
+  /section[2]/list_item[2]         2.2    clause    clause-file:CLAUSE   Either party may terminate on t...
+  /section[2]/paragraph[1]         -      -         fallback             This line carries no tag, so no...
 
 Blocks: 12
 Fallback blocks: 1

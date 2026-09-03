@@ -287,12 +287,16 @@ def main() -> None:
         sys.exit(1)
 
     if len(sys.argv) == 2:
+        source_name = sys.argv[1]
         try:
-            source = Path(sys.argv[1]).read_text(encoding="utf-8")
+            source = Path(source_name).read_text(encoding="utf-8")
         except OSError as error:
             print(f"Error: {error}")
             sys.exit(1)
     else:
+        # No file given: read the built-in sample, and detect a representative
+        # name for it rather than a real path on disk.
+        source_name = "deal.clf"
         source = SAMPLE
 
     # 1. Claim a format name, and an extension for format detection.
@@ -302,7 +306,7 @@ def main() -> None:
     print("A third-party reader for redlines")
     print("=" * 60)
     print(f"Registered formats: {', '.join(readers())}")
-    print(f"Detection of 'deal.clf': {detect_format(path='deal.clf').format}")
+    print(f"Detection of {source_name!r}: {detect_format(path=source_name).format}")
 
     # 2. Look the reader up the way any caller would, by format name.
     reader = reader_for("clause-file")

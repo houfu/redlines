@@ -53,7 +53,10 @@ _MAGIC: tuple[tuple[bytes, str], ...] = (
         b"PK\x03\x04",
         "a ZIP archive, which is what a DOCX file looks like; coming in 1.1",
     ),
-    (b"\xd0\xcf\x11\xe0", "an old binary Office file, which redlines does not read"),
+    (
+        b"\xd0\xcf\x11\xe0",
+        "an old binary Office file, which redlines 1.0 does not read; coming in 1.1",
+    ),
 )
 
 _MARKDOWN_SIGNALS: tuple[tuple[re.Pattern[str], str], ...] = (
@@ -193,6 +196,16 @@ def _sniff(text: str | bytes, *, suffix: str) -> FormatDetection:
                 "some kind redlines cannot read",
             )
     else:
+        # Most magic-byte signatures are not valid text, so a caller who
+        # already decoded the bytes could never trip them -- but a PDF's
+        # signature is plain ASCII, so a decoded PDF is still recognisable.
+        for magic, description in _MAGIC:
+            try:
+                decoded_magic = magic.decode("ascii")
+            except UnicodeDecodeError:
+                continue
+            if text.startswith(decoded_magic):
+                return FormatDetection(None, f"{preamble}the content is {description}")
         content = text
 
     if "\x00" in content:
