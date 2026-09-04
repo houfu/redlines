@@ -1,6 +1,6 @@
 # Roadmap to redlines 1.0
 
-**Status:** adopted, 30 August 2026. M0 shipped as 0.6.2 (PyPI, docs site live). Milestones M0–M6 exist on GitHub mirroring this file; all 12 M1 issues cite it. The ten calls in section 5 are recorded as accepted.
+**Status:** adopted, 30 August 2026. M0 shipped as 0.6.2 (PyPI, docs site live); M1 complete, 4 September 2026 (block model, both 1.0 readers, profiles, semantic pass, sample pair). Milestones M0–M6 exist on GitHub mirroring this file. The ten calls in section 5 are recorded as accepted.
 **Relationship to the other documents:** the `PRD` reference in each row is a requirement number (R*) or a decision number (D*). Decisions now live as ADRs in [`docs/adr/`](docs/adr/README.md); PRD section 6 maps every old D-number onto its ADR.
 
 **Relationship to the PRD:** [`docs/PRD.md`](docs/PRD.md) says what each feature is and why it exists. This file says which release it is in. Where the two disagree, this file wins on release assignment; the PRD's Must/Should tags were reconciled against the adopted plan in its revision 10 (30 August 2026).
@@ -59,6 +59,12 @@ pdoc is kept here deliberately rather than replaced along with the publishing su
 | Pyodide import check in CI | D28, N5 | S | Do it here so nothing later depends on a dependency the browser cannot load |
 
 **Exit:** the sample pair parses into the expected trees under `contract` and `markdown`; every 6b hard case has a test, passing or explicitly xfail; the wheel imports in Pyodide.
+
+**Complete, 4 September 2026.** All three exit criteria are met: the section 3a pair is frozen in `tests/corpus/sample_pair/` as four expected trees, read by both readers under both profiles and checked by `tests/test_sample_pair.py`; all seven § 6b hard cases have tests under `tests/corpus/hard_cases/`, four passing and three strict `xfail` with reasons, per the bar set when the milestone was planned; and a blocking `pyodide` job in `python-package.yml` builds the wheel and imports it under Pyodide on every push. All 12 issues on the "M1 Block model, semantic layer, profiles, readers" GitHub milestone are closed. The address syntax ADR-0012 left open is settled in [ADR-0029](docs/adr/0029-address-syntax.md), and the reporting semantics ADR-0006 made mandatory in [ADR-0030](docs/adr/0030-matched-by-and-confidence.md).
+
+The Pyodide check earned its place on its first run, which is the argument for having scheduled it here rather than at M6: it found that the package imports `typing_extensions` without declaring it, so a clean install on Python 3.10 — and every browser build — was already broken. Fixed in the same change.
+
+**Carried forward.** Two decisions this milestone surfaced and deliberately did not take. The profile format's three role match kinds are all structural, so no built-in profile can assign `clause` or `sub_clause`, and 72 of the 102 blocks in the sample pair carry no role at all; whether the format grows a fourth `text` match kind is [#130](https://github.com/houfu/redlines/issues/130), to be decided before M2 has change nodes carry roles (R1c). And ADR-0028's revisit condition on composition is now met — the `markdown` profile repeats most of `contract`'s span extractors and role rules — with the evidence pinned in a test and the `extends:` question left open.
 
 ### M2 — Alignment, change tree, benchmark
 
