@@ -163,8 +163,8 @@ click.rich_click.SHOW_ARGUMENTS = True
 
 if sys.version_info < (3, 10):
     # Get the required Python version from package metadata
-    pkg_metadata = metadata('redlines')
-    requires_python = pkg_metadata.get('Requires-Python', '>=3.10')
+    pkg_metadata = metadata("redlines")
+    requires_python = pkg_metadata.get("Requires-Python", ">=3.10")
 
     raise RuntimeError(
         f"Python version {sys.version_info.major}.{sys.version_info.minor} is not supported.\n"
@@ -460,7 +460,11 @@ def simple_text(ctx: click.Context, source: str, test: str) -> None:
 )
 @click.pass_context
 def markdown(
-    ctx: click.Context, source: str, test: str, markdown_style: MarkdownStyle, quiet: bool
+    ctx: click.Context,
+    source: str,
+    test: str,
+    markdown_style: MarkdownStyle,
+    quiet: bool,
 ) -> None:
     """
     Compares the strings SOURCE and TEST and outputs the redline as a markdown.

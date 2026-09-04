@@ -1,10 +1,15 @@
 from __future__ import annotations
 
 import re
+import sys
 import typing as t
 
 from rich.text import Text
-from typing_extensions import Unpack
+
+if sys.version_info >= (3, 11):
+    from typing import Unpack
+else:
+    from typing_extensions import Unpack
 
 from .document import Document
 from .enums import MarkdownStyle, OutputType
@@ -282,7 +287,9 @@ class Redlines:
         :param options: Additional options for comparison and output formatting.
         :type options: RedlinesOptions
         """
-        self.processor = processor if processor is not None else WholeDocumentProcessor()
+        self.processor = (
+            processor if processor is not None else WholeDocumentProcessor()
+        )
         self.source = source.text if isinstance(source, Document) else source
         self.options = options
         self._diff_operations = None

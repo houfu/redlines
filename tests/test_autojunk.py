@@ -63,9 +63,7 @@ def test_autojunk_true_reproduces_old_behavior() -> None:
     into a change spanning most of the document, proving the option is plumbed
     through to SequenceMatcher."""
     source, test = _repetitive_texts()
-    redline = Redlines(
-        source, test, processor=WholeDocumentProcessor(autojunk=True)
-    )
+    redline = Redlines(source, test, processor=WholeDocumentProcessor(autojunk=True))
     changes = redline.redlines
 
     max_span = max(

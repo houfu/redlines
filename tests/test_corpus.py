@@ -29,7 +29,18 @@ from redlines.processor import (
 
 CORPUS_DIR = Path(__file__).parent / "corpus"
 
-CASES = sorted(p.name for p in CORPUS_DIR.iterdir() if p.is_dir())
+# Directories under tests/corpus/ that are fixtures for something else and have
+# no golden output of their own: the PRD section 6b reader fixtures (#102), the
+# markdown reader's construct and twin fixtures (#103), and the PRD section 3a
+# sample pair (#108), whose goldens are block trees under its own expected/
+# directory and are checked by tests/test_sample_pair.py.
+NOT_GOLDEN_CASES = {"hard_cases", "markdown_cases", "sample_pair"}
+
+CASES = sorted(
+    p.name
+    for p in CORPUS_DIR.iterdir()
+    if p.is_dir() and p.name not in NOT_GOLDEN_CASES
+)
 
 STYLES = [style.value for style in MarkdownStyle]
 
@@ -123,7 +134,5 @@ def test_repetitive_schedule_reproduces_autojunk_pathology() -> None:
     test = read_exact(case_dir / "test.txt")
 
     redline = Redlines(source, test, processor=WholeDocumentProcessor(autojunk=True))
-    max_span = max(
-        op[2] - op[1] for op in redline.opcodes if op[0] != "equal"
-    )
+    max_span = max(op[2] - op[1] for op in redline.opcodes if op[0] != "equal")
     assert max_span > 500

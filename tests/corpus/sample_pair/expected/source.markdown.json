@@ -1,0 +1,3500 @@
+{
+  "dropped": [],
+  "fallback_count": 3,
+  "root": {
+    "attrs": {
+      "blocks": 83,
+      "headings": 15,
+      "labelled": 64,
+      "numbering_resets": 2,
+      "profile": "markdown",
+      "reader": "markdown"
+    },
+    "children": [
+      {
+        "attrs": {
+          "opened_by": "heading"
+        },
+        "children": [
+          {
+            "attrs": {
+              "atx_level": 1,
+              "indent": 0,
+              "markdown": "atx"
+            },
+            "children": [],
+            "confidence": 1.0,
+            "kind": "heading",
+            "label": null,
+            "level": 0,
+            "matched_by": "markdown:atx",
+            "path": "/section[1]/heading[1]",
+            "role": null,
+            "spans": [],
+            "text": "Master Services Agreement"
+          },
+          {
+            "attrs": {
+              "continuation": false,
+              "continuation_reason": "no_open_label",
+              "heading_score": 0.0,
+              "heading_signals": [
+                "too_many_words"
+              ],
+              "heading_threshold": 0.5,
+              "indent": 0,
+              "semantic": {
+                "spans": 3
+              }
+            },
+            "children": [],
+            "confidence": 0.0,
+            "kind": "paragraph",
+            "label": null,
+            "level": 0,
+            "matched_by": "fallback",
+            "path": "/section[1]/paragraph[1]",
+            "role": null,
+            "spans": [
+              {
+                "end": 143,
+                "start": 135,
+                "type": "party",
+                "value": null
+              },
+              {
+                "end": 246,
+                "start": 240,
+                "type": "party",
+                "value": null
+              },
+              {
+                "end": 38,
+                "start": 26,
+                "type": "date",
+                "value": null
+              }
+            ],
+            "text": "This Agreement is made on 1 March 2026 between Northwind Systems Limited, whose principal office is at 14 Harbour Row, Riverport (the \"Supplier\"), and Harbour Foods Group Limited, whose principal office is at 2 Meridian Way, Eastgate (the \"Client\")."
+          },
+          {
+            "attrs": {
+              "opened_by": "heading"
+            },
+            "children": [
+              {
+                "attrs": {
+                  "atx_level": 2,
+                  "indent": 0,
+                  "label_confidence": 0.9,
+                  "label_depth_mode": "arithmetic",
+                  "label_pattern": "decimal",
+                  "label_style": "decimal",
+                  "level_reason": "arithmetic",
+                  "markdown": "atx",
+                  "numbering_run": "first_value",
+                  "semantic": {
+                    "matched": "text",
+                    "role": "recital",
+                    "role_match": "heading",
+                    "role_rule": 2
+                  },
+                  "style_reason": "only"
+                },
+                "children": [],
+                "confidence": 1.0,
+                "kind": "heading",
+                "label": "1",
+                "level": 1,
+                "matched_by": "markdown:atx",
+                "path": "/section[1]/section[1]/heading[1]",
+                "role": "recital",
+                "spans": [],
+                "text": "Background"
+              },
+              {
+                "attrs": {
+                  "heading_score": 0.0,
+                  "heading_signals": [
+                    "too_many_words"
+                  ],
+                  "heading_threshold": 0.5,
+                  "indent": 0,
+                  "label_depth_mode": "arithmetic",
+                  "label_pattern": "decimal",
+                  "label_style": "decimal",
+                  "level_reason": "arithmetic",
+                  "numbering_run": "first_value",
+                  "semantic": {
+                    "spans": 1
+                  },
+                  "style_reason": "only"
+                },
+                "children": [],
+                "confidence": 0.9,
+                "kind": "list_item",
+                "label": "1.1",
+                "level": 2,
+                "matched_by": "label:decimal",
+                "path": "/section[1]/section[1]/list_item[1]",
+                "role": null,
+                "spans": [
+                  {
+                    "end": 10,
+                    "start": 4,
+                    "type": "party",
+                    "value": null
+                  }
+                ],
+                "text": "The Client operates a chain of grocery stores and wishes to procure the hosting and support of its online ordering platform."
+              },
+              {
+                "attrs": {
+                  "heading_score": 0.0,
+                  "heading_signals": [
+                    "too_many_words"
+                  ],
+                  "heading_threshold": 0.5,
+                  "indent": 0,
+                  "label_depth_mode": "arithmetic",
+                  "label_pattern": "decimal",
+                  "label_style": "decimal",
+                  "level_reason": "arithmetic",
+                  "numbering_run": "sequence",
+                  "semantic": {
+                    "spans": 2
+                  },
+                  "style_reason": "only"
+                },
+                "children": [],
+                "confidence": 0.9,
+                "kind": "list_item",
+                "label": "1.2",
+                "level": 2,
+                "matched_by": "label:decimal",
+                "path": "/section[1]/section[1]/list_item[2]",
+                "role": null,
+                "spans": [
+                  {
+                    "end": 12,
+                    "start": 4,
+                    "type": "party",
+                    "value": null
+                  },
+                  {
+                    "end": 108,
+                    "start": 102,
+                    "type": "party",
+                    "value": null
+                  }
+                ],
+                "text": "The Supplier supplies and supports software of that kind and has agreed to supply the Services to the Client."
+              },
+              {
+                "attrs": {
+                  "heading_score": 0.0,
+                  "heading_signals": [
+                    "too_many_words"
+                  ],
+                  "heading_threshold": 0.5,
+                  "indent": 0,
+                  "label_depth_mode": "arithmetic",
+                  "label_pattern": "decimal",
+                  "label_style": "decimal",
+                  "level_reason": "arithmetic",
+                  "numbering_run": "sequence",
+                  "style_reason": "only"
+                },
+                "children": [],
+                "confidence": 0.9,
+                "kind": "list_item",
+                "label": "1.3",
+                "level": 2,
+                "matched_by": "label:decimal",
+                "path": "/section[1]/section[1]/list_item[3]",
+                "role": null,
+                "spans": [],
+                "text": "The parties have agreed to record in this Agreement the terms on which the Services are supplied."
+              }
+            ],
+            "confidence": 1.0,
+            "kind": "section",
+            "label": null,
+            "level": 1,
+            "matched_by": "markdown:atx",
+            "path": "/section[1]/section[1]",
+            "role": null,
+            "spans": [],
+            "text": ""
+          },
+          {
+            "attrs": {
+              "opened_by": "heading",
+              "semantic": {
+                "role": "definitions",
+                "role_match": "definitions_heading",
+                "role_rule": null
+              }
+            },
+            "children": [
+              {
+                "attrs": {
+                  "atx_level": 2,
+                  "indent": 0,
+                  "label_confidence": 0.9,
+                  "label_depth_mode": "arithmetic",
+                  "label_pattern": "decimal",
+                  "label_style": "decimal",
+                  "level_reason": "arithmetic",
+                  "markdown": "atx",
+                  "numbering_run": "sequence",
+                  "semantic": {
+                    "matched": "text",
+                    "role": "definitions",
+                    "role_match": "heading",
+                    "role_rule": 0
+                  },
+                  "style_reason": "only"
+                },
+                "children": [],
+                "confidence": 1.0,
+                "kind": "heading",
+                "label": "2",
+                "level": 1,
+                "matched_by": "markdown:atx",
+                "path": "/section[1]/section[2]/heading[1]",
+                "role": "definitions",
+                "spans": [],
+                "text": "Definitions"
+              },
+              {
+                "attrs": {
+                  "heading_score": 0.0,
+                  "heading_signals": [
+                    "too_many_words"
+                  ],
+                  "heading_threshold": 0.5,
+                  "indent": 0,
+                  "label_depth_mode": "arithmetic",
+                  "label_pattern": "decimal",
+                  "label_style": "decimal",
+                  "level_reason": "arithmetic",
+                  "numbering_run": "first_value",
+                  "semantic": {
+                    "defined_terms": 1,
+                    "parent_role": "definitions",
+                    "role": "definition",
+                    "role_match": "parent_role",
+                    "role_rule": 1,
+                    "spans": 1
+                  },
+                  "style_reason": "only"
+                },
+                "children": [],
+                "confidence": 0.9,
+                "kind": "list_item",
+                "label": "2.1",
+                "level": 2,
+                "matched_by": "label:decimal",
+                "path": "/section[1]/section[2]/list_item[1]",
+                "role": "definition",
+                "spans": [
+                  {
+                    "end": 10,
+                    "start": 1,
+                    "type": "defined_term",
+                    "value": null
+                  }
+                ],
+                "text": "\"Agreement\" means this document, its schedules and any statement of work agreed under it."
+              },
+              {
+                "attrs": {
+                  "heading_score": 0.0,
+                  "heading_signals": [
+                    "too_many_words"
+                  ],
+                  "heading_threshold": 0.5,
+                  "indent": 0,
+                  "label_depth_mode": "arithmetic",
+                  "label_pattern": "decimal",
+                  "label_style": "decimal",
+                  "level_reason": "arithmetic",
+                  "numbering_run": "sequence",
+                  "semantic": {
+                    "defined_terms": 1,
+                    "parent_role": "definitions",
+                    "role": "definition",
+                    "role_match": "parent_role",
+                    "role_rule": 1,
+                    "spans": 1
+                  },
+                  "style_reason": "only"
+                },
+                "children": [],
+                "confidence": 0.9,
+                "kind": "list_item",
+                "label": "2.2",
+                "level": 2,
+                "matched_by": "label:decimal",
+                "path": "/section[1]/section[2]/list_item[2]",
+                "role": "definition",
+                "spans": [
+                  {
+                    "end": 13,
+                    "start": 1,
+                    "type": "defined_term",
+                    "value": null
+                  }
+                ],
+                "text": "\"Business Day\" means a day other than a Saturday, Sunday or public holiday on which banks are open for business in the place where the Services are supplied."
+              },
+              {
+                "attrs": {
+                  "heading_score": 0.0,
+                  "heading_signals": [
+                    "too_many_words"
+                  ],
+                  "heading_threshold": 0.5,
+                  "indent": 0,
+                  "label_depth_mode": "arithmetic",
+                  "label_pattern": "decimal",
+                  "label_style": "decimal",
+                  "level_reason": "arithmetic",
+                  "numbering_run": "sequence",
+                  "semantic": {
+                    "defined_terms": 1,
+                    "parent_role": "definitions",
+                    "role": "definition",
+                    "role_match": "parent_role",
+                    "role_rule": 1,
+                    "spans": 3
+                  },
+                  "style_reason": "only"
+                },
+                "children": [],
+                "confidence": 0.9,
+                "kind": "list_item",
+                "label": "2.3",
+                "level": 2,
+                "matched_by": "label:decimal",
+                "path": "/section[1]/section[2]/list_item[3]",
+                "role": "definition",
+                "spans": [
+                  {
+                    "end": 8,
+                    "start": 1,
+                    "type": "defined_term",
+                    "value": null
+                  },
+                  {
+                    "end": 46,
+                    "start": 40,
+                    "type": "party",
+                    "value": null
+                  },
+                  {
+                    "end": 98,
+                    "start": 97,
+                    "type": "cross_reference",
+                    "value": "5"
+                  }
+                ],
+                "text": "\"Charges\" means the fees payable by the Client for the Services, calculated as set out in clause 5."
+              },
+              {
+                "attrs": {
+                  "heading_score": 0.0,
+                  "heading_signals": [
+                    "too_many_words"
+                  ],
+                  "heading_threshold": 0.5,
+                  "indent": 0,
+                  "label_depth_mode": "arithmetic",
+                  "label_pattern": "decimal",
+                  "label_style": "decimal",
+                  "level_reason": "arithmetic",
+                  "numbering_run": "sequence",
+                  "semantic": {
+                    "defined_terms": 1,
+                    "parent_role": "definitions",
+                    "role": "definition",
+                    "role_match": "parent_role",
+                    "role_rule": 1,
+                    "spans": 1
+                  },
+                  "style_reason": "only"
+                },
+                "children": [],
+                "confidence": 0.9,
+                "kind": "list_item",
+                "label": "2.4",
+                "level": 2,
+                "matched_by": "label:decimal",
+                "path": "/section[1]/section[2]/list_item[4]",
+                "role": "definition",
+                "spans": [
+                  {
+                    "end": 25,
+                    "start": 1,
+                    "type": "defined_term",
+                    "value": null
+                  }
+                ],
+                "text": "\"Confidential Information\" means information disclosed by one party to the other in connection with this Agreement that is marked as confidential."
+              },
+              {
+                "attrs": {
+                  "heading_score": 0.0,
+                  "heading_signals": [
+                    "too_many_words"
+                  ],
+                  "heading_threshold": 0.5,
+                  "indent": 0,
+                  "label_depth_mode": "arithmetic",
+                  "label_pattern": "decimal",
+                  "label_style": "decimal",
+                  "level_reason": "arithmetic",
+                  "numbering_run": "sequence",
+                  "semantic": {
+                    "defined_terms": 1,
+                    "parent_role": "definitions",
+                    "role": "definition",
+                    "role_match": "parent_role",
+                    "role_rule": 1,
+                    "spans": 4
+                  },
+                  "style_reason": "only"
+                },
+                "children": [],
+                "confidence": 0.9,
+                "kind": "list_item",
+                "label": "2.5",
+                "level": 2,
+                "matched_by": "label:decimal",
+                "path": "/section[1]/section[2]/list_item[5]",
+                "role": "definition",
+                "spans": [
+                  {
+                    "end": 12,
+                    "start": 1,
+                    "type": "defined_term",
+                    "value": null
+                  },
+                  {
+                    "end": 45,
+                    "start": 37,
+                    "type": "party",
+                    "value": null
+                  },
+                  {
+                    "end": 73,
+                    "start": 67,
+                    "type": "party",
+                    "value": null
+                  },
+                  {
+                    "end": 90,
+                    "start": 80,
+                    "type": "cross_reference",
+                    "value": "Schedule 1"
+                  }
+                ],
+                "text": "\"Deliverable\" means an item that the Supplier is to deliver to the Client under Schedule 1."
+              },
+              {
+                "attrs": {
+                  "heading_score": 0.0,
+                  "heading_signals": [
+                    "too_many_words"
+                  ],
+                  "heading_threshold": 0.5,
+                  "indent": 0,
+                  "label_depth_mode": "arithmetic",
+                  "label_pattern": "decimal",
+                  "label_style": "decimal",
+                  "level_reason": "arithmetic",
+                  "numbering_run": "sequence",
+                  "semantic": {
+                    "defined_terms": 1,
+                    "parent_role": "definitions",
+                    "role": "definition",
+                    "role_match": "parent_role",
+                    "role_rule": 1,
+                    "spans": 2
+                  },
+                  "style_reason": "only"
+                },
+                "children": [],
+                "confidence": 0.9,
+                "kind": "list_item",
+                "label": "2.6",
+                "level": 2,
+                "matched_by": "label:decimal",
+                "path": "/section[1]/section[2]/list_item[6]",
+                "role": "definition",
+                "spans": [
+                  {
+                    "end": 14,
+                    "start": 1,
+                    "type": "defined_term",
+                    "value": null
+                  },
+                  {
+                    "end": 88,
+                    "start": 78,
+                    "type": "cross_reference",
+                    "value": "Schedule 2"
+                  }
+                ],
+                "text": "\"Service Level\" means a target for the performance of the Services set out in Schedule 2."
+              },
+              {
+                "attrs": {
+                  "heading_score": 0.0,
+                  "heading_signals": [
+                    "too_many_words"
+                  ],
+                  "heading_threshold": 0.5,
+                  "indent": 0,
+                  "label_depth_mode": "arithmetic",
+                  "label_pattern": "decimal",
+                  "label_style": "decimal",
+                  "level_reason": "arithmetic",
+                  "numbering_run": "sequence",
+                  "semantic": {
+                    "defined_terms": 1,
+                    "parent_role": "definitions",
+                    "role": "definition",
+                    "role_match": "parent_role",
+                    "role_rule": 1,
+                    "spans": 2
+                  },
+                  "style_reason": "only"
+                },
+                "children": [],
+                "confidence": 0.9,
+                "kind": "list_item",
+                "label": "2.7",
+                "level": 2,
+                "matched_by": "label:decimal",
+                "path": "/section[1]/section[2]/list_item[7]",
+                "role": "definition",
+                "spans": [
+                  {
+                    "end": 9,
+                    "start": 1,
+                    "type": "defined_term",
+                    "value": null
+                  },
+                  {
+                    "end": 86,
+                    "start": 76,
+                    "type": "cross_reference",
+                    "value": "Schedule 1"
+                  }
+                ],
+                "text": "\"Services\" means the hosting, support and maintenance services described in Schedule 1."
+              },
+              {
+                "attrs": {
+                  "heading_score": 0.0,
+                  "heading_signals": [
+                    "too_many_words"
+                  ],
+                  "heading_threshold": 0.5,
+                  "indent": 0,
+                  "label_depth_mode": "arithmetic",
+                  "label_pattern": "decimal",
+                  "label_style": "decimal",
+                  "level_reason": "arithmetic",
+                  "numbering_run": "sequence",
+                  "semantic": {
+                    "defined_terms": 1,
+                    "parent_role": "definitions",
+                    "role": "definition",
+                    "role_match": "parent_role",
+                    "role_rule": 1,
+                    "spans": 2
+                  },
+                  "style_reason": "only"
+                },
+                "children": [],
+                "confidence": 0.9,
+                "kind": "list_item",
+                "label": "2.8",
+                "level": 2,
+                "matched_by": "label:decimal",
+                "path": "/section[1]/section[2]/list_item[8]",
+                "role": "definition",
+                "spans": [
+                  {
+                    "end": 5,
+                    "start": 1,
+                    "type": "defined_term",
+                    "value": null
+                  },
+                  {
+                    "end": 82,
+                    "start": 81,
+                    "type": "cross_reference",
+                    "value": "9"
+                  }
+                ],
+                "text": "\"Term\" means the period for which this Agreement continues, as set out in clause 9."
+              }
+            ],
+            "confidence": 1.0,
+            "kind": "section",
+            "label": null,
+            "level": 1,
+            "matched_by": "markdown:atx",
+            "path": "/section[1]/section[2]",
+            "role": "definitions",
+            "spans": [],
+            "text": ""
+          },
+          {
+            "attrs": {
+              "opened_by": "heading"
+            },
+            "children": [
+              {
+                "attrs": {
+                  "atx_level": 2,
+                  "indent": 0,
+                  "label_confidence": 0.9,
+                  "label_depth_mode": "arithmetic",
+                  "label_pattern": "decimal",
+                  "label_style": "decimal",
+                  "level_reason": "arithmetic",
+                  "markdown": "atx",
+                  "numbering_run": "sequence",
+                  "style_reason": "only"
+                },
+                "children": [],
+                "confidence": 1.0,
+                "kind": "heading",
+                "label": "3",
+                "level": 1,
+                "matched_by": "markdown:atx",
+                "path": "/section[1]/section[3]/heading[1]",
+                "role": null,
+                "spans": [],
+                "text": "Supply of the Services"
+              },
+              {
+                "attrs": {
+                  "heading_score": 0.0,
+                  "heading_signals": [
+                    "too_many_words"
+                  ],
+                  "heading_threshold": 0.5,
+                  "indent": 0,
+                  "label_depth_mode": "arithmetic",
+                  "label_pattern": "decimal",
+                  "label_style": "decimal",
+                  "level_reason": "arithmetic",
+                  "numbering_run": "first_value",
+                  "semantic": {
+                    "spans": 3
+                  },
+                  "style_reason": "only"
+                },
+                "children": [],
+                "confidence": 0.9,
+                "kind": "list_item",
+                "label": "3.1",
+                "level": 2,
+                "matched_by": "label:decimal",
+                "path": "/section[1]/section[3]/list_item[1]",
+                "role": null,
+                "spans": [
+                  {
+                    "end": 12,
+                    "start": 4,
+                    "type": "party",
+                    "value": null
+                  },
+                  {
+                    "end": 52,
+                    "start": 46,
+                    "type": "party",
+                    "value": null
+                  },
+                  {
+                    "end": 101,
+                    "start": 91,
+                    "type": "cross_reference",
+                    "value": "Schedule 1"
+                  }
+                ],
+                "text": "The Supplier shall supply the Services to the Client in accordance with this Agreement and Schedule 1."
+              },
+              {
+                "attrs": {
+                  "heading_score": 0.0,
+                  "heading_signals": [
+                    "too_many_words"
+                  ],
+                  "heading_threshold": 0.5,
+                  "indent": 0,
+                  "label_depth_mode": "arithmetic",
+                  "label_pattern": "decimal",
+                  "label_style": "decimal",
+                  "level_reason": "arithmetic",
+                  "numbering_run": "sequence",
+                  "semantic": {
+                    "spans": 1
+                  },
+                  "style_reason": "only"
+                },
+                "children": [],
+                "confidence": 0.9,
+                "kind": "list_item",
+                "label": "3.2",
+                "level": 2,
+                "matched_by": "label:decimal",
+                "path": "/section[1]/section[3]/list_item[2]",
+                "role": null,
+                "spans": [
+                  {
+                    "end": 12,
+                    "start": 4,
+                    "type": "party",
+                    "value": null
+                  }
+                ],
+                "text": "The Supplier shall supply the Services with reasonable skill and care, using personnel who are suitably qualified and experienced."
+              },
+              {
+                "attrs": {
+                  "heading_score": 0.0,
+                  "heading_signals": [
+                    "too_many_words"
+                  ],
+                  "heading_threshold": 0.5,
+                  "indent": 0,
+                  "label_depth_mode": "arithmetic",
+                  "label_pattern": "decimal",
+                  "label_style": "decimal",
+                  "level_reason": "arithmetic",
+                  "numbering_run": "sequence",
+                  "semantic": {
+                    "spans": 1
+                  },
+                  "style_reason": "only"
+                },
+                "children": [],
+                "confidence": 0.9,
+                "kind": "list_item",
+                "label": "3.3",
+                "level": 2,
+                "matched_by": "label:decimal",
+                "path": "/section[1]/section[3]/list_item[3]",
+                "role": null,
+                "spans": [
+                  {
+                    "end": 12,
+                    "start": 4,
+                    "type": "party",
+                    "value": null
+                  }
+                ],
+                "text": "The Supplier shall meet each Service Level and shall report on its performance against the Service Levels for each month within five Business Days of the end of that month."
+              },
+              {
+                "attrs": {
+                  "heading_score": 0.0,
+                  "heading_signals": [
+                    "too_many_words"
+                  ],
+                  "heading_threshold": 0.5,
+                  "indent": 0,
+                  "label_depth_mode": "arithmetic",
+                  "label_pattern": "decimal",
+                  "label_style": "decimal",
+                  "level_reason": "arithmetic",
+                  "numbering_run": "sequence",
+                  "semantic": {
+                    "spans": 1
+                  },
+                  "style_reason": "only"
+                },
+                "children": [],
+                "confidence": 0.9,
+                "kind": "list_item",
+                "label": "3.4",
+                "level": 2,
+                "matched_by": "label:decimal",
+                "path": "/section[1]/section[3]/list_item[4]",
+                "role": null,
+                "spans": [
+                  {
+                    "end": 12,
+                    "start": 4,
+                    "type": "party",
+                    "value": null
+                  }
+                ],
+                "text": "The Supplier may change the way in which the Services are supplied, provided that the change does not reduce their quality or availability."
+              }
+            ],
+            "confidence": 1.0,
+            "kind": "section",
+            "label": null,
+            "level": 1,
+            "matched_by": "markdown:atx",
+            "path": "/section[1]/section[3]",
+            "role": null,
+            "spans": [],
+            "text": ""
+          },
+          {
+            "attrs": {
+              "opened_by": "heading"
+            },
+            "children": [
+              {
+                "attrs": {
+                  "atx_level": 2,
+                  "indent": 0,
+                  "label_confidence": 0.9,
+                  "label_depth_mode": "arithmetic",
+                  "label_pattern": "decimal",
+                  "label_style": "decimal",
+                  "level_reason": "arithmetic",
+                  "markdown": "atx",
+                  "numbering_run": "sequence",
+                  "style_reason": "only"
+                },
+                "children": [],
+                "confidence": 1.0,
+                "kind": "heading",
+                "label": "4",
+                "level": 1,
+                "matched_by": "markdown:atx",
+                "path": "/section[1]/section[4]/heading[1]",
+                "role": null,
+                "spans": [],
+                "text": "Client Obligations"
+              },
+              {
+                "attrs": {
+                  "heading_score": 0.0,
+                  "heading_signals": [
+                    "too_many_words"
+                  ],
+                  "heading_threshold": 0.5,
+                  "indent": 0,
+                  "label_depth_mode": "arithmetic",
+                  "label_pattern": "decimal",
+                  "label_style": "decimal",
+                  "level_reason": "arithmetic",
+                  "numbering_run": "first_value",
+                  "semantic": {
+                    "spans": 3
+                  },
+                  "style_reason": "only"
+                },
+                "children": [],
+                "confidence": 0.9,
+                "kind": "list_item",
+                "label": "4.1",
+                "level": 2,
+                "matched_by": "label:decimal",
+                "path": "/section[1]/section[4]/list_item[1]",
+                "role": null,
+                "spans": [
+                  {
+                    "end": 10,
+                    "start": 4,
+                    "type": "party",
+                    "value": null
+                  },
+                  {
+                    "end": 34,
+                    "start": 26,
+                    "type": "party",
+                    "value": null
+                  },
+                  {
+                    "end": 93,
+                    "start": 85,
+                    "type": "party",
+                    "value": null
+                  }
+                ],
+                "text": "The Client shall give the Supplier the access, information and co-operation that the Supplier reasonably needs in order to supply the Services."
+              },
+              {
+                "attrs": {
+                  "heading_score": 0.0,
+                  "heading_signals": [
+                    "too_many_words"
+                  ],
+                  "heading_threshold": 0.5,
+                  "indent": 0,
+                  "label_depth_mode": "arithmetic",
+                  "label_pattern": "decimal",
+                  "label_style": "decimal",
+                  "level_reason": "arithmetic",
+                  "numbering_run": "sequence",
+                  "semantic": {
+                    "spans": 2
+                  },
+                  "style_reason": "only"
+                },
+                "children": [],
+                "confidence": 0.9,
+                "kind": "list_item",
+                "label": "4.2",
+                "level": 2,
+                "matched_by": "label:decimal",
+                "path": "/section[1]/section[4]/list_item[2]",
+                "role": null,
+                "spans": [
+                  {
+                    "end": 10,
+                    "start": 4,
+                    "type": "party",
+                    "value": null
+                  },
+                  {
+                    "end": 85,
+                    "start": 77,
+                    "type": "party",
+                    "value": null
+                  }
+                ],
+                "text": "The Client shall keep the credentials issued to it secure and shall tell the Supplier promptly if it believes that they have been disclosed to anyone who is not authorised to use them."
+              },
+              {
+                "attrs": {
+                  "heading_score": 0.0,
+                  "heading_signals": [
+                    "too_many_words"
+                  ],
+                  "heading_threshold": 0.5,
+                  "indent": 0,
+                  "label_depth_mode": "arithmetic",
+                  "label_pattern": "decimal",
+                  "label_style": "decimal",
+                  "level_reason": "arithmetic",
+                  "numbering_run": "sequence",
+                  "semantic": {
+                    "spans": 1
+                  },
+                  "style_reason": "only"
+                },
+                "children": [],
+                "confidence": 0.9,
+                "kind": "list_item",
+                "label": "4.3",
+                "level": 2,
+                "matched_by": "label:decimal",
+                "path": "/section[1]/section[4]/list_item[3]",
+                "role": null,
+                "spans": [
+                  {
+                    "end": 10,
+                    "start": 4,
+                    "type": "party",
+                    "value": null
+                  }
+                ],
+                "text": "The Client is responsible for the accuracy of the data that it loads into the platform."
+              }
+            ],
+            "confidence": 1.0,
+            "kind": "section",
+            "label": null,
+            "level": 1,
+            "matched_by": "markdown:atx",
+            "path": "/section[1]/section[4]",
+            "role": null,
+            "spans": [],
+            "text": ""
+          },
+          {
+            "attrs": {
+              "opened_by": "heading"
+            },
+            "children": [
+              {
+                "attrs": {
+                  "atx_level": 2,
+                  "indent": 0,
+                  "label_confidence": 0.9,
+                  "label_depth_mode": "arithmetic",
+                  "label_pattern": "decimal",
+                  "label_style": "decimal",
+                  "level_reason": "arithmetic",
+                  "markdown": "atx",
+                  "numbering_run": "sequence",
+                  "style_reason": "only"
+                },
+                "children": [],
+                "confidence": 1.0,
+                "kind": "heading",
+                "label": "5",
+                "level": 1,
+                "matched_by": "markdown:atx",
+                "path": "/section[1]/section[5]/heading[1]",
+                "role": null,
+                "spans": [],
+                "text": "Charges and Payment"
+              },
+              {
+                "attrs": {
+                  "heading_score": 0.0,
+                  "heading_signals": [
+                    "too_many_words"
+                  ],
+                  "heading_threshold": 0.5,
+                  "indent": 0,
+                  "label_depth_mode": "arithmetic",
+                  "label_pattern": "decimal",
+                  "label_style": "decimal",
+                  "level_reason": "arithmetic",
+                  "numbering_run": "first_value",
+                  "semantic": {
+                    "spans": 1
+                  },
+                  "style_reason": "only"
+                },
+                "children": [],
+                "confidence": 0.9,
+                "kind": "list_item",
+                "label": "5.1",
+                "level": 2,
+                "matched_by": "label:decimal",
+                "path": "/section[1]/section[5]/list_item[1]",
+                "role": null,
+                "spans": [
+                  {
+                    "end": 10,
+                    "start": 4,
+                    "type": "party",
+                    "value": null
+                  }
+                ],
+                "text": "The Client shall pay the Charges for the Services."
+              },
+              {
+                "attrs": {
+                  "heading_score": 0.0,
+                  "heading_signals": [
+                    "too_many_words"
+                  ],
+                  "heading_threshold": 0.5,
+                  "indent": 0,
+                  "label_depth_mode": "arithmetic",
+                  "label_pattern": "decimal",
+                  "label_style": "decimal",
+                  "level_reason": "arithmetic",
+                  "numbering_run": "sequence",
+                  "semantic": {
+                    "spans": 1
+                  },
+                  "style_reason": "only"
+                },
+                "children": [],
+                "confidence": 0.9,
+                "kind": "list_item",
+                "label": "5.2",
+                "level": 2,
+                "matched_by": "label:decimal",
+                "path": "/section[1]/section[5]/list_item[2]",
+                "role": null,
+                "spans": [
+                  {
+                    "end": 26,
+                    "start": 16,
+                    "type": "amount",
+                    "value": null
+                  }
+                ],
+                "text": "The Charges are USD 12,000 for each month of the Term, and may be increased once in each year of the Term by no more than five per cent."
+              },
+              {
+                "attrs": {
+                  "heading_score": 0.0,
+                  "heading_signals": [
+                    "too_many_words"
+                  ],
+                  "heading_threshold": 0.5,
+                  "indent": 0,
+                  "label_depth_mode": "arithmetic",
+                  "label_pattern": "decimal",
+                  "label_style": "decimal",
+                  "level_reason": "arithmetic",
+                  "numbering_run": "sequence",
+                  "semantic": {
+                    "spans": 2
+                  },
+                  "style_reason": "only"
+                },
+                "children": [],
+                "confidence": 0.9,
+                "kind": "list_item",
+                "label": "5.3",
+                "level": 2,
+                "matched_by": "label:decimal",
+                "path": "/section[1]/section[5]/list_item[3]",
+                "role": null,
+                "spans": [
+                  {
+                    "end": 12,
+                    "start": 4,
+                    "type": "party",
+                    "value": null
+                  },
+                  {
+                    "end": 73,
+                    "start": 67,
+                    "type": "party",
+                    "value": null
+                  }
+                ],
+                "text": "The Supplier shall invoice the Charges monthly in arrears, and the Client shall pay each invoice within thirty days of receiving it."
+              },
+              {
+                "attrs": {
+                  "heading_score": 0.0,
+                  "heading_signals": [
+                    "too_many_words"
+                  ],
+                  "heading_threshold": 0.5,
+                  "indent": 0,
+                  "label_depth_mode": "arithmetic",
+                  "label_pattern": "decimal",
+                  "label_style": "decimal",
+                  "level_reason": "arithmetic",
+                  "numbering_run": "sequence",
+                  "semantic": {
+                    "spans": 1
+                  },
+                  "style_reason": "only"
+                },
+                "children": [
+                  {
+                    "attrs": {
+                      "heading_score": 0.0,
+                      "heading_signals": [
+                        "too_many_words"
+                      ],
+                      "heading_threshold": 0.5,
+                      "indent": 0,
+                      "label_depth_mode": "stack",
+                      "label_pattern": "alpha_paren",
+                      "label_style": "alpha",
+                      "level_reason": "push",
+                      "numbering_run": "first_value",
+                      "semantic": {
+                        "spans": 2
+                      },
+                      "style_reason": "only"
+                    },
+                    "children": [],
+                    "confidence": 0.65,
+                    "kind": "list_item",
+                    "label": "(a)",
+                    "level": 3,
+                    "matched_by": "label:alpha_paren",
+                    "path": "/section[1]/section[5]/list_item[4]/list_item[1]",
+                    "role": null,
+                    "spans": [
+                      {
+                        "end": 10,
+                        "start": 4,
+                        "type": "party",
+                        "value": null
+                      },
+                      {
+                        "end": 29,
+                        "start": 21,
+                        "type": "party",
+                        "value": null
+                      }
+                    ],
+                    "text": "The Client tells the Supplier of the dispute within ten Business Days of receiving the invoice."
+                  },
+                  {
+                    "attrs": {
+                      "heading_score": 0.0,
+                      "heading_signals": [
+                        "too_many_words"
+                      ],
+                      "heading_threshold": 0.5,
+                      "indent": 0,
+                      "label_depth_mode": "stack",
+                      "label_pattern": "alpha_paren",
+                      "label_style": "alpha",
+                      "level_reason": "reopen",
+                      "numbering_run": "sequence",
+                      "style_reason": "only"
+                    },
+                    "children": [],
+                    "confidence": 0.65,
+                    "kind": "list_item",
+                    "label": "(b)",
+                    "level": 3,
+                    "matched_by": "label:alpha_paren",
+                    "path": "/section[1]/section[5]/list_item[4]/list_item[2]",
+                    "role": null,
+                    "spans": [],
+                    "text": "The notice states the amount in dispute and the reason for it."
+                  },
+                  {
+                    "attrs": {
+                      "heading_score": 0.0,
+                      "heading_signals": [
+                        "too_many_words"
+                      ],
+                      "heading_threshold": 0.5,
+                      "indent": 0,
+                      "label_candidates": [
+                        "alpha_paren",
+                        "roman_paren"
+                      ],
+                      "label_depth_mode": "stack",
+                      "label_pattern": "alpha_paren",
+                      "label_style": "alpha",
+                      "level_reason": "reopen",
+                      "numbering_run": "sequence",
+                      "semantic": {
+                        "spans": 1
+                      },
+                      "style_reason": "sequence"
+                    },
+                    "children": [],
+                    "confidence": 0.6,
+                    "kind": "list_item",
+                    "label": "(c)",
+                    "level": 3,
+                    "matched_by": "label:alpha_paren",
+                    "path": "/section[1]/section[5]/list_item[4]/list_item[3]",
+                    "role": null,
+                    "spans": [
+                      {
+                        "end": 10,
+                        "start": 4,
+                        "type": "party",
+                        "value": null
+                      }
+                    ],
+                    "text": "The Client pays the undisputed part of the invoice on the due date."
+                  }
+                ],
+                "confidence": 0.9,
+                "kind": "list_item",
+                "label": "5.4",
+                "level": 2,
+                "matched_by": "label:decimal",
+                "path": "/section[1]/section[5]/list_item[4]",
+                "role": null,
+                "spans": [
+                  {
+                    "end": 10,
+                    "start": 4,
+                    "type": "party",
+                    "value": null
+                  }
+                ],
+                "text": "The Client may withhold payment of a disputed part of an invoice where each of the following applies:"
+              },
+              {
+                "attrs": {
+                  "heading_score": 0.0,
+                  "heading_signals": [
+                    "too_many_words"
+                  ],
+                  "heading_threshold": 0.5,
+                  "indent": 0,
+                  "label_depth_mode": "arithmetic",
+                  "label_pattern": "decimal",
+                  "label_style": "decimal",
+                  "level_reason": "arithmetic",
+                  "numbering_run": "sequence",
+                  "style_reason": "only"
+                },
+                "children": [],
+                "confidence": 0.9,
+                "kind": "list_item",
+                "label": "5.5",
+                "level": 2,
+                "matched_by": "label:decimal",
+                "path": "/section[1]/section[5]/list_item[5]",
+                "role": null,
+                "spans": [],
+                "text": "Interest runs on any overdue amount at one per cent for each month from the due date until payment."
+              }
+            ],
+            "confidence": 1.0,
+            "kind": "section",
+            "label": null,
+            "level": 1,
+            "matched_by": "markdown:atx",
+            "path": "/section[1]/section[5]",
+            "role": null,
+            "spans": [],
+            "text": ""
+          },
+          {
+            "attrs": {
+              "opened_by": "heading"
+            },
+            "children": [
+              {
+                "attrs": {
+                  "atx_level": 2,
+                  "indent": 0,
+                  "label_confidence": 0.9,
+                  "label_depth_mode": "arithmetic",
+                  "label_pattern": "decimal",
+                  "label_style": "decimal",
+                  "level_reason": "arithmetic",
+                  "markdown": "atx",
+                  "numbering_run": "sequence",
+                  "style_reason": "only"
+                },
+                "children": [],
+                "confidence": 1.0,
+                "kind": "heading",
+                "label": "6",
+                "level": 1,
+                "matched_by": "markdown:atx",
+                "path": "/section[1]/section[6]/heading[1]",
+                "role": null,
+                "spans": [],
+                "text": "Intellectual Property"
+              },
+              {
+                "attrs": {
+                  "heading_score": 0.0,
+                  "heading_signals": [
+                    "too_many_words"
+                  ],
+                  "heading_threshold": 0.5,
+                  "indent": 0,
+                  "label_depth_mode": "arithmetic",
+                  "label_pattern": "decimal",
+                  "label_style": "decimal",
+                  "level_reason": "arithmetic",
+                  "numbering_run": "first_value",
+                  "style_reason": "only"
+                },
+                "children": [],
+                "confidence": 0.9,
+                "kind": "list_item",
+                "label": "6.1",
+                "level": 2,
+                "matched_by": "label:decimal",
+                "path": "/section[1]/section[6]/list_item[1]",
+                "role": null,
+                "spans": [],
+                "text": "Each party keeps the intellectual property rights that it owned before this Agreement began."
+              },
+              {
+                "attrs": {
+                  "heading_score": 0.0,
+                  "heading_signals": [
+                    "too_many_words"
+                  ],
+                  "heading_threshold": 0.5,
+                  "indent": 0,
+                  "label_depth_mode": "arithmetic",
+                  "label_pattern": "decimal",
+                  "label_style": "decimal",
+                  "level_reason": "arithmetic",
+                  "numbering_run": "sequence",
+                  "semantic": {
+                    "spans": 3
+                  },
+                  "style_reason": "only"
+                },
+                "children": [],
+                "confidence": 0.9,
+                "kind": "list_item",
+                "label": "6.2",
+                "level": 2,
+                "matched_by": "label:decimal",
+                "path": "/section[1]/section[6]/list_item[2]",
+                "role": null,
+                "spans": [
+                  {
+                    "end": 12,
+                    "start": 4,
+                    "type": "party",
+                    "value": null
+                  },
+                  {
+                    "end": 30,
+                    "start": 24,
+                    "type": "party",
+                    "value": null
+                  },
+                  {
+                    "end": 139,
+                    "start": 133,
+                    "type": "party",
+                    "value": null
+                  }
+                ],
+                "text": "The Supplier grants the Client a non-exclusive licence to use the platform and the Deliverables for the Term for the purposes of the Client's own business."
+              },
+              {
+                "attrs": {
+                  "heading_score": 0.0,
+                  "heading_signals": [
+                    "too_many_words"
+                  ],
+                  "heading_threshold": 0.5,
+                  "indent": 0,
+                  "label_depth_mode": "arithmetic",
+                  "label_pattern": "decimal",
+                  "label_style": "decimal",
+                  "level_reason": "arithmetic",
+                  "numbering_run": "sequence",
+                  "semantic": {
+                    "spans": 3
+                  },
+                  "style_reason": "only"
+                },
+                "children": [],
+                "confidence": 0.9,
+                "kind": "list_item",
+                "label": "6.3",
+                "level": 2,
+                "matched_by": "label:decimal",
+                "path": "/section[1]/section[6]/list_item[3]",
+                "role": null,
+                "spans": [
+                  {
+                    "end": 10,
+                    "start": 4,
+                    "type": "party",
+                    "value": null
+                  },
+                  {
+                    "end": 30,
+                    "start": 22,
+                    "type": "party",
+                    "value": null
+                  },
+                  {
+                    "end": 58,
+                    "start": 52,
+                    "type": "party",
+                    "value": null
+                  }
+                ],
+                "text": "The Client grants the Supplier a licence to use the Client's data to the extent needed to supply the Services."
+              }
+            ],
+            "confidence": 1.0,
+            "kind": "section",
+            "label": null,
+            "level": 1,
+            "matched_by": "markdown:atx",
+            "path": "/section[1]/section[6]",
+            "role": null,
+            "spans": [],
+            "text": ""
+          },
+          {
+            "attrs": {
+              "opened_by": "heading"
+            },
+            "children": [
+              {
+                "attrs": {
+                  "atx_level": 2,
+                  "indent": 0,
+                  "label_confidence": 0.9,
+                  "label_depth_mode": "arithmetic",
+                  "label_pattern": "decimal",
+                  "label_style": "decimal",
+                  "level_reason": "arithmetic",
+                  "markdown": "atx",
+                  "numbering_run": "sequence",
+                  "style_reason": "only"
+                },
+                "children": [],
+                "confidence": 1.0,
+                "kind": "heading",
+                "label": "7",
+                "level": 1,
+                "matched_by": "markdown:atx",
+                "path": "/section[1]/section[7]/heading[1]",
+                "role": null,
+                "spans": [],
+                "text": "Confidentiality"
+              },
+              {
+                "attrs": {
+                  "heading_score": 0.0,
+                  "heading_signals": [
+                    "too_many_words"
+                  ],
+                  "heading_threshold": 0.5,
+                  "indent": 0,
+                  "label_depth_mode": "arithmetic",
+                  "label_pattern": "decimal",
+                  "label_style": "decimal",
+                  "level_reason": "arithmetic",
+                  "numbering_run": "first_value",
+                  "style_reason": "only"
+                },
+                "children": [],
+                "confidence": 0.9,
+                "kind": "list_item",
+                "label": "7.1",
+                "level": 2,
+                "matched_by": "label:decimal",
+                "path": "/section[1]/section[7]/list_item[1]",
+                "role": null,
+                "spans": [],
+                "text": "Each party shall keep the other party's Confidential Information secret and shall use it only for the purposes of this Agreement."
+              },
+              {
+                "attrs": {
+                  "heading_score": 0.0,
+                  "heading_signals": [
+                    "too_many_words"
+                  ],
+                  "heading_threshold": 0.5,
+                  "indent": 0,
+                  "label_depth_mode": "arithmetic",
+                  "label_pattern": "decimal",
+                  "label_style": "decimal",
+                  "level_reason": "arithmetic",
+                  "numbering_run": "sequence",
+                  "semantic": {
+                    "spans": 1
+                  },
+                  "style_reason": "only"
+                },
+                "children": [],
+                "confidence": 0.9,
+                "kind": "list_item",
+                "label": "7.2",
+                "level": 2,
+                "matched_by": "label:decimal",
+                "path": "/section[1]/section[7]/list_item[2]",
+                "role": null,
+                "spans": [
+                  {
+                    "end": 201,
+                    "start": 198,
+                    "type": "cross_reference",
+                    "value": "7.1"
+                  }
+                ],
+                "text": "A party may disclose the other party's Confidential Information to those of its personnel and advisers who need it for those purposes, provided that it makes them aware of the obligations in clause 7.1."
+              },
+              {
+                "attrs": {
+                  "heading_score": 0.0,
+                  "heading_signals": [
+                    "too_many_words"
+                  ],
+                  "heading_threshold": 0.5,
+                  "indent": 0,
+                  "label_depth_mode": "arithmetic",
+                  "label_pattern": "decimal",
+                  "label_style": "decimal",
+                  "level_reason": "arithmetic",
+                  "numbering_run": "sequence",
+                  "semantic": {
+                    "spans": 1
+                  },
+                  "style_reason": "only"
+                },
+                "children": [],
+                "confidence": 0.9,
+                "kind": "list_item",
+                "label": "7.3",
+                "level": 2,
+                "matched_by": "label:decimal",
+                "path": "/section[1]/section[7]/list_item[3]",
+                "role": null,
+                "spans": [
+                  {
+                    "end": 10,
+                    "start": 7,
+                    "type": "cross_reference",
+                    "value": "7.1"
+                  }
+                ],
+                "text": "Clause 7.1 does not apply to information that is public otherwise than through a breach of this Agreement, or that the receiving party already held free of any duty of confidence."
+              },
+              {
+                "attrs": {
+                  "heading_score": 0.0,
+                  "heading_signals": [
+                    "too_many_words"
+                  ],
+                  "heading_threshold": 0.5,
+                  "indent": 0,
+                  "label_depth_mode": "arithmetic",
+                  "label_pattern": "decimal",
+                  "label_style": "decimal",
+                  "level_reason": "arithmetic",
+                  "numbering_run": "sequence",
+                  "style_reason": "only"
+                },
+                "children": [],
+                "confidence": 0.9,
+                "kind": "list_item",
+                "label": "7.4",
+                "level": 2,
+                "matched_by": "label:decimal",
+                "path": "/section[1]/section[7]/list_item[4]",
+                "role": null,
+                "spans": [],
+                "text": "Neither party shall make a public announcement about this Agreement without the written consent of the other party."
+              },
+              {
+                "attrs": {
+                  "heading_score": 0.0,
+                  "heading_signals": [
+                    "too_many_words"
+                  ],
+                  "heading_threshold": 0.5,
+                  "indent": 0,
+                  "label_depth_mode": "arithmetic",
+                  "label_pattern": "decimal",
+                  "label_style": "decimal",
+                  "level_reason": "arithmetic",
+                  "numbering_run": "sequence",
+                  "style_reason": "only"
+                },
+                "children": [
+                  {
+                    "attrs": {
+                      "continuation": true,
+                      "continuation_reason": "follows_label",
+                      "heading_score": 0.0,
+                      "heading_signals": [
+                        "too_many_words"
+                      ],
+                      "heading_threshold": 0.5,
+                      "indent": 0
+                    },
+                    "children": [],
+                    "confidence": 0.5,
+                    "kind": "paragraph",
+                    "label": null,
+                    "level": 2,
+                    "matched_by": "continuation",
+                    "path": "/section[1]/section[7]/list_item[5]/paragraph[1]",
+                    "role": null,
+                    "spans": [],
+                    "text": "The obligations in this clause continue for three years after the end of the Term."
+                  }
+                ],
+                "confidence": 0.9,
+                "kind": "list_item",
+                "label": "7.5",
+                "level": 2,
+                "matched_by": "label:decimal",
+                "path": "/section[1]/section[7]/list_item[5]",
+                "role": null,
+                "spans": [],
+                "text": "Each party shall return or destroy the other party's Confidential Information within ten Business Days of a written request."
+              }
+            ],
+            "confidence": 1.0,
+            "kind": "section",
+            "label": null,
+            "level": 1,
+            "matched_by": "markdown:atx",
+            "path": "/section[1]/section[7]",
+            "role": null,
+            "spans": [],
+            "text": ""
+          },
+          {
+            "attrs": {
+              "opened_by": "heading"
+            },
+            "children": [
+              {
+                "attrs": {
+                  "atx_level": 2,
+                  "indent": 0,
+                  "label_confidence": 0.9,
+                  "label_depth_mode": "arithmetic",
+                  "label_pattern": "decimal",
+                  "label_style": "decimal",
+                  "level_reason": "arithmetic",
+                  "markdown": "atx",
+                  "numbering_run": "sequence",
+                  "style_reason": "only"
+                },
+                "children": [],
+                "confidence": 1.0,
+                "kind": "heading",
+                "label": "8",
+                "level": 1,
+                "matched_by": "markdown:atx",
+                "path": "/section[1]/section[8]/heading[1]",
+                "role": null,
+                "spans": [],
+                "text": "Data Protection"
+              },
+              {
+                "attrs": {
+                  "heading_score": 0.0,
+                  "heading_signals": [
+                    "too_many_words"
+                  ],
+                  "heading_threshold": 0.5,
+                  "indent": 0,
+                  "label_depth_mode": "arithmetic",
+                  "label_pattern": "decimal",
+                  "label_style": "decimal",
+                  "level_reason": "arithmetic",
+                  "numbering_run": "first_value",
+                  "style_reason": "only"
+                },
+                "children": [],
+                "confidence": 0.9,
+                "kind": "list_item",
+                "label": "8.1",
+                "level": 2,
+                "matched_by": "label:decimal",
+                "path": "/section[1]/section[8]/list_item[1]",
+                "role": null,
+                "spans": [],
+                "text": "Each party shall comply with the data protection obligations that apply to it in respect of personal data processed under this Agreement."
+              },
+              {
+                "attrs": {
+                  "heading_score": 0.0,
+                  "heading_signals": [
+                    "too_many_words"
+                  ],
+                  "heading_threshold": 0.5,
+                  "indent": 0,
+                  "label_depth_mode": "arithmetic",
+                  "label_pattern": "decimal",
+                  "label_style": "decimal",
+                  "level_reason": "arithmetic",
+                  "numbering_run": "sequence",
+                  "semantic": {
+                    "spans": 3
+                  },
+                  "style_reason": "only"
+                },
+                "children": [],
+                "confidence": 0.9,
+                "kind": "list_item",
+                "label": "8.2",
+                "level": 2,
+                "matched_by": "label:decimal",
+                "path": "/section[1]/section[8]/list_item[2]",
+                "role": null,
+                "spans": [
+                  {
+                    "end": 12,
+                    "start": 4,
+                    "type": "party",
+                    "value": null
+                  },
+                  {
+                    "end": 70,
+                    "start": 64,
+                    "type": "party",
+                    "value": null
+                  },
+                  {
+                    "end": 131,
+                    "start": 125,
+                    "type": "party",
+                    "value": null
+                  }
+                ],
+                "text": "The Supplier shall not transfer personal data received from the Client to anyone else without the written instruction of the Client."
+              }
+            ],
+            "confidence": 1.0,
+            "kind": "section",
+            "label": null,
+            "level": 1,
+            "matched_by": "markdown:atx",
+            "path": "/section[1]/section[8]",
+            "role": null,
+            "spans": [],
+            "text": ""
+          },
+          {
+            "attrs": {
+              "opened_by": "heading"
+            },
+            "children": [
+              {
+                "attrs": {
+                  "atx_level": 2,
+                  "indent": 0,
+                  "label_confidence": 0.9,
+                  "label_depth_mode": "arithmetic",
+                  "label_pattern": "decimal",
+                  "label_style": "decimal",
+                  "level_reason": "arithmetic",
+                  "markdown": "atx",
+                  "numbering_run": "sequence",
+                  "style_reason": "only"
+                },
+                "children": [],
+                "confidence": 1.0,
+                "kind": "heading",
+                "label": "9",
+                "level": 1,
+                "matched_by": "markdown:atx",
+                "path": "/section[1]/section[9]/heading[1]",
+                "role": null,
+                "spans": [],
+                "text": "Term and Termination"
+              },
+              {
+                "attrs": {
+                  "heading_score": 0.0,
+                  "heading_signals": [
+                    "too_many_words"
+                  ],
+                  "heading_threshold": 0.5,
+                  "indent": 0,
+                  "label_depth_mode": "arithmetic",
+                  "label_pattern": "decimal",
+                  "label_style": "decimal",
+                  "level_reason": "arithmetic",
+                  "numbering_run": "first_value",
+                  "semantic": {
+                    "spans": 1
+                  },
+                  "style_reason": "only"
+                },
+                "children": [],
+                "confidence": 0.9,
+                "kind": "list_item",
+                "label": "9.1",
+                "level": 2,
+                "matched_by": "label:decimal",
+                "path": "/section[1]/section[9]/list_item[1]",
+                "role": null,
+                "spans": [
+                  {
+                    "end": 37,
+                    "start": 25,
+                    "type": "date",
+                    "value": null
+                  }
+                ],
+                "text": "This Agreement begins on 1 April 2026 and continues for two years, unless it is terminated earlier under this clause."
+              },
+              {
+                "attrs": {
+                  "heading_score": 0.0,
+                  "heading_signals": [
+                    "too_many_words"
+                  ],
+                  "heading_threshold": 0.5,
+                  "indent": 0,
+                  "label_depth_mode": "arithmetic",
+                  "label_pattern": "decimal",
+                  "label_style": "decimal",
+                  "level_reason": "arithmetic",
+                  "numbering_run": "sequence",
+                  "semantic": {
+                    "spans": 3
+                  },
+                  "style_reason": "only"
+                },
+                "children": [],
+                "confidence": 0.9,
+                "kind": "list_item",
+                "label": "9.2",
+                "level": 2,
+                "matched_by": "label:decimal",
+                "path": "/section[1]/section[9]/list_item[2]",
+                "role": null,
+                "spans": [
+                  {
+                    "end": 10,
+                    "start": 4,
+                    "type": "party",
+                    "value": null
+                  },
+                  {
+                    "end": 85,
+                    "start": 77,
+                    "type": "party",
+                    "value": null
+                  },
+                  {
+                    "end": 167,
+                    "start": 164,
+                    "type": "cross_reference",
+                    "value": "3.3"
+                  }
+                ],
+                "text": "The Client may terminate this Agreement immediately by written notice if the Supplier fails to meet a Service Level in three consecutive months, contrary to clause 3.3."
+              },
+              {
+                "attrs": {
+                  "heading_score": 0.0,
+                  "heading_signals": [
+                    "too_many_words"
+                  ],
+                  "heading_threshold": 0.5,
+                  "indent": 0,
+                  "label_depth_mode": "arithmetic",
+                  "label_pattern": "decimal",
+                  "label_style": "decimal",
+                  "level_reason": "arithmetic",
+                  "numbering_run": "sequence",
+                  "style_reason": "only"
+                },
+                "children": [],
+                "confidence": 0.9,
+                "kind": "list_item",
+                "label": "9.3",
+                "level": 2,
+                "matched_by": "label:decimal",
+                "path": "/section[1]/section[9]/list_item[3]",
+                "role": null,
+                "spans": [],
+                "text": "Either party may terminate this Agreement by giving the other no less than ninety days' written notice, expiring at the end of the Term or at any time after it."
+              },
+              {
+                "attrs": {
+                  "heading_score": 0.0,
+                  "heading_signals": [
+                    "too_many_words"
+                  ],
+                  "heading_threshold": 0.5,
+                  "indent": 0,
+                  "label_depth_mode": "arithmetic",
+                  "label_pattern": "decimal",
+                  "label_style": "decimal",
+                  "level_reason": "arithmetic",
+                  "numbering_run": "sequence",
+                  "style_reason": "only"
+                },
+                "children": [],
+                "confidence": 0.9,
+                "kind": "list_item",
+                "label": "9.4",
+                "level": 2,
+                "matched_by": "label:decimal",
+                "path": "/section[1]/section[9]/list_item[4]",
+                "role": null,
+                "spans": [],
+                "text": "Either party may terminate this Agreement immediately by written notice if the other party commits a material breach that it does not remedy within thirty days of being asked in writing to do so."
+              },
+              {
+                "attrs": {
+                  "heading_score": 0.0,
+                  "heading_signals": [
+                    "too_many_words"
+                  ],
+                  "heading_threshold": 0.5,
+                  "indent": 0,
+                  "label_depth_mode": "arithmetic",
+                  "label_pattern": "decimal",
+                  "label_style": "decimal",
+                  "level_reason": "arithmetic",
+                  "numbering_run": "sequence",
+                  "style_reason": "only"
+                },
+                "children": [],
+                "confidence": 0.9,
+                "kind": "list_item",
+                "label": "9.5",
+                "level": 2,
+                "matched_by": "label:decimal",
+                "path": "/section[1]/section[9]/list_item[5]",
+                "role": null,
+                "spans": [],
+                "text": "Termination does not affect any right or obligation that has accrued before it takes effect."
+              }
+            ],
+            "confidence": 1.0,
+            "kind": "section",
+            "label": null,
+            "level": 1,
+            "matched_by": "markdown:atx",
+            "path": "/section[1]/section[9]",
+            "role": null,
+            "spans": [],
+            "text": ""
+          },
+          {
+            "attrs": {
+              "opened_by": "heading"
+            },
+            "children": [
+              {
+                "attrs": {
+                  "atx_level": 2,
+                  "indent": 0,
+                  "label_confidence": 0.9,
+                  "label_depth_mode": "arithmetic",
+                  "label_pattern": "decimal",
+                  "label_style": "decimal",
+                  "level_reason": "arithmetic",
+                  "markdown": "atx",
+                  "numbering_run": "sequence",
+                  "style_reason": "only"
+                },
+                "children": [],
+                "confidence": 1.0,
+                "kind": "heading",
+                "label": "10",
+                "level": 1,
+                "matched_by": "markdown:atx",
+                "path": "/section[1]/section[10]/heading[1]",
+                "role": null,
+                "spans": [],
+                "text": "Liability"
+              },
+              {
+                "attrs": {
+                  "heading_score": 0.0,
+                  "heading_signals": [
+                    "too_many_words"
+                  ],
+                  "heading_threshold": 0.5,
+                  "indent": 0,
+                  "label_depth_mode": "arithmetic",
+                  "label_pattern": "decimal",
+                  "label_style": "decimal",
+                  "level_reason": "arithmetic",
+                  "numbering_run": "first_value",
+                  "style_reason": "only"
+                },
+                "children": [],
+                "confidence": 0.9,
+                "kind": "list_item",
+                "label": "10.1",
+                "level": 2,
+                "matched_by": "label:decimal",
+                "path": "/section[1]/section[10]/list_item[1]",
+                "role": null,
+                "spans": [],
+                "text": "Neither party excludes or limits its liability for fraud, or for anything else that cannot be limited under the law that applies to this Agreement."
+              },
+              {
+                "attrs": {
+                  "heading_score": 0.0,
+                  "heading_signals": [
+                    "too_many_words"
+                  ],
+                  "heading_threshold": 0.5,
+                  "indent": 0,
+                  "label_depth_mode": "arithmetic",
+                  "label_pattern": "decimal",
+                  "label_style": "decimal",
+                  "level_reason": "arithmetic",
+                  "numbering_run": "sequence",
+                  "style_reason": "only"
+                },
+                "children": [],
+                "confidence": 0.9,
+                "kind": "list_item",
+                "label": "10.2",
+                "level": 2,
+                "matched_by": "label:decimal",
+                "path": "/section[1]/section[10]/list_item[2]",
+                "role": null,
+                "spans": [],
+                "text": "Neither party is liable to the other for loss of profit, loss of business or any indirect loss."
+              },
+              {
+                "attrs": {
+                  "heading_score": 0.0,
+                  "heading_signals": [
+                    "too_many_words"
+                  ],
+                  "heading_threshold": 0.5,
+                  "indent": 0,
+                  "label_depth_mode": "arithmetic",
+                  "label_pattern": "decimal",
+                  "label_style": "decimal",
+                  "level_reason": "arithmetic",
+                  "numbering_run": "sequence",
+                  "style_reason": "only"
+                },
+                "children": [],
+                "confidence": 0.9,
+                "kind": "list_item",
+                "label": "10.3",
+                "level": 2,
+                "matched_by": "label:decimal",
+                "path": "/section[1]/section[10]/list_item[3]",
+                "role": null,
+                "spans": [],
+                "text": "The total liability of each party under this Agreement is limited to the Charges paid and payable in the twelve months before the event giving rise to the claim."
+              },
+              {
+                "attrs": {
+                  "heading_score": 0.0,
+                  "heading_signals": [
+                    "too_many_words"
+                  ],
+                  "heading_threshold": 0.5,
+                  "indent": 0,
+                  "label_depth_mode": "arithmetic",
+                  "label_pattern": "decimal",
+                  "label_style": "decimal",
+                  "level_reason": "arithmetic",
+                  "numbering_run": "sequence",
+                  "style_reason": "only"
+                },
+                "children": [],
+                "confidence": 0.9,
+                "kind": "list_item",
+                "label": "10.4",
+                "level": 2,
+                "matched_by": "label:decimal",
+                "path": "/section[1]/section[10]/list_item[4]",
+                "role": null,
+                "spans": [],
+                "text": "Each party shall take reasonable steps to reduce any loss that it suffers."
+              }
+            ],
+            "confidence": 1.0,
+            "kind": "section",
+            "label": null,
+            "level": 1,
+            "matched_by": "markdown:atx",
+            "path": "/section[1]/section[10]",
+            "role": null,
+            "spans": [],
+            "text": ""
+          },
+          {
+            "attrs": {
+              "opened_by": "heading"
+            },
+            "children": [
+              {
+                "attrs": {
+                  "atx_level": 2,
+                  "indent": 0,
+                  "label_confidence": 0.9,
+                  "label_depth_mode": "arithmetic",
+                  "label_pattern": "decimal",
+                  "label_style": "decimal",
+                  "level_reason": "arithmetic",
+                  "markdown": "atx",
+                  "numbering_run": "sequence",
+                  "style_reason": "only"
+                },
+                "children": [],
+                "confidence": 1.0,
+                "kind": "heading",
+                "label": "11",
+                "level": 1,
+                "matched_by": "markdown:atx",
+                "path": "/section[1]/section[11]/heading[1]",
+                "role": null,
+                "spans": [],
+                "text": "General"
+              },
+              {
+                "attrs": {
+                  "heading_score": 0.0,
+                  "heading_signals": [
+                    "too_many_words"
+                  ],
+                  "heading_threshold": 0.5,
+                  "indent": 0,
+                  "label_depth_mode": "arithmetic",
+                  "label_pattern": "decimal",
+                  "label_style": "decimal",
+                  "level_reason": "arithmetic",
+                  "numbering_run": "first_value",
+                  "style_reason": "only"
+                },
+                "children": [],
+                "confidence": 0.9,
+                "kind": "list_item",
+                "label": "11.1",
+                "level": 2,
+                "matched_by": "label:decimal",
+                "path": "/section[1]/section[11]/list_item[1]",
+                "role": null,
+                "spans": [],
+                "text": "This Agreement is the entire agreement between the parties about its subject matter, and replaces any earlier agreement or understanding about that subject matter."
+              },
+              {
+                "attrs": {
+                  "heading_score": 0.0,
+                  "heading_signals": [
+                    "too_many_words"
+                  ],
+                  "heading_threshold": 0.5,
+                  "indent": 0,
+                  "label_depth_mode": "arithmetic",
+                  "label_pattern": "decimal",
+                  "label_style": "decimal",
+                  "level_reason": "arithmetic",
+                  "numbering_run": "sequence",
+                  "style_reason": "only"
+                },
+                "children": [],
+                "confidence": 0.9,
+                "kind": "list_item",
+                "label": "11.2",
+                "level": 2,
+                "matched_by": "label:decimal",
+                "path": "/section[1]/section[11]/list_item[2]",
+                "role": null,
+                "spans": [],
+                "text": "A variation of this Agreement takes effect only if it is in writing and signed by both parties."
+              },
+              {
+                "attrs": {
+                  "heading_score": 0.0,
+                  "heading_signals": [
+                    "too_many_words"
+                  ],
+                  "heading_threshold": 0.5,
+                  "indent": 0,
+                  "label_depth_mode": "arithmetic",
+                  "label_pattern": "decimal",
+                  "label_style": "decimal",
+                  "level_reason": "arithmetic",
+                  "numbering_run": "sequence",
+                  "style_reason": "only"
+                },
+                "children": [],
+                "confidence": 0.9,
+                "kind": "list_item",
+                "label": "11.3",
+                "level": 2,
+                "matched_by": "label:decimal",
+                "path": "/section[1]/section[11]/list_item[3]",
+                "role": null,
+                "spans": [],
+                "text": "Neither party may assign or transfer any of its rights or obligations under this Agreement without the written consent of the other party, which is not to be unreasonably withheld."
+              },
+              {
+                "attrs": {
+                  "heading_score": 0.0,
+                  "heading_signals": [
+                    "too_many_words"
+                  ],
+                  "heading_threshold": 0.5,
+                  "indent": 0,
+                  "label_depth_mode": "arithmetic",
+                  "label_pattern": "decimal",
+                  "label_style": "decimal",
+                  "level_reason": "arithmetic",
+                  "numbering_run": "sequence",
+                  "style_reason": "only"
+                },
+                "children": [],
+                "confidence": 0.9,
+                "kind": "list_item",
+                "label": "11.4",
+                "level": 2,
+                "matched_by": "label:decimal",
+                "path": "/section[1]/section[11]/list_item[4]",
+                "role": null,
+                "spans": [],
+                "text": "If any provision of this Agreement is unenforceable, the rest of it continues in force."
+              },
+              {
+                "attrs": {
+                  "heading_score": 0.0,
+                  "heading_signals": [
+                    "too_many_words"
+                  ],
+                  "heading_threshold": 0.5,
+                  "indent": 0,
+                  "label_depth_mode": "arithmetic",
+                  "label_pattern": "decimal",
+                  "label_style": "decimal",
+                  "level_reason": "arithmetic",
+                  "numbering_run": "sequence",
+                  "rejoined_lines": 3,
+                  "style_reason": "only"
+                },
+                "children": [],
+                "confidence": 0.9,
+                "kind": "list_item",
+                "label": "11.5",
+                "level": 2,
+                "matched_by": "label:decimal",
+                "path": "/section[1]/section[11]/list_item[5]",
+                "role": null,
+                "spans": [],
+                "text": "A notice given under this Agreement must be in writing and sent to the address of the receiving party set out above, or to any other address that the party notifies to the other in writing."
+              },
+              {
+                "attrs": {
+                  "heading_score": 0.0,
+                  "heading_signals": [
+                    "too_many_words"
+                  ],
+                  "heading_threshold": 0.5,
+                  "indent": 0,
+                  "label_depth_mode": "arithmetic",
+                  "label_pattern": "decimal",
+                  "label_style": "decimal",
+                  "level_reason": "arithmetic",
+                  "numbering_run": "sequence",
+                  "style_reason": "only"
+                },
+                "children": [],
+                "confidence": 0.9,
+                "kind": "list_item",
+                "label": "11.6",
+                "level": 2,
+                "matched_by": "label:decimal",
+                "path": "/section[1]/section[11]/list_item[6]",
+                "role": null,
+                "spans": [],
+                "text": "A person who is not a party to this Agreement has no right to enforce it."
+              }
+            ],
+            "confidence": 1.0,
+            "kind": "section",
+            "label": null,
+            "level": 1,
+            "matched_by": "markdown:atx",
+            "path": "/section[1]/section[11]",
+            "role": null,
+            "spans": [],
+            "text": ""
+          }
+        ],
+        "confidence": 1.0,
+        "kind": "section",
+        "label": null,
+        "level": 0,
+        "matched_by": "markdown:atx",
+        "path": "/section[1]",
+        "role": null,
+        "spans": [],
+        "text": ""
+      },
+      {
+        "attrs": {
+          "opened_by": "heading"
+        },
+        "children": [
+          {
+            "attrs": {
+              "atx_level": 1,
+              "indent": 0,
+              "markdown": "atx",
+              "semantic": {
+                "matched": "text",
+                "role": "signature",
+                "role_match": "heading",
+                "role_rule": 6
+              }
+            },
+            "children": [],
+            "confidence": 1.0,
+            "kind": "heading",
+            "label": null,
+            "level": 0,
+            "matched_by": "markdown:atx",
+            "path": "/section[2]/heading[1]",
+            "role": "signature",
+            "spans": [],
+            "text": "Signatures"
+          },
+          {
+            "attrs": {
+              "continuation": false,
+              "continuation_reason": "no_open_label",
+              "heading_score": 0.0,
+              "heading_signals": [
+                "too_many_words"
+              ],
+              "heading_threshold": 0.5,
+              "indent": 0
+            },
+            "children": [],
+            "confidence": 0.0,
+            "kind": "paragraph",
+            "label": null,
+            "level": 0,
+            "matched_by": "fallback",
+            "path": "/section[2]/paragraph[1]",
+            "role": null,
+            "spans": [],
+            "text": "Signed for and on behalf of Northwind Systems Limited by A. Patel, Director."
+          },
+          {
+            "attrs": {
+              "continuation": false,
+              "continuation_reason": "no_open_label",
+              "heading_score": 0.0,
+              "heading_signals": [
+                "too_many_words"
+              ],
+              "heading_threshold": 0.5,
+              "indent": 0
+            },
+            "children": [],
+            "confidence": 0.0,
+            "kind": "paragraph",
+            "label": null,
+            "level": 0,
+            "matched_by": "fallback",
+            "path": "/section[2]/paragraph[2]",
+            "role": null,
+            "spans": [],
+            "text": "Signed for and on behalf of Harbour Foods Group Limited by R. Okonjo, Director."
+          }
+        ],
+        "confidence": 1.0,
+        "kind": "section",
+        "label": null,
+        "level": 0,
+        "matched_by": "markdown:atx",
+        "path": "/section[2]",
+        "role": null,
+        "spans": [],
+        "text": ""
+      },
+      {
+        "attrs": {
+          "opened_by": "heading"
+        },
+        "children": [
+          {
+            "attrs": {
+              "atx_level": 1,
+              "heading_reset": "schedule",
+              "indent": 0,
+              "label_confidence": 0.65,
+              "label_depth_mode": "stack",
+              "label_pattern": "word_label",
+              "label_style": "word",
+              "level_reason": "push",
+              "markdown": "atx",
+              "numbering_run": "first_value",
+              "semantic": {
+                "matched": "heading_line",
+                "role": "schedule",
+                "role_match": "heading",
+                "role_rule": 4
+              },
+              "style_reason": "only"
+            },
+            "children": [],
+            "confidence": 1.0,
+            "kind": "heading",
+            "label": "Schedule 1",
+            "level": 0,
+            "matched_by": "markdown:atx",
+            "path": "/section[3]/heading[1]",
+            "role": "schedule",
+            "spans": [],
+            "text": "The Services"
+          },
+          {
+            "attrs": {
+              "indent": 3,
+              "label_source": "list_marker",
+              "list_depth": 1,
+              "list_marker": "1.",
+              "list_ordered": true,
+              "markdown": "list",
+              "semantic": {
+                "ancestor": "Schedule 1 The Services",
+                "role": "schedule",
+                "role_match": "ancestor_heading",
+                "role_rule": 5,
+                "spans": 3
+              }
+            },
+            "children": [],
+            "confidence": 1.0,
+            "kind": "list_item",
+            "label": "1",
+            "level": 1,
+            "matched_by": "markdown:list",
+            "path": "/section[3]/list_item[1]",
+            "role": "schedule",
+            "spans": [
+              {
+                "end": 21,
+                "start": 13,
+                "type": "party",
+                "value": null
+              },
+              {
+                "end": 43,
+                "start": 37,
+                "type": "party",
+                "value": null
+              },
+              {
+                "end": 106,
+                "start": 98,
+                "type": "party",
+                "value": null
+              }
+            ],
+            "text": "Hosting: the Supplier shall host the Client's online ordering platform on infrastructure that the Supplier manages."
+          },
+          {
+            "attrs": {
+              "indent": 3,
+              "label_source": "list_marker",
+              "list_depth": 1,
+              "list_marker": "2.",
+              "list_ordered": true,
+              "markdown": "list",
+              "semantic": {
+                "ancestor": "Schedule 1 The Services",
+                "role": "schedule",
+                "role_match": "ancestor_heading",
+                "role_rule": 5,
+                "spans": 2
+              }
+            },
+            "children": [],
+            "confidence": 1.0,
+            "kind": "list_item",
+            "label": "2",
+            "level": 1,
+            "matched_by": "markdown:list",
+            "path": "/section[3]/list_item[2]",
+            "role": "schedule",
+            "spans": [
+              {
+                "end": 21,
+                "start": 13,
+                "type": "party",
+                "value": null
+              },
+              {
+                "end": 60,
+                "start": 54,
+                "type": "party",
+                "value": null
+              }
+            ],
+            "text": "Support: the Supplier shall answer questions from the Client's staff by email and by telephone on each Business Day."
+          },
+          {
+            "attrs": {
+              "indent": 3,
+              "label_source": "list_marker",
+              "list_depth": 1,
+              "list_marker": "3.",
+              "list_ordered": true,
+              "markdown": "list",
+              "semantic": {
+                "ancestor": "Schedule 1 The Services",
+                "role": "schedule",
+                "role_match": "ancestor_heading",
+                "role_rule": 5,
+                "spans": 1
+              }
+            },
+            "children": [
+              {
+                "attrs": {
+                  "continuation": true,
+                  "continuation_reason": "follows_label",
+                  "heading_score": 0.0,
+                  "heading_signals": [
+                    "too_many_words"
+                  ],
+                  "heading_threshold": 0.5,
+                  "indent": 0,
+                  "semantic": {
+                    "ancestor": "Schedule 1 The Services",
+                    "role": "schedule",
+                    "role_match": "ancestor_heading",
+                    "role_rule": 5,
+                    "spans": 1
+                  }
+                },
+                "children": [],
+                "confidence": 0.5,
+                "kind": "paragraph",
+                "label": null,
+                "level": 1,
+                "matched_by": "continuation",
+                "path": "/section[3]/list_item[3]/paragraph[1]",
+                "role": "schedule",
+                "spans": [
+                  {
+                    "end": 12,
+                    "start": 4,
+                    "type": "party",
+                    "value": null
+                  }
+                ],
+                "text": "The Supplier shall deliver the Deliverables set out below by the dates shown."
+              },
+              {
+                "attrs": {
+                  "alignments": [
+                    "default",
+                    "default",
+                    "default"
+                  ],
+                  "columns": 3,
+                  "indent": 0,
+                  "markdown": "pipe_table",
+                  "rows": 5,
+                  "semantic": {
+                    "ancestor": "Schedule 1 The Services",
+                    "role": "schedule",
+                    "role_match": "ancestor_heading",
+                    "role_rule": 5
+                  }
+                },
+                "children": [
+                  {
+                    "attrs": {
+                      "header": true,
+                      "row": 0,
+                      "semantic": {
+                        "ancestor": "Schedule 1 The Services",
+                        "role": "schedule",
+                        "role_match": "ancestor_heading",
+                        "role_rule": 5
+                      }
+                    },
+                    "children": [
+                      {
+                        "attrs": {
+                          "alignment": "default",
+                          "column": 0,
+                          "header": true,
+                          "semantic": {
+                            "ancestor": "Schedule 1 The Services",
+                            "role": "schedule",
+                            "role_match": "ancestor_heading",
+                            "role_rule": 5
+                          }
+                        },
+                        "children": [],
+                        "confidence": 1.0,
+                        "kind": "cell",
+                        "label": null,
+                        "level": 1,
+                        "matched_by": "markdown:table_cell",
+                        "path": "/section[3]/list_item[3]/table[1]/row[1]/cell[1]",
+                        "role": "schedule",
+                        "spans": [],
+                        "text": "Deliverable"
+                      },
+                      {
+                        "attrs": {
+                          "alignment": "default",
+                          "column": 1,
+                          "header": true,
+                          "semantic": {
+                            "ancestor": "Schedule 1 The Services",
+                            "role": "schedule",
+                            "role_match": "ancestor_heading",
+                            "role_rule": 5
+                          }
+                        },
+                        "children": [],
+                        "confidence": 1.0,
+                        "kind": "cell",
+                        "label": null,
+                        "level": 1,
+                        "matched_by": "markdown:table_cell",
+                        "path": "/section[3]/list_item[3]/table[1]/row[1]/cell[2]",
+                        "role": "schedule",
+                        "spans": [],
+                        "text": "Due by"
+                      },
+                      {
+                        "attrs": {
+                          "alignment": "default",
+                          "column": 2,
+                          "header": true,
+                          "semantic": {
+                            "ancestor": "Schedule 1 The Services",
+                            "role": "schedule",
+                            "role_match": "ancestor_heading",
+                            "role_rule": 5
+                          }
+                        },
+                        "children": [],
+                        "confidence": 1.0,
+                        "kind": "cell",
+                        "label": null,
+                        "level": 1,
+                        "matched_by": "markdown:table_cell",
+                        "path": "/section[3]/list_item[3]/table[1]/row[1]/cell[3]",
+                        "role": "schedule",
+                        "spans": [],
+                        "text": "Owner"
+                      }
+                    ],
+                    "confidence": 1.0,
+                    "kind": "row",
+                    "label": null,
+                    "level": 1,
+                    "matched_by": "markdown:table_row",
+                    "path": "/section[3]/list_item[3]/table[1]/row[1]",
+                    "role": "schedule",
+                    "spans": [],
+                    "text": ""
+                  },
+                  {
+                    "attrs": {
+                      "header": false,
+                      "row": 1,
+                      "semantic": {
+                        "ancestor": "Schedule 1 The Services",
+                        "role": "schedule",
+                        "role_match": "ancestor_heading",
+                        "role_rule": 5
+                      }
+                    },
+                    "children": [
+                      {
+                        "attrs": {
+                          "alignment": "default",
+                          "column": 0,
+                          "header": false,
+                          "semantic": {
+                            "ancestor": "Schedule 1 The Services",
+                            "role": "schedule",
+                            "role_match": "ancestor_heading",
+                            "role_rule": 5
+                          }
+                        },
+                        "children": [],
+                        "confidence": 1.0,
+                        "kind": "cell",
+                        "label": null,
+                        "level": 1,
+                        "matched_by": "markdown:table_cell",
+                        "path": "/section[3]/list_item[3]/table[1]/row[2]/cell[1]",
+                        "role": "schedule",
+                        "spans": [],
+                        "text": "Onboarding plan"
+                      },
+                      {
+                        "attrs": {
+                          "alignment": "default",
+                          "column": 1,
+                          "header": false,
+                          "semantic": {
+                            "ancestor": "Schedule 1 The Services",
+                            "role": "schedule",
+                            "role_match": "ancestor_heading",
+                            "role_rule": 5
+                          }
+                        },
+                        "children": [],
+                        "confidence": 1.0,
+                        "kind": "cell",
+                        "label": null,
+                        "level": 1,
+                        "matched_by": "markdown:table_cell",
+                        "path": "/section[3]/list_item[3]/table[1]/row[2]/cell[2]",
+                        "role": "schedule",
+                        "spans": [],
+                        "text": "Week 2"
+                      },
+                      {
+                        "attrs": {
+                          "alignment": "default",
+                          "column": 2,
+                          "header": false,
+                          "semantic": {
+                            "ancestor": "Schedule 1 The Services",
+                            "role": "schedule",
+                            "role_match": "ancestor_heading",
+                            "role_rule": 5
+                          }
+                        },
+                        "children": [],
+                        "confidence": 1.0,
+                        "kind": "cell",
+                        "label": null,
+                        "level": 1,
+                        "matched_by": "markdown:table_cell",
+                        "path": "/section[3]/list_item[3]/table[1]/row[2]/cell[3]",
+                        "role": "schedule",
+                        "spans": [],
+                        "text": "Supplier"
+                      }
+                    ],
+                    "confidence": 1.0,
+                    "kind": "row",
+                    "label": null,
+                    "level": 1,
+                    "matched_by": "markdown:table_row",
+                    "path": "/section[3]/list_item[3]/table[1]/row[2]",
+                    "role": "schedule",
+                    "spans": [],
+                    "text": ""
+                  },
+                  {
+                    "attrs": {
+                      "header": false,
+                      "row": 2,
+                      "semantic": {
+                        "ancestor": "Schedule 1 The Services",
+                        "role": "schedule",
+                        "role_match": "ancestor_heading",
+                        "role_rule": 5
+                      }
+                    },
+                    "children": [
+                      {
+                        "attrs": {
+                          "alignment": "default",
+                          "column": 0,
+                          "header": false,
+                          "semantic": {
+                            "ancestor": "Schedule 1 The Services",
+                            "role": "schedule",
+                            "role_match": "ancestor_heading",
+                            "role_rule": 5
+                          }
+                        },
+                        "children": [],
+                        "confidence": 1.0,
+                        "kind": "cell",
+                        "label": null,
+                        "level": 1,
+                        "matched_by": "markdown:table_cell",
+                        "path": "/section[3]/list_item[3]/table[1]/row[3]/cell[1]",
+                        "role": "schedule",
+                        "spans": [],
+                        "text": "Data migration"
+                      },
+                      {
+                        "attrs": {
+                          "alignment": "default",
+                          "column": 1,
+                          "header": false,
+                          "semantic": {
+                            "ancestor": "Schedule 1 The Services",
+                            "role": "schedule",
+                            "role_match": "ancestor_heading",
+                            "role_rule": 5
+                          }
+                        },
+                        "children": [],
+                        "confidence": 1.0,
+                        "kind": "cell",
+                        "label": null,
+                        "level": 1,
+                        "matched_by": "markdown:table_cell",
+                        "path": "/section[3]/list_item[3]/table[1]/row[3]/cell[2]",
+                        "role": "schedule",
+                        "spans": [],
+                        "text": "Week 6"
+                      },
+                      {
+                        "attrs": {
+                          "alignment": "default",
+                          "column": 2,
+                          "header": false,
+                          "semantic": {
+                            "ancestor": "Schedule 1 The Services",
+                            "role": "schedule",
+                            "role_match": "ancestor_heading",
+                            "role_rule": 5
+                          }
+                        },
+                        "children": [],
+                        "confidence": 1.0,
+                        "kind": "cell",
+                        "label": null,
+                        "level": 1,
+                        "matched_by": "markdown:table_cell",
+                        "path": "/section[3]/list_item[3]/table[1]/row[3]/cell[3]",
+                        "role": "schedule",
+                        "spans": [],
+                        "text": "Supplier"
+                      }
+                    ],
+                    "confidence": 1.0,
+                    "kind": "row",
+                    "label": null,
+                    "level": 1,
+                    "matched_by": "markdown:table_row",
+                    "path": "/section[3]/list_item[3]/table[1]/row[3]",
+                    "role": "schedule",
+                    "spans": [],
+                    "text": ""
+                  },
+                  {
+                    "attrs": {
+                      "header": false,
+                      "row": 3,
+                      "semantic": {
+                        "ancestor": "Schedule 1 The Services",
+                        "role": "schedule",
+                        "role_match": "ancestor_heading",
+                        "role_rule": 5
+                      }
+                    },
+                    "children": [
+                      {
+                        "attrs": {
+                          "alignment": "default",
+                          "column": 0,
+                          "header": false,
+                          "semantic": {
+                            "ancestor": "Schedule 1 The Services",
+                            "role": "schedule",
+                            "role_match": "ancestor_heading",
+                            "role_rule": 5
+                          }
+                        },
+                        "children": [],
+                        "confidence": 1.0,
+                        "kind": "cell",
+                        "label": null,
+                        "level": 1,
+                        "matched_by": "markdown:table_cell",
+                        "path": "/section[3]/list_item[3]/table[1]/row[4]/cell[1]",
+                        "role": "schedule",
+                        "spans": [],
+                        "text": "Test report"
+                      },
+                      {
+                        "attrs": {
+                          "alignment": "default",
+                          "column": 1,
+                          "header": false,
+                          "semantic": {
+                            "ancestor": "Schedule 1 The Services",
+                            "role": "schedule",
+                            "role_match": "ancestor_heading",
+                            "role_rule": 5
+                          }
+                        },
+                        "children": [],
+                        "confidence": 1.0,
+                        "kind": "cell",
+                        "label": null,
+                        "level": 1,
+                        "matched_by": "markdown:table_cell",
+                        "path": "/section[3]/list_item[3]/table[1]/row[4]/cell[2]",
+                        "role": "schedule",
+                        "spans": [],
+                        "text": "Week 8"
+                      },
+                      {
+                        "attrs": {
+                          "alignment": "default",
+                          "column": 2,
+                          "header": false,
+                          "semantic": {
+                            "ancestor": "Schedule 1 The Services",
+                            "role": "schedule",
+                            "role_match": "ancestor_heading",
+                            "role_rule": 5
+                          }
+                        },
+                        "children": [],
+                        "confidence": 1.0,
+                        "kind": "cell",
+                        "label": null,
+                        "level": 1,
+                        "matched_by": "markdown:table_cell",
+                        "path": "/section[3]/list_item[3]/table[1]/row[4]/cell[3]",
+                        "role": "schedule",
+                        "spans": [],
+                        "text": "Supplier"
+                      }
+                    ],
+                    "confidence": 1.0,
+                    "kind": "row",
+                    "label": null,
+                    "level": 1,
+                    "matched_by": "markdown:table_row",
+                    "path": "/section[3]/list_item[3]/table[1]/row[4]",
+                    "role": "schedule",
+                    "spans": [],
+                    "text": ""
+                  },
+                  {
+                    "attrs": {
+                      "header": false,
+                      "row": 4,
+                      "semantic": {
+                        "ancestor": "Schedule 1 The Services",
+                        "role": "schedule",
+                        "role_match": "ancestor_heading",
+                        "role_rule": 5
+                      }
+                    },
+                    "children": [
+                      {
+                        "attrs": {
+                          "alignment": "default",
+                          "column": 0,
+                          "header": false,
+                          "semantic": {
+                            "ancestor": "Schedule 1 The Services",
+                            "role": "schedule",
+                            "role_match": "ancestor_heading",
+                            "role_rule": 5
+                          }
+                        },
+                        "children": [],
+                        "confidence": 1.0,
+                        "kind": "cell",
+                        "label": null,
+                        "level": 1,
+                        "matched_by": "markdown:table_cell",
+                        "path": "/section[3]/list_item[3]/table[1]/row[5]/cell[1]",
+                        "role": "schedule",
+                        "spans": [],
+                        "text": "Go-live sign-off"
+                      },
+                      {
+                        "attrs": {
+                          "alignment": "default",
+                          "column": 1,
+                          "header": false,
+                          "semantic": {
+                            "ancestor": "Schedule 1 The Services",
+                            "role": "schedule",
+                            "role_match": "ancestor_heading",
+                            "role_rule": 5
+                          }
+                        },
+                        "children": [],
+                        "confidence": 1.0,
+                        "kind": "cell",
+                        "label": null,
+                        "level": 1,
+                        "matched_by": "markdown:table_cell",
+                        "path": "/section[3]/list_item[3]/table[1]/row[5]/cell[2]",
+                        "role": "schedule",
+                        "spans": [],
+                        "text": "Week 10"
+                      },
+                      {
+                        "attrs": {
+                          "alignment": "default",
+                          "column": 2,
+                          "header": false,
+                          "semantic": {
+                            "ancestor": "Schedule 1 The Services",
+                            "role": "schedule",
+                            "role_match": "ancestor_heading",
+                            "role_rule": 5
+                          }
+                        },
+                        "children": [],
+                        "confidence": 1.0,
+                        "kind": "cell",
+                        "label": null,
+                        "level": 1,
+                        "matched_by": "markdown:table_cell",
+                        "path": "/section[3]/list_item[3]/table[1]/row[5]/cell[3]",
+                        "role": "schedule",
+                        "spans": [],
+                        "text": "Client"
+                      }
+                    ],
+                    "confidence": 1.0,
+                    "kind": "row",
+                    "label": null,
+                    "level": 1,
+                    "matched_by": "markdown:table_row",
+                    "path": "/section[3]/list_item[3]/table[1]/row[5]",
+                    "role": "schedule",
+                    "spans": [],
+                    "text": ""
+                  }
+                ],
+                "confidence": 1.0,
+                "kind": "table",
+                "label": null,
+                "level": 1,
+                "matched_by": "markdown:pipe_table",
+                "path": "/section[3]/list_item[3]/table[1]",
+                "role": "schedule",
+                "spans": [],
+                "text": ""
+              }
+            ],
+            "confidence": 1.0,
+            "kind": "list_item",
+            "label": "3",
+            "level": 1,
+            "matched_by": "markdown:list",
+            "path": "/section[3]/list_item[3]",
+            "role": "schedule",
+            "spans": [
+              {
+                "end": 25,
+                "start": 17,
+                "type": "party",
+                "value": null
+              }
+            ],
+            "text": "Maintenance: the Supplier shall apply patches and updates to the platform, and shall keep a record of every change that it makes."
+          }
+        ],
+        "confidence": 1.0,
+        "kind": "section",
+        "label": null,
+        "level": 0,
+        "matched_by": "markdown:atx",
+        "path": "/section[3]",
+        "role": null,
+        "spans": [],
+        "text": ""
+      },
+      {
+        "attrs": {
+          "opened_by": "heading"
+        },
+        "children": [
+          {
+            "attrs": {
+              "atx_level": 1,
+              "heading_reset": "schedule",
+              "indent": 0,
+              "label_confidence": 0.65,
+              "label_depth_mode": "stack",
+              "label_pattern": "word_label",
+              "label_style": "word",
+              "level_reason": "push",
+              "markdown": "atx",
+              "numbering_run": "unverified",
+              "semantic": {
+                "matched": "heading_line",
+                "role": "schedule",
+                "role_match": "heading",
+                "role_rule": 4
+              },
+              "style_reason": "only"
+            },
+            "children": [],
+            "confidence": 1.0,
+            "kind": "heading",
+            "label": "Schedule 2",
+            "level": 0,
+            "matched_by": "markdown:atx",
+            "path": "/section[4]/heading[1]",
+            "role": "schedule",
+            "spans": [],
+            "text": "Service Levels"
+          },
+          {
+            "attrs": {
+              "indent": 3,
+              "label_source": "list_marker",
+              "list_depth": 1,
+              "list_marker": "1.",
+              "list_ordered": true,
+              "markdown": "list",
+              "semantic": {
+                "ancestor": "Schedule 2 Service Levels",
+                "role": "schedule",
+                "role_match": "ancestor_heading",
+                "role_rule": 5,
+                "spans": 1
+              }
+            },
+            "children": [],
+            "confidence": 1.0,
+            "kind": "list_item",
+            "label": "1",
+            "level": 1,
+            "matched_by": "markdown:list",
+            "path": "/section[4]/list_item[1]",
+            "role": "schedule",
+            "spans": [
+              {
+                "end": 12,
+                "start": 4,
+                "type": "party",
+                "value": null
+              }
+            ],
+            "text": "The Supplier shall acknowledge a priority 1 incident within thirty minutes and shall restore the Services within four hours."
+          },
+          {
+            "attrs": {
+              "indent": 3,
+              "label_source": "list_marker",
+              "list_depth": 1,
+              "list_marker": "2.",
+              "list_ordered": true,
+              "markdown": "list",
+              "semantic": {
+                "ancestor": "Schedule 2 Service Levels",
+                "role": "schedule",
+                "role_match": "ancestor_heading",
+                "role_rule": 5,
+                "spans": 1
+              }
+            },
+            "children": [],
+            "confidence": 1.0,
+            "kind": "list_item",
+            "label": "2",
+            "level": 1,
+            "matched_by": "markdown:list",
+            "path": "/section[4]/list_item[2]",
+            "role": "schedule",
+            "spans": [
+              {
+                "end": 12,
+                "start": 4,
+                "type": "party",
+                "value": null
+              }
+            ],
+            "text": "The Supplier shall acknowledge a priority 2 incident within one hour and shall restore the Services within eight hours."
+          },
+          {
+            "attrs": {
+              "indent": 3,
+              "label_source": "list_marker",
+              "list_depth": 1,
+              "list_marker": "3.",
+              "list_ordered": true,
+              "markdown": "list",
+              "semantic": {
+                "ancestor": "Schedule 2 Service Levels",
+                "role": "schedule",
+                "role_match": "ancestor_heading",
+                "role_rule": 5,
+                "spans": 1
+              }
+            },
+            "children": [],
+            "confidence": 1.0,
+            "kind": "list_item",
+            "label": "3",
+            "level": 1,
+            "matched_by": "markdown:list",
+            "path": "/section[4]/list_item[3]",
+            "role": "schedule",
+            "spans": [
+              {
+                "end": 12,
+                "start": 4,
+                "type": "party",
+                "value": null
+              }
+            ],
+            "text": "The Supplier shall acknowledge a priority 3 incident within four hours and shall restore the Services within two Business Days."
+          },
+          {
+            "attrs": {
+              "indent": 3,
+              "label_source": "list_marker",
+              "list_depth": 1,
+              "list_marker": "4.",
+              "list_ordered": true,
+              "markdown": "list",
+              "semantic": {
+                "ancestor": "Schedule 2 Service Levels",
+                "role": "schedule",
+                "role_match": "ancestor_heading",
+                "role_rule": 5,
+                "spans": 1
+              }
+            },
+            "children": [],
+            "confidence": 1.0,
+            "kind": "list_item",
+            "label": "4",
+            "level": 1,
+            "matched_by": "markdown:list",
+            "path": "/section[4]/list_item[4]",
+            "role": "schedule",
+            "spans": [
+              {
+                "end": 12,
+                "start": 4,
+                "type": "party",
+                "value": null
+              }
+            ],
+            "text": "The Supplier shall acknowledge a priority 4 incident within one Business Day and shall restore the Services within five Business Days."
+          },
+          {
+            "attrs": {
+              "indent": 3,
+              "label_source": "list_marker",
+              "list_depth": 1,
+              "list_marker": "5.",
+              "list_ordered": true,
+              "markdown": "list",
+              "semantic": {
+                "ancestor": "Schedule 2 Service Levels",
+                "role": "schedule",
+                "role_match": "ancestor_heading",
+                "role_rule": 5,
+                "spans": 1
+              }
+            },
+            "children": [],
+            "confidence": 1.0,
+            "kind": "list_item",
+            "label": "5",
+            "level": 1,
+            "matched_by": "markdown:list",
+            "path": "/section[4]/list_item[5]",
+            "role": "schedule",
+            "spans": [
+              {
+                "end": 12,
+                "start": 4,
+                "type": "party",
+                "value": null
+              }
+            ],
+            "text": "The Supplier shall make the platform available for 99.5 per cent of each month, measured outside the maintenance window."
+          },
+          {
+            "attrs": {
+              "indent": 3,
+              "label_source": "list_marker",
+              "list_depth": 1,
+              "list_marker": "6.",
+              "list_ordered": true,
+              "markdown": "list",
+              "semantic": {
+                "ancestor": "Schedule 2 Service Levels",
+                "role": "schedule",
+                "role_match": "ancestor_heading",
+                "role_rule": 5,
+                "spans": 1
+              }
+            },
+            "children": [],
+            "confidence": 1.0,
+            "kind": "list_item",
+            "label": "6",
+            "level": 1,
+            "matched_by": "markdown:list",
+            "path": "/section[4]/list_item[6]",
+            "role": "schedule",
+            "spans": [
+              {
+                "end": 12,
+                "start": 4,
+                "type": "party",
+                "value": null
+              }
+            ],
+            "text": "The Supplier shall apply a critical security patch within two Business Days of its release."
+          },
+          {
+            "attrs": {
+              "indent": 3,
+              "label_source": "list_marker",
+              "list_depth": 1,
+              "list_marker": "7.",
+              "list_ordered": true,
+              "markdown": "list",
+              "semantic": {
+                "ancestor": "Schedule 2 Service Levels",
+                "role": "schedule",
+                "role_match": "ancestor_heading",
+                "role_rule": 5,
+                "spans": 1
+              }
+            },
+            "children": [],
+            "confidence": 1.0,
+            "kind": "list_item",
+            "label": "7",
+            "level": 1,
+            "matched_by": "markdown:list",
+            "path": "/section[4]/list_item[7]",
+            "role": "schedule",
+            "spans": [
+              {
+                "end": 12,
+                "start": 4,
+                "type": "party",
+                "value": null
+              }
+            ],
+            "text": "The Supplier shall apply any other security patch within ten Business Days of its release."
+          },
+          {
+            "attrs": {
+              "indent": 3,
+              "label_source": "list_marker",
+              "list_depth": 1,
+              "list_marker": "8.",
+              "list_ordered": true,
+              "markdown": "list",
+              "semantic": {
+                "ancestor": "Schedule 2 Service Levels",
+                "role": "schedule",
+                "role_match": "ancestor_heading",
+                "role_rule": 5,
+                "spans": 2
+              }
+            },
+            "children": [],
+            "confidence": 1.0,
+            "kind": "list_item",
+            "label": "8",
+            "level": 1,
+            "matched_by": "markdown:list",
+            "path": "/section[4]/list_item[8]",
+            "role": "schedule",
+            "spans": [
+              {
+                "end": 12,
+                "start": 4,
+                "type": "party",
+                "value": null
+              },
+              {
+                "end": 34,
+                "start": 28,
+                "type": "party",
+                "value": null
+              }
+            ],
+            "text": "The Supplier shall give the Client a report on its performance against each Service Level for each month."
+          }
+        ],
+        "confidence": 1.0,
+        "kind": "section",
+        "label": null,
+        "level": 0,
+        "matched_by": "markdown:atx",
+        "path": "/section[4]",
+        "role": null,
+        "spans": [],
+        "text": ""
+      }
+    ],
+    "confidence": 1.0,
+    "kind": "document",
+    "label": null,
+    "level": 0,
+    "matched_by": "document",
+    "path": "/",
+    "role": null,
+    "spans": [],
+    "text": ""
+  }
+}

@@ -3,9 +3,26 @@
 Most projects never import this module directly. The normal path is
 ``Redlines(a, b, profile="contract")`` (or ``--profile contract`` on the
 CLI) picking one of the built-in profiles by name (``generic``, ``contract``,
-``markdown``; shipped separately, tracked as #101) or, later, letting
-auto-selection choose. This module is what a reader calls internally to
-turn that name -- or a file, or a mapping -- into a validated `Profile`.
+``markdown``) or, later, letting auto-selection choose. This module is what a
+reader calls internally to turn that name -- or a file, or a mapping -- into a
+validated `Profile`.
+
+Three profiles ship in core (#101), listed in `BUILTIN_PROFILE_NAMES` and
+loaded by `builtin_profile`; each is a commented YAML file under
+``redlines/profiles/builtin/`` that anyone can read or copy. Pick by what
+the document is, not by how it was typed. ``contract`` is for numbered
+commercial agreements in plain text -- decimal clauses, ``(a)``/``(ii)``
+sub-clauses, ``Article 5``/``Schedule 2`` word labels, schedules that
+restart numbering, and definition, recital, schedule and signature roles
+with defined-term, cross-reference, party, date and amount spans -- and is
+what a ``.txt`` contract gets by default. ``markdown`` is the same document
+family seen through markdown syntax: headings, lists and tables come from
+the ``#``s and markers, so the profile describes only what is left in the
+stripped text, and it is the default for ``.md``. ``generic`` declares no
+labels, no numbering resets and no roles at all, so a reader degrades to one
+block per paragraph with alignment still working; choose it for an unknown
+family, and start from it when writing your own. ``legislation`` and
+automatic selection are 1.1 (PRD R1d); until then, name the profile you want.
 
 Writing a profile is the escape hatch for a document family none of the
 built-ins fit well, not something every project is expected to do. When
@@ -46,6 +63,7 @@ from __future__ import annotations
 
 from importlib.resources import files
 
+from .builtin import BUILTIN_PROFILE_NAMES, builtin_profile
 from .errors import ProfileError
 from .model import (
     HeadingReset,
@@ -69,6 +87,7 @@ def profile_schema_text() -> str:
 
 
 __all__ = [
+    "BUILTIN_PROFILE_NAMES",
     "HeadingReset",
     "HeadingRule",
     "LabelPattern",
@@ -76,6 +95,7 @@ __all__ = [
     "ProfileError",
     "RoleRule",
     "SpanExtractor",
+    "builtin_profile",
     "load_profile",
     "parse_profile_yaml",
     "profile_from_mapping",

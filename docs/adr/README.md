@@ -45,6 +45,8 @@ This directory records the decisions behind redlines 1.0 — the reasoning, the 
 | [0026](0026-docs-site-on-astro-starlight.md) | Publish the documentation with Astro Starlight, in the same site as the demo | Accepted |
 | [0027](0027-agent-docs-machine-surface.md) | Serve agents with a machine surface and a contract page, not a guide | Accepted |
 | [0028](0028-profile-file-format.md) | YAML as the structure profile file format, hand-validated against a published JSON Schema | Accepted |
+| [0029](0029-address-syntax.md) | Spell block addresses as XPath-style kind paths, with the label and breadcrumb alongside | Accepted |
+| [0030](0030-matched-by-and-confidence.md) | Report how every block was recognised, with a reserved fallback and a bounded confidence | Accepted |
 
 ## Evidence base
 

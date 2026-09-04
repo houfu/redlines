@@ -12,6 +12,7 @@ if TYPE_CHECKING:
 
 try:
     from nupunkt import sent_tokenize
+
     NUPUNKT_AVAILABLE = True
 except ImportError:
     NUPUNKT_AVAILABLE = False
@@ -19,6 +20,7 @@ except ImportError:
 
 try:
     import Levenshtein
+
     LEVENSHTEIN_AVAILABLE = True
 except ImportError:
     LEVENSHTEIN_AVAILABLE = False
@@ -525,7 +527,9 @@ class NupunktProcessor(RedlinesProcessor):
         """
         self.autojunk = autojunk
 
-    def process(self, source: Document | str, test: Document | str) -> list[DiffOperation]:
+    def process(
+        self, source: Document | str, test: Document | str
+    ) -> list[DiffOperation]:
         """
         Compare two documents using sentence-level tokenization.
 

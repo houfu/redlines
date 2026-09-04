@@ -1,4 +1,5 @@
 """Tests for the cleanup pass that merges adjacent edits separated only by punctuation."""
+
 import json
 
 import pytest
@@ -58,7 +59,10 @@ def test_chained_merge_collapses_to_single_change() -> None:
     assert len(test.changes) == 1
     assert test.opcodes == [("replace", 0, 8, 0, 8), ("equal", 8, 9, 8, 9)]
     # The trailing ')' is rendered outside the del/ins spans
-    assert test.output_markdown == "<del>one (1) - two (2</del><ins>uno (3) - dos (4</ins>)"
+    assert (
+        test.output_markdown
+        == "<del>one (1) - two (2</del><ins>uno (3) - dos (4</ins>)"
+    )
 
 
 def test_boundary_punctuation_not_swallowed() -> None:

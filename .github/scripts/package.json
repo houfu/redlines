@@ -1,0 +1,8 @@
+{
+  "name": "pyodide-check",
+  "private": true,
+  "description": "Pins the pyodide npm package used by pyodide_check.mjs in CI.",
+  "dependencies": {
+    "pyodide": "0.28.3"
+  }
+}

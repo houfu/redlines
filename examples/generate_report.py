@@ -11,7 +11,6 @@ from pathlib import Path
 from redlines import Redlines
 from datetime import datetime
 
-
 HTML_TEMPLATE = """<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -239,7 +238,9 @@ def generate_file_section(filename: str, stats: dict, diff_html: str) -> str:
         status_badge = '<span class="badge badge-success">No Changes</span>'
         diff_section = '<div class="no-changes">Files are identical</div>'
     else:
-        status_badge = f'<span class="badge badge-warning">{stats["total_changes"]} Changes</span>'
+        status_badge = (
+            f'<span class="badge badge-warning">{stats["total_changes"]} Changes</span>'
+        )
         diff_section = f'<div class="diff-content">{diff_html}</div>'
 
     return f"""
@@ -275,7 +276,9 @@ def generate_file_section(filename: str, stats: dict, diff_html: str) -> str:
     """
 
 
-def generate_report(dir1: Path, dir2: Path, output: Path, pattern: str = "*.txt") -> None:
+def generate_report(
+    dir1: Path, dir2: Path, output: Path, pattern: str = "*.txt"
+) -> None:
     """Generate HTML diff report comparing two directories."""
     results = []
     total_changes = 0
@@ -299,23 +302,27 @@ def generate_report(dir1: Path, dir2: Path, output: Path, pattern: str = "*.txt"
             diff = Redlines(source, test, markdown_style="none")
             stats = diff.stats()
 
-            results.append({
-                "file": str(file1.relative_to(dir1)),
-                "stats": {
-                    "total_changes": stats.total_changes,
-                    "insertions": stats.insertions,
-                    "deletions": stats.deletions,
-                    "replacements": stats.replacements,
-                    "change_ratio": f"{stats.change_ratio:.1%}",
-                    "chars_net_change": stats.chars_net_change,
-                },
-                "diff": diff.output_markdown
-            })
+            results.append(
+                {
+                    "file": str(file1.relative_to(dir1)),
+                    "stats": {
+                        "total_changes": stats.total_changes,
+                        "insertions": stats.insertions,
+                        "deletions": stats.deletions,
+                        "replacements": stats.replacements,
+                        "change_ratio": f"{stats.change_ratio:.1%}",
+                        "chars_net_change": stats.chars_net_change,
+                    },
+                    "diff": diff.output_markdown,
+                }
+            )
 
             total_changes += stats.total_changes
             total_change_ratio += stats.change_ratio
 
-            status = "✓" if stats.total_changes == 0 else f"△ {stats.total_changes} changes"
+            status = (
+                "✓" if stats.total_changes == 0 else f"△ {stats.total_changes} changes"
+            )
             print(f"  {status} {file1.relative_to(dir1)}")
 
         except Exception as e:
@@ -326,10 +333,9 @@ def generate_report(dir1: Path, dir2: Path, output: Path, pattern: str = "*.txt"
         return
 
     # Generate file sections
-    file_sections = "\n".join([
-        generate_file_section(r["file"], r["stats"], r["diff"])
-        for r in results
-    ])
+    file_sections = "\n".join(
+        [generate_file_section(r["file"], r["stats"], r["diff"]) for r in results]
+    )
 
     # Calculate summary stats
     files_with_changes = sum(1 for r in results if r["stats"]["total_changes"] > 0)
@@ -345,7 +351,7 @@ def generate_report(dir1: Path, dir2: Path, output: Path, pattern: str = "*.txt"
         files_with_changes=files_with_changes,
         total_changes=total_changes,
         avg_change_ratio=avg_change_ratio,
-        file_sections=file_sections
+        file_sections=file_sections,
     )
 
     output.write_text(html, encoding="utf-8")

@@ -25,6 +25,7 @@ dependencies = [
     "rich-click>=1.6.1",
     "rich>=13.3.5",
     "PyYAML>=6.0.1",
+    "typing-extensions>=4.1; python_version < '3.11'",
 ]
 
 [project.urls]

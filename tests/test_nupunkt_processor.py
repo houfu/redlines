@@ -1,4 +1,5 @@
 """Tests for NupunktProcessor."""
+
 import json
 
 import pytest
@@ -34,7 +35,9 @@ class TestNupunktProcessor:
 
         # Should correctly identify the change without splitting on abbreviations
         assert len(changes) == 1
-        assert changes[0].source_text is not None and "visited" in changes[0].source_text
+        assert (
+            changes[0].source_text is not None and "visited" in changes[0].source_text
+        )
         assert changes[0].test_text is not None and "met" in changes[0].test_text
 
     def test_decimals(self) -> None:
@@ -62,8 +65,13 @@ class TestNupunktProcessor:
 
         # Should not split on dots in URLs
         assert len(changes) == 1
-        assert changes[0].source_text is not None and "example.com" in changes[0].source_text
-        assert changes[0].test_text is not None and "example.org" in changes[0].test_text
+        assert (
+            changes[0].source_text is not None
+            and "example.com" in changes[0].source_text
+        )
+        assert (
+            changes[0].test_text is not None and "example.org" in changes[0].test_text
+        )
 
     def test_legal_citations(self) -> None:
         """Test handling of legal citations with abbreviations."""
@@ -146,7 +154,9 @@ class TestNupunktProcessor:
 
         # Should detect change in second paragraph
         assert len(changes) == 1
-        assert changes[0].source_text is not None and "paragraph" in changes[0].source_text
+        assert (
+            changes[0].source_text is not None and "paragraph" in changes[0].source_text
+        )
         assert changes[0].test_text is not None and "modified" in changes[0].test_text
 
     def test_no_changes(self) -> None:
@@ -183,8 +193,14 @@ class TestNupunktProcessor:
 
         # Both should detect same change
         assert nupunkt_changes[0].operation == whole_changes[0].operation
-        assert nupunkt_changes[0].source_text is not None and "brown" in nupunkt_changes[0].source_text
-        assert nupunkt_changes[0].test_text is not None and "red" in nupunkt_changes[0].test_text
+        assert (
+            nupunkt_changes[0].source_text is not None
+            and "brown" in nupunkt_changes[0].source_text
+        )
+        assert (
+            nupunkt_changes[0].test_text is not None
+            and "red" in nupunkt_changes[0].test_text
+        )
 
     def test_output_markdown_preserves_paragraph_breaks(self) -> None:
         """Test that paragraph boundaries survive rendering instead of being reflowed."""
@@ -224,7 +240,9 @@ class TestNupunktProcessor:
 
         assert len(changes) == 1
         assert changes[0].operation == "replace"
-        assert changes[0].source_text is not None and "Alpha" not in changes[0].source_text
+        assert (
+            changes[0].source_text is not None and "Alpha" not in changes[0].source_text
+        )
         assert changes[0].test_text is not None and "Alpha" not in changes[0].test_text
 
     def test_sentence_anchoring_within_paragraph(self) -> None:

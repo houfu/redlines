@@ -46,7 +46,9 @@ class TestTextCommand:
         # Should contain the redline text
         assert "jumps over" in result.output or "walks past" in result.output
 
-    def test_text_with_files(self, runner: CliRunner, temp_files: dict[str, Path]) -> None:
+    def test_text_with_files(
+        self, runner: CliRunner, temp_files: dict[str, Path]
+    ) -> None:
         """Test text command with file inputs."""
         result = runner.invoke(
             cli,
@@ -61,9 +63,7 @@ class TestTextCommand:
 
     def test_text_with_changes(self, runner: CliRunner) -> None:
         """Test text command with changes (exit code 0)."""
-        result = runner.invoke(
-            cli, ["text", "Hello world", "Hello there", "--quiet"]
-        )
+        result = runner.invoke(cli, ["text", "Hello world", "Hello there", "--quiet"])
         assert result.exit_code == 0
 
     def test_text_file_not_found(self, runner: CliRunner) -> None:
@@ -88,7 +88,9 @@ class TestSimpleTextCommand:
         )
         assert result.exit_code == 0
 
-    def test_simple_text_with_files(self, runner: CliRunner, temp_files: dict[str, Path]) -> None:
+    def test_simple_text_with_files(
+        self, runner: CliRunner, temp_files: dict[str, Path]
+    ) -> None:
         """Test simple_text command with file inputs."""
         result = runner.invoke(
             cli, ["simple-text", str(temp_files["source"]), str(temp_files["test"])]
@@ -123,7 +125,9 @@ class TestMarkdownCommand:
         # Should contain markdown-style output
         assert "jumps over" in result.output or "walks past" in result.output
 
-    def test_markdown_with_files(self, runner: CliRunner, temp_files: dict[str, Path]) -> None:
+    def test_markdown_with_files(
+        self, runner: CliRunner, temp_files: dict[str, Path]
+    ) -> None:
         """Test markdown command with file inputs."""
         result = runner.invoke(
             cli, ["markdown", str(temp_files["source"]), str(temp_files["test"])]
@@ -185,7 +189,9 @@ class TestJsonCommand:
         assert "changes" in data
         assert "stats" in data
 
-    def test_json_with_files(self, runner: CliRunner, temp_files: dict[str, Path]) -> None:
+    def test_json_with_files(
+        self, runner: CliRunner, temp_files: dict[str, Path]
+    ) -> None:
         """Test json command with file inputs."""
         result = runner.invoke(
             cli, ["json", str(temp_files["source"]), str(temp_files["test"])]
@@ -270,7 +276,9 @@ class TestStatsCommand:
         assert "Insertions:" in result.output
         assert "Replacements:" in result.output
 
-    def test_stats_with_files(self, runner: CliRunner, temp_files: dict[str, Path]) -> None:
+    def test_stats_with_files(
+        self, runner: CliRunner, temp_files: dict[str, Path]
+    ) -> None:
         """Test stats command with file inputs."""
         result = runner.invoke(
             cli,
@@ -280,9 +288,7 @@ class TestStatsCommand:
 
     def test_stats_quiet_output(self, runner: CliRunner) -> None:
         """Test stats quiet output format."""
-        result = runner.invoke(
-            cli, ["stats", "Hello world", "Hello there", "--quiet"]
-        )
+        result = runner.invoke(cli, ["stats", "Hello world", "Hello there", "--quiet"])
         assert result.exit_code == 0
 
         # Verify plain text format
@@ -293,17 +299,13 @@ class TestStatsCommand:
 
     def test_stats_no_changes(self, runner: CliRunner) -> None:
         """Test stats command with no changes (exit code 1)."""
-        result = runner.invoke(
-            cli, ["stats", "Hello world", "Hello world", "--quiet"]
-        )
+        result = runner.invoke(cli, ["stats", "Hello world", "Hello world", "--quiet"])
         assert result.exit_code == 1
         assert "Total Changes: 0" in result.output
 
     def test_stats_with_changes(self, runner: CliRunner) -> None:
         """Test stats command with changes (exit code 0)."""
-        result = runner.invoke(
-            cli, ["stats", "Hello world", "Hello there", "--quiet"]
-        )
+        result = runner.invoke(cli, ["stats", "Hello world", "Hello there", "--quiet"])
         assert result.exit_code == 0
         # Total changes should be > 0
         assert "Total Changes: 0" not in result.output
@@ -312,7 +314,9 @@ class TestStatsCommand:
 class TestFileInputHandling:
     """Tests for file input handling across commands."""
 
-    def test_file_vs_string_detection(self, runner: CliRunner, temp_files: dict[str, Path]) -> None:
+    def test_file_vs_string_detection(
+        self, runner: CliRunner, temp_files: dict[str, Path]
+    ) -> None:
         """Test that files are properly detected and read."""
         # With file path
         result_file = runner.invoke(
@@ -363,7 +367,11 @@ class TestFileInputHandling:
         # Click exceptions result in exit code 1, not 2
         # Error message should mention encoding
         assert result.exit_code != 0  # Should not succeed
-        assert "encoding" in result.output.lower() or "utf-8" in result.output.lower() or "error" in result.output.lower()
+        assert (
+            "encoding" in result.output.lower()
+            or "utf-8" in result.output.lower()
+            or "error" in result.output.lower()
+        )
 
 
 class TestExitCodes:
@@ -485,7 +493,9 @@ class TestCommandlessInvocation:
         self, runner: CliRunner, temp_files: dict[str, Path]
     ) -> None:
         """Test command-less invocation with file inputs."""
-        result = runner.invoke(cli, [str(temp_files["source"]), str(temp_files["test"])])
+        result = runner.invoke(
+            cli, [str(temp_files["source"]), str(temp_files["test"])]
+        )
         assert result.exit_code == 0
 
         data = json.loads(result.output)

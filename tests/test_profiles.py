@@ -155,7 +155,9 @@ def test_bad_regex_is_rejected_with_field_path() -> None:
         load_profile(
             {
                 "name": "x",
-                "label_patterns": [{"name": "bad", "pattern": "(unclosed", "style": "decimal"}],
+                "label_patterns": [
+                    {"name": "bad", "pattern": "(unclosed", "style": "decimal"}
+                ],
             }
         )
     assert any("label_patterns[0].pattern" in error for error in excinfo.value.errors)
@@ -166,7 +168,9 @@ def test_invalid_label_style_is_rejected() -> None:
         load_profile(
             {
                 "name": "x",
-                "label_patterns": [{"name": "n", "pattern": r"^\d+", "style": "hexadecimal"}],
+                "label_patterns": [
+                    {"name": "n", "pattern": r"^\d+", "style": "hexadecimal"}
+                ],
             }
         )
     assert any("label_patterns[0].style" in error for error in excinfo.value.errors)
@@ -174,13 +178,20 @@ def test_invalid_label_style_is_rejected() -> None:
 
 def test_role_rule_heading_requires_pattern() -> None:
     with pytest.raises(ProfileError) as excinfo:
-        load_profile({"name": "x", "role_rules": [{"role": "definitions", "match": "heading"}]})
+        load_profile(
+            {"name": "x", "role_rules": [{"role": "definitions", "match": "heading"}]}
+        )
     assert any("role_rules[0].pattern" in error for error in excinfo.value.errors)
 
 
 def test_role_rule_parent_role_requires_parent_role_field() -> None:
     with pytest.raises(ProfileError) as excinfo:
-        load_profile({"name": "x", "role_rules": [{"role": "definition", "match": "parent_role"}]})
+        load_profile(
+            {
+                "name": "x",
+                "role_rules": [{"role": "definition", "match": "parent_role"}],
+            }
+        )
     assert any("role_rules[0].parent_role" in error for error in excinfo.value.errors)
 
 
@@ -286,7 +297,10 @@ def test_span_extractors_keep_their_declared_order() -> None:
             ],
         }
     )
-    assert [extractor.type for extractor in profile.span_extractors] == ["date", "amount"]
+    assert [extractor.type for extractor in profile.span_extractors] == [
+        "date",
+        "amount",
+    ]
 
 
 # --- the published JSON Schema is well-formed and matches the model --------
@@ -300,7 +314,10 @@ _EXEMPLARS: dict[str, tuple[str, dict[str, object]]] = {
         {"name": "decimal", "pattern": r"^(\d+)\.", "style": "decimal"},
     ),
     "headingReset": ("heading_resets", {"name": "schedule", "pattern": "^Schedule"}),
-    "roleRule": ("role_rules", {"role": "schedule", "match": "heading", "pattern": "^Schedule"}),
+    "roleRule": (
+        "role_rules",
+        {"role": "schedule", "match": "heading", "pattern": "^Schedule"},
+    ),
     "spanExtractor": ("span_extractors", {"type": "date", "pattern": r"\d{4}"}),
 }
 
@@ -342,7 +359,9 @@ def test_schema_enums_match_the_model_vocabularies() -> None:
     label_pattern = definitions["labelPattern"]["properties"]
     assert set(label_pattern["style"]["enum"]) == set(LABEL_STYLES)
     assert set(label_pattern["depth_mode"]["enum"]) == set(LABEL_DEPTH_MODES)
-    assert set(definitions["roleRule"]["properties"]["match"]["enum"]) == set(ROLE_MATCH_KINDS)
+    assert set(definitions["roleRule"]["properties"]["match"]["enum"]) == set(
+        ROLE_MATCH_KINDS
+    )
 
 
 def test_schema_defaults_match_the_dataclass_defaults() -> None:
@@ -374,8 +393,16 @@ _ROLE_RULE_CASES: list[tuple[str, dict[str, object], bool]] = [
         {"role": "r", "match": "ancestor_heading", "pattern": "^x"},
         True,
     ),
-    ("ancestor_heading without pattern", {"role": "r", "match": "ancestor_heading"}, False),
-    ("parent_role with parent_role", {"role": "r", "match": "parent_role", "parent_role": "p"}, True),
+    (
+        "ancestor_heading without pattern",
+        {"role": "r", "match": "ancestor_heading"},
+        False,
+    ),
+    (
+        "parent_role with parent_role",
+        {"role": "r", "match": "parent_role", "parent_role": "p"},
+        True,
+    ),
     ("parent_role without parent_role", {"role": "r", "match": "parent_role"}, False),
     (
         "parent_role with pattern",
@@ -423,7 +450,9 @@ def test_schema_encodes_the_role_rule_conditionals_the_loader_enforces() -> None
 
 
 @pytest.mark.parametrize("definition_name", sorted(_EXEMPLARS))
-def test_schema_required_fields_are_the_ones_the_validator_enforces(definition_name: str) -> None:
+def test_schema_required_fields_are_the_ones_the_validator_enforces(
+    definition_name: str,
+) -> None:
     """Dropping any field the schema calls required must actually fail validation."""
     definition = _schema()["definitions"][definition_name]
     key, exemplar = _EXEMPLARS[definition_name]

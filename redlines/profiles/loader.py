@@ -112,7 +112,9 @@ class _StrictSafeLoader(yaml.SafeLoader):
     way it reads, with the losing line sitting right there in the document.
     """
 
-    def construct_mapping(self, node: yaml.MappingNode, deep: bool = False) -> dict[Any, Any]:
+    def construct_mapping(
+        self, node: yaml.MappingNode, deep: bool = False
+    ) -> dict[Any, Any]:
         seen: set[Any] = set()
         for key_node, _ in node.value:
             key = self.construct_object(key_node, deep=deep)
@@ -148,7 +150,9 @@ def parse_profile_yaml(text: str) -> Profile:
 def profile_from_mapping(mapping: Mapping[str, Any]) -> Profile:
     """Validate a plain mapping against the profile format and build a `Profile`."""
     if not isinstance(mapping, Mapping):
-        raise ProfileError([f"a profile must be a mapping, got {type(mapping).__name__}"])
+        raise ProfileError(
+            [f"a profile must be a mapping, got {type(mapping).__name__}"]
+        )
 
     errors: list[str] = []
     _check_unknown_keys(mapping, _TOP_LEVEL_KEYS, "", errors)
@@ -160,7 +164,9 @@ def profile_from_mapping(mapping: Mapping[str, Any]) -> Profile:
         pattern
         for pattern in (
             _build_label_pattern(item, f"label_patterns[{i}]", errors)
-            for i, item in enumerate(_require_list_of_mappings(mapping, "label_patterns", errors))
+            for i, item in enumerate(
+                _require_list_of_mappings(mapping, "label_patterns", errors)
+            )
         )
         if pattern is not None
     )
@@ -168,16 +174,22 @@ def profile_from_mapping(mapping: Mapping[str, Any]) -> Profile:
         reset
         for reset in (
             _build_heading_reset(item, f"heading_resets[{i}]", errors)
-            for i, item in enumerate(_require_list_of_mappings(mapping, "heading_resets", errors))
+            for i, item in enumerate(
+                _require_list_of_mappings(mapping, "heading_resets", errors)
+            )
         )
         if reset is not None
     )
-    heading_rule = _build_heading_rule(mapping.get("heading_rule", {}), "heading_rule", errors)
+    heading_rule = _build_heading_rule(
+        mapping.get("heading_rule", {}), "heading_rule", errors
+    )
     role_rules = tuple(
         rule
         for rule in (
             _build_role_rule(item, f"role_rules[{i}]", errors)
-            for i, item in enumerate(_require_list_of_mappings(mapping, "role_rules", errors))
+            for i, item in enumerate(
+                _require_list_of_mappings(mapping, "role_rules", errors)
+            )
         )
         if rule is not None
     )
@@ -185,7 +197,9 @@ def profile_from_mapping(mapping: Mapping[str, Any]) -> Profile:
         extractor
         for extractor in (
             _build_span_extractor(item, f"span_extractors[{i}]", errors)
-            for i, item in enumerate(_require_list_of_mappings(mapping, "span_extractors", errors))
+            for i, item in enumerate(
+                _require_list_of_mappings(mapping, "span_extractors", errors)
+            )
         )
         if extractor is not None
     )
@@ -339,9 +353,7 @@ def _build_heading_reset(
     return HeadingReset(name=name, pattern=pattern)
 
 
-def _build_heading_rule(
-    item: Any, path: str, errors: list[str]
-) -> HeadingRule:
+def _build_heading_rule(item: Any, path: str, errors: list[str]) -> HeadingRule:
     if not isinstance(item, Mapping):
         errors.append(f"{path}: must be a mapping")
         return HeadingRule()
@@ -364,7 +376,9 @@ def _build_heading_rule(
     return HeadingRule(max_words=max_words, **bool_fields)
 
 
-def _build_role_rule(item: Mapping[str, Any], path: str, errors: list[str]) -> RoleRule | None:
+def _build_role_rule(
+    item: Mapping[str, Any], path: str, errors: list[str]
+) -> RoleRule | None:
     _check_unknown_keys(item, _ROLE_RULE_KEYS, path, errors)
     ok = True
 
@@ -384,7 +398,9 @@ def _build_role_rule(item: Mapping[str, Any], path: str, errors: list[str]) -> R
 
     if match in ("heading", "ancestor_heading"):
         if not isinstance(pattern, str) or not pattern:
-            errors.append(f"{path}.pattern: required and must be a non-empty string when match={match!r}")
+            errors.append(
+                f"{path}.pattern: required and must be a non-empty string when match={match!r}"
+            )
             ok = False
         elif not _compile_or_error(pattern, path, errors):
             ok = False
@@ -393,7 +409,9 @@ def _build_role_rule(item: Mapping[str, Any], path: str, errors: list[str]) -> R
             ok = False
     elif match == "parent_role":
         if not isinstance(parent_role, str) or not parent_role.strip():
-            errors.append(f"{path}.parent_role: required and must be a non-empty string when match='parent_role'")
+            errors.append(
+                f"{path}.parent_role: required and must be a non-empty string when match='parent_role'"
+            )
             ok = False
         if pattern is not None:
             errors.append(f"{path}.pattern: must not be set when match='parent_role'")
