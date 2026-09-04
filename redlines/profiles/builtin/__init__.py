@@ -6,10 +6,13 @@ these by name (PRD D30, ADR-0028). ``generic`` declares no structure at all,
 ``markdown`` covers what is left of a markdown document once its syntax has
 been stripped. ``legislation`` and auto-selection are 1.1 (PRD R1d).
 
-Each profile is a commented YAML file next to this module, loaded through
-`importlib.resources` so it works from a wheel, a zip or an editable
-checkout, and validated by the same `parse_profile_yaml` a hand-written
-profile goes through -- a built-in gets no privileged path.
+Each profile is a commented YAML file in *this* package: ``generic.yaml``,
+``contract.yaml`` and ``markdown.yaml`` sit beside this ``__init__.py``,
+which is why the loader below reads them as resources of ``__package__``
+itself. They are loaded through `importlib.resources` so it works from a
+wheel, a zip or an editable checkout, and validated by the same
+`parse_profile_yaml` a hand-written profile goes through -- a built-in gets
+no privileged path.
 """
 
 from __future__ import annotations
@@ -17,16 +20,14 @@ from __future__ import annotations
 from functools import lru_cache
 from importlib.resources import files
 
-from .errors import ProfileError
-from .loader import parse_profile_yaml
-from .model import Profile
+from ..errors import ProfileError
+from ..loader import parse_profile_yaml
+from ..model import Profile
 
 #: The built-in profiles, in the order they are documented: least
 #: structured first. Every name here is also the stem of a ``.yaml`` file in
 #: ``redlines/profiles/builtin/``.
 BUILTIN_PROFILE_NAMES: tuple[str, ...] = ("generic", "contract", "markdown")
-
-_BUILTIN_DIRECTORY = "builtin"
 
 
 @lru_cache(maxsize=None)
@@ -50,5 +51,5 @@ def builtin_profile(name: str) -> Profile:
                 "To load a profile of your own, use load_profile()."
             ]
         )
-    resource = files(__package__) / _BUILTIN_DIRECTORY / f"{name}.yaml"
+    resource = files(__package__) / f"{name}.yaml"
     return parse_profile_yaml(resource.read_text(encoding="utf-8"))

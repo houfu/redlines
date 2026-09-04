@@ -9,17 +9,21 @@ Four trees are written under ``expected/``: the plain-text twins read by
 profile, and the markdown pair read by
 `redlines.readers.markdown.MarkdownReader` under ``markdown``, each passed
 through `redlines.semantic.apply_semantics` — the whole M1 pipeline, in the
-order PRD § 6b sets out. Each file is ``BlockTree.to_dict()`` as JSON with
-sorted keys, two-space indent and a trailing newline.
+order PRD § 6b sets out. `redlines.pipeline.read_document` is that pipeline,
+so this script names the format and the profile and lets it compose the rest.
+Each file is ``BlockTree.to_dict()`` as JSON with sorted keys, two-space
+indent and a trailing newline.
 
 These are *not* the M0 golden outputs of `tests/corpus/regenerate_goldens.py`,
 which renders a redline for every case directory; ``sample_pair`` is listed in
 that test's ``NOT_GOLDEN_CASES``. The change tree for this pair is M2's golden,
 not this file's.
 
-The pipeline below is deliberately repeated in `tests/test_sample_pair.py`
-rather than shared: the test builds the trees itself and compares them with
-what this script wrote, so a drift between the two is a test failure rather
+`tests/test_sample_pair.py` deliberately does *not* call this script's
+`build_tree`, and does not use `read_document` either: it spells the reader
+and the semantic pass out itself and compares the result with what this script
+wrote, so a drift between the two — including one introduced by
+`read_document` composing the stages differently — is a test failure rather
 than a silently regenerated golden.
 """
 
@@ -29,9 +33,7 @@ import json
 from pathlib import Path
 
 from redlines.blocks import BlockTree
-from redlines.profiles import builtin_profile
-from redlines.readers import reader_for
-from redlines.semantic import apply_semantics
+from redlines.pipeline import read_document
 
 CASE_DIR = Path(__file__).parent
 EXPECTED_DIR = CASE_DIR / "expected"
@@ -46,17 +48,19 @@ PAIRINGS: tuple[tuple[str, str, str], ...] = (
 
 
 def build_tree(path: Path, *, format: str, profile_name: str) -> BlockTree:
-    """Read ``path`` with the reader for ``format`` and run the semantic pass.
+    """Read ``path`` under ``profile_name`` and run the semantic pass.
+
+    The format and the profile are both named rather than detected, because a
+    golden should not move when detection or a default does.
 
     :param path: one of the four sample-pair input files.
     :param format: the reader format name, ``"text"`` or ``"markdown"``.
     :param profile_name: the built-in profile to read and interpret under.
     :return: the `redlines.blocks.BlockTree` the pair is expected to parse into.
     """
-    profile = builtin_profile(profile_name)
-    reader = reader_for(format)
-    tree = reader.read(path.read_text(encoding="utf-8"), profile=profile)
-    return apply_semantics(tree, profile)
+    return read_document(
+        path.read_text(encoding="utf-8"), format=format, profile=profile_name
+    )
 
 
 def expected_path(input_name: str, profile_name: str) -> Path:

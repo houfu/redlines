@@ -12,10 +12,15 @@ and it is the only place a block acquires a `role` or a `Span`::
     tree = reader_for("text").read(source, profile=profile)
     tree = apply_semantics(tree, profile)
 
+Those two lines are what `redlines.pipeline.read_document` composes -- pick a
+profile, read, interpret -- so ``read_document(source, format="text")`` is the
+same pipeline with the profile defaulted. Readers themselves never call this
+pass: a reader produces structure and stops, and the tree it returns carries no
+role and no span until this module has run over it.
+
 It is pure: the tree that goes in is never mutated, the tree that comes out is
 new, and running it twice over the same tree gives the same tree the first run
-gave (N1). Readers do not call it -- wave C wires the pipeline -- and it holds
-no state between calls.
+gave (N1). It holds no state between calls.
 
 **Everything it does comes from the profile** (ADR-0006), with one named
 exception. `Profile.role_rules` assign roles, `Profile.span_extractors` emit
