@@ -366,3 +366,31 @@ def test_every_source_document_round_trips_through_the_unit_model(document_id: s
         for block in document.tree().walk()
         if block.kind.value == "row"
     )
+
+
+# --------------------------------------------------------------------------
+# The dev-only fetch script's one safety property
+# --------------------------------------------------------------------------
+
+
+def test_the_fetch_script_refuses_to_write_outside_the_gitignored_directory(
+    tmp_path: Path,
+) -> None:
+    """AGPL-derived text never leaves ``benchmark/corpus/external/``, and this is what enforces it.
+
+    No network, no clone, no python-docx: the guard is a path check, and the whole licence story
+    of `benchmark.fetch_neurotic` rests on it holding for a destination somebody passed by
+    mistake rather than on every caller being careful.
+    """
+    from benchmark.fetch_neurotic import FetchError, extract_document, external_root
+
+    assert external_root(ROOT) == ROOT / "benchmark" / "corpus" / "external"
+    with pytest.raises(FetchError, match="refusing to write"):
+        extract_document(tmp_path / "base.docx", ROOT / "benchmark" / "corpus" / "leaked.txt", ROOT)
+    with pytest.raises(FetchError, match="refusing to write"):
+        extract_document(tmp_path / "base.docx", tmp_path / "elsewhere.txt", ROOT)
+
+
+def test_the_external_tier_is_gitignored() -> None:
+    ignore = (ROOT / "benchmark" / "corpus" / ".gitignore").read_text(encoding="utf-8")
+    assert "external/" in ignore.splitlines()
