@@ -90,10 +90,21 @@ Ties
 ----
 
 Every maximum is taken under one stated, total order (N1, #135): highest
-score, then the candidate whose ``role`` equals the other side's, then
-earliest source document-order position, then earliest test position. Role
-never *creates* a match, it only orders equals. No ``set`` is iterated
-anywhere in this module, because ``str.__hash__`` is seeded.
+score, then the candidate whose ``role`` equals the other side's, then the
+**structurally nearer** candidate -- the one sitting closest, in whole
+blocks, to where the other side's block sits among its own siblings -- then
+earliest source document-order position, then earliest test position.
+Neither role nor nearness ever *creates* a match; both only order equals.
+
+Nearness is the step the ADR-0021 benchmark bought (#143, ADR-0032 amended
+2026-09-05). Without it, ``exact`` took the first candidate in document
+order, and a schedule of thirty byte-identical paragraphs with one edit in
+the middle came out shifted by one from that edit down -- 84 wrong matches
+of 1,349 scored, and F1 0.03-0.35 on the corpus's repetitive pairs. Within
+one bucket the assignment is order-preserving as well as nearest, so two
+exact pairs can never cross each other and invent a move between them. No
+``set`` is iterated anywhere in this module, because ``str.__hash__`` is
+seeded.
 
 Moves and renumbers
 -------------------
@@ -305,7 +316,7 @@ class AlignmentConfig:
     passes: tuple[str, ...] = PASS_NAMES
     similarity: str = "auto"
     fuzzy_min_similarity: float = 0.60
-    label_min_similarity: float = 0.35
+    label_min_similarity: float = 0.50
     positional_min_similarity: float = 0.35
     move_min_similarity: float = 0.80
     move_tie_margin: float = 0.10
@@ -727,6 +738,79 @@ def _longest_increasing_subsequence(
     return spine
 
 
+class _Places:
+    """Where each child of one sibling group sits among its siblings.
+
+    Distance is the plain difference of two sibling positions, in whole
+    blocks: source child 6 is one away from test child 7 whether the groups
+    have eight children each or eighty. Integers, never floats, because a
+    tie-break that compared floats would be a tie-break whose answer depended
+    on how the two numbers were reached (N1).
+
+    Scaling the two sides to a common length was measured and rejected: it
+    assumes a group grew evenly, and in ``govinfo-hr4668-ih-to-rh`` -- where
+    the source's 10 sections became 20 by insertion in one place -- it sends
+    source section 6 to test section 16 instead of test section 7, taking four
+    correspondences and seven spurious moves with it. Absolute distance says
+    "as near as it was", which is the weaker and truer claim.
+    """
+
+    __slots__ = ("_source", "_test")
+
+    def __init__(self, source_kids: Sequence[int], test_kids: Sequence[int]) -> None:
+        self._source = {index: position for position, index in enumerate(source_kids)}
+        self._test = {index: position for position, index in enumerate(test_kids)}
+
+    def source_position(self, index: int) -> int:
+        """The block's position among its siblings."""
+        return self._source[index]
+
+    def test_position(self, index: int) -> int:
+        """The block's position among its siblings."""
+        return self._test[index]
+
+
+def _nearest_monotone(
+    sources: Sequence[tuple[int, int]], tests: Sequence[tuple[int, int]]
+) -> list[tuple[int, int]]:
+    """Pair two lists of equal candidates by nearest position, in order.
+
+    Both lists are ``(block index, sibling position)`` in document order, and
+    every source in them is as good a match for every test as any other --
+    they came out of one exact bucket. What is left to decide is *which* of
+    the equals, and the answer is the nearest one by sibling position, subject
+    to the pairs never crossing each other.
+
+    The walk drives on the shorter list and advances a cursor through the
+    longer, taking a further candidate only while it is **strictly** nearer,
+    so an exact distance tie keeps the earlier one and document order stays
+    the final word (ADR-0032, as amended by the #143 report). The cursor never
+    outruns what the remaining drivers need, so every driver gets a partner
+    and ``min(len(sources), len(tests))`` pairs come back. O(k) in the size of
+    the bucket; no similarity is computed, because there is nothing to
+    measure between blocks that are already identical.
+
+    :param sources: the source candidates, in document order.
+    :param tests: the test candidates, in document order.
+    :return: ``(source index, test index)`` pairs, in the driving side's order.
+    """
+    flip = len(tests) <= len(sources)
+    driver, pool = (tests, sources) if flip else (sources, tests)
+    pairs: list[tuple[int, int]] = []
+    cursor = 0
+    for step, (driver_index, driver_place) in enumerate(driver):
+        limit = len(pool) - (len(driver) - step)
+        best = cursor
+        while best < limit and abs(pool[best + 1][1] - driver_place) < abs(
+            pool[best][1] - driver_place
+        ):
+            best += 1
+        partner = pool[best][0]
+        pairs.append((partner, driver_index) if flip else (driver_index, partner))
+        cursor = best + 1
+    return pairs
+
+
 class _Side:
     """One tree, flattened into document order with parents and caches.
 
@@ -934,13 +1018,14 @@ class _Aligner:
 
         free_source = [index for index in source_kids if index not in self.pairs]
         free_test = [index for index in test_kids if index not in self.matched_test]
-        self._exact(free_source, free_test)
+        places = _Places(source_kids, test_kids)
+        self._exact(free_source, free_test, places)
         if "label" in self.config.passes:
-            self._label(free_source, free_test)
+            self._label(free_source, free_test, places)
         self._structural(free_source, free_test)
         if "fuzzy" in self.config.passes and self._fuzzy_applies(source_parent):
             gaps = self._gaps(source_kids, test_kids, free_source, free_test)
-            self._fuzzy(gaps, free_source, free_test)
+            self._fuzzy(gaps, free_source, free_test, places)
 
     def _fuzzy_applies(self, source_parent: int) -> bool:
         """Whether the fuzzy pass runs in this group (#134's table rule)."""
@@ -969,38 +1054,80 @@ class _Aligner:
 
     # -- pass 1: exact -----------------------------------------------------
 
-    def _exact(self, free_source: list[int], free_test: list[int]) -> None:
+    def _exact(
+        self, free_source: list[int], free_test: list[int], places: _Places
+    ) -> None:
         """Pair blocks with the same match key, within a kind class.
 
-        O(k) through buckets consumed in document order, which is both the
-        early exit ADR-0008 asks for and what makes section 7 pair with
-        section 7 explainably, before any similarity is computed.
+        O(k) through buckets, which is both the early exit ADR-0008 asks for
+        and what makes section 7 pair with section 7 explainably, before any
+        similarity is computed.
+
+        **Several candidates can be equally exact**, and which one is taken is
+        a decision rather than an accident. A schedule of thirty byte-identical
+        paragraphs puts all thirty in one bucket, and consuming the bucket in
+        document order -- what this pass did until the #143 report measured it
+        -- shifts every pair after the first edited paragraph by one, because
+        the edited test block matches no key and so consumes no source. That
+        one rule cost 84 of the report's 1,349 scored exact matches.
+
+        The tie-break is therefore the **structurally nearest** candidate:
+        among equally exact candidates the pair chosen is the one whose
+        sibling positions are closest (`_Places`, whole blocks apart, never a
+        float), and the assignment across a bucket is
+        order-preserving, so two exact pairs can never cross each other.
+        Distance ties, and buckets where nothing is nearer than anything else,
+        fall back to document order -- ADR-0032's original rule, now the last
+        step of a longer one rather than the whole of it.
         """
-        buckets: dict[tuple[str, str], list[int]] = {}
+        source_buckets: dict[tuple[str, str], list[tuple[int, int]]] = {}
         for source in free_source:
             key = self.source.key(source)
             if key is None:
                 continue
-            buckets.setdefault((self.source.klass(source), key), []).append(source)
-        for test in list(free_test):
+            source_buckets.setdefault((self.source.klass(source), key), []).append(
+                (source, places.source_position(source))
+            )
+        test_buckets: dict[tuple[str, str], list[tuple[int, int]]] = {}
+        for test in free_test:
             key = self.test.key(test)
             if key is None:
                 continue
-            bucket = buckets.get((self.test.klass(test), key))
-            if not bucket:
+            test_buckets.setdefault((self.test.klass(test), key), []).append(
+                (test, places.test_position(test))
+            )
+        chosen: list[tuple[int, int, int]] = []
+        # Insertion order is test document order, so the walk over buckets is
+        # stable; the pairs it collects are then taken in test document order,
+        # which is the order this pass has always recorded them in.
+        for bucket, tests in test_buckets.items():
+            sources = source_buckets.get(bucket)
+            if not sources:
                 continue
-            self._take(bucket.pop(0), test, "exact", 1.0, free_source, free_test)
+            for source, test in _nearest_monotone(sources, tests):
+                chosen.append((places.test_position(test), source, test))
+        chosen.sort()
+        for _, source, test in chosen:
+            self._take(source, test, "exact", 1.0, free_source, free_test)
 
     # -- pass 2: label -----------------------------------------------------
 
-    def _label(self, free_source: list[int], free_test: list[int]) -> None:
+    def _label(
+        self, free_source: list[int], free_test: list[int], places: _Places
+    ) -> None:
         """Pair blocks carrying the same label, if their text agrees enough.
 
         The floor is what stops a renumbered clause matching the *new* clause
         that took its number: measured on the sample pair, the old 3.3 and the
-        inserted 3.3 score 0.20, so at 0.35 both fall through to a delete and
-        an insert, which is the honest answer. Labels arrive already
-        normalised from the reader, so nothing is normalised again here.
+        inserted 3.3 score 0.20, so both fall through to a delete and an
+        insert, which is the honest answer. Labels arrive already normalised
+        from the reader, so nothing is normalised again here.
+
+        Where one label is carried by several siblings the candidate taken is
+        the structurally nearest, the same tie-break `_exact` uses and for the
+        same reason; the floor is applied to whichever candidate that is, and
+        a candidate below it is left in its bucket, because another test block
+        with the same label may still be the one that belongs to it.
         """
         buckets: dict[tuple[str, str], list[int]] = {}
         for source in free_source:
@@ -1015,13 +1142,18 @@ class _Aligner:
             bucket = buckets.get((self.test.klass(test), label))
             if not bucket:
                 continue
-            source = bucket[0]
+            test_place = places.test_position(test)
+            source = min(
+                bucket,
+                key=lambda index: (
+                    abs(places.source_position(index) - test_place),
+                    places.source_position(index),
+                ),
+            )
             score = self._pair_score(source, test)
             if score < self.config.label_min_similarity:
-                # Leave the candidate in its bucket: another test block with
-                # the same label may still be the one that belongs to it.
                 continue
-            bucket.pop(0)
+            bucket.remove(source)
             self._take(source, test, "label", score, free_source, free_test)
 
     # -- pass 3: structural ------------------------------------------------
@@ -1056,21 +1188,28 @@ class _Aligner:
         gaps: list[tuple[list[int], list[int]]],
         free_source: list[int],
         free_test: list[int],
+        places: _Places,
     ) -> None:
         """Pair the rest of a gap by token similarity, within a window.
 
         Candidates are scored once, collected, and then taken greedily in one
-        stated total order -- highest score, then equal roles, then earliest
-        source position, then earliest test position -- rather than by
-        repeatedly rescanning for the current best. Same answer, no ``set``
-        iterated, and the tie-break is written down rather than emergent.
+        stated total order -- highest score, then equal roles, then the
+        structurally nearer candidate, then earliest source position, then
+        earliest test position -- rather than by repeatedly rescanning for the
+        current best. Same answer, no ``set`` iterated, and the tie-break is
+        written down rather than emergent.
+
+        The nearness step is the one `_exact` uses, for the same reason and
+        with the same arithmetic: two candidates that score identically
+        against the same block are told apart by which of them sits where the
+        other side's block sits, and only then by document order.
         """
         floor = self.config.fuzzy_min_similarity
         window = self.config.fuzzy_window
         for gap_source, gap_test in gaps:
             if not gap_source or not gap_test:
                 continue
-            candidates: list[tuple[float, int, int, int]] = []
+            candidates: list[tuple[float, int, int, int, int]] = []
             for rank, test in enumerate(gap_test):
                 test_tokens = self.test.tokens(test)
                 if not test_tokens:
@@ -1090,12 +1229,21 @@ class _Aligner:
                     score = scorer.score(source_tokens, floor=floor)
                     if score >= floor:
                         candidates.append(
-                            (-score, self._roles_differ(source, test), source, test)
+                            (
+                                -score,
+                                self._roles_differ(source, test),
+                                abs(
+                                    places.source_position(source)
+                                    - places.test_position(test)
+                                ),
+                                source,
+                                test,
+                            )
                         )
                 if self.budget_exhausted:
                     break
             candidates.sort()
-            for negated, _, source, test in candidates:
+            for negated, _, _, source, test in candidates:
                 if source in self.pairs or test in self.matched_test:
                     continue
                 self._take(source, test, "fuzzy", -negated, free_source, free_test)

@@ -591,7 +591,7 @@
           "passes": ["exact", "label", "structural", "fuzzy", "move", "positional"],
           "similarity": "auto",
           "fuzzy_min_similarity": 0.6,
-          "label_min_similarity": 0.35,
+          "label_min_similarity": 0.5,
           "positional_min_similarity": 0.35,
           "move_min_similarity": 0.8,
           "move_tie_margin": 0.1,

@@ -16,7 +16,7 @@
     ],
     "similarity": "auto",
     "fuzzy_min_similarity": 0.6,
-    "label_min_similarity": 0.35,
+    "label_min_similarity": 0.5,
     "positional_min_similarity": 0.35,
     "move_min_similarity": 0.8,
     "move_tie_margin": 0.1,
@@ -360,55 +360,55 @@
       "engine": "1.0",
       "backend": "difflib",
       "links": {
-        "reported": 1565,
+        "reported": 1579,
         "truth": 1580,
-        "hits": 1480,
+        "hits": 1540,
         "spurious": 0,
-        "precision": 0.9457,
-        "recall": 0.9367,
-        "f1": 0.9412,
+        "precision": 0.9753,
+        "recall": 0.9747,
+        "f1": 0.975,
         "spurious_rate": 0.0
       },
       "flat_links": {
-        "reported": 1429,
+        "reported": 1443,
         "truth": 1444,
-        "hits": 1344,
+        "hits": 1404,
         "spurious": 0,
-        "precision": 0.9405,
-        "recall": 0.9307,
-        "f1": 0.9356,
+        "precision": 0.973,
+        "recall": 0.9723,
+        "f1": 0.9726,
         "spurious_rate": 0.0
       },
       "moves": {
-        "reported": 17,
+        "reported": 18,
         "truth": 23,
-        "hits": 17,
+        "hits": 18,
         "precision": 1.0,
-        "recall": 0.7391
+        "recall": 0.7826
       },
       "renumbers": {
-        "reported": 145,
+        "reported": 148,
         "truth": 146,
-        "hits": 143,
-        "precision": 0.9862,
-        "recall": 0.9795
+        "hits": 145,
+        "precision": 0.9797,
+        "recall": 0.9932
       },
       "passes": [
         {
           "pass": "exact",
           "total": 1617,
           "matches": 1349,
-          "wrong": 84,
+          "wrong": 37,
           "unique": null,
-          "wrong_rate": 0.0623
+          "wrong_rate": 0.0274
         },
         {
           "pass": "label",
-          "total": 87,
-          "matches": 70,
-          "wrong": 1,
-          "unique": 1,
-          "wrong_rate": 0.0143
+          "total": 85,
+          "matches": 69,
+          "wrong": 0,
+          "unique": 0,
+          "wrong_rate": 0.0
         },
         {
           "pass": "structural",
@@ -420,18 +420,18 @@
         },
         {
           "pass": "fuzzy",
-          "total": 27,
-          "matches": 25,
-          "wrong": 0,
+          "total": 42,
+          "matches": 39,
+          "wrong": 2,
           "unique": 2,
-          "wrong_rate": 0.0
+          "wrong_rate": 0.0513
         },
         {
           "pass": "move",
-          "total": 17,
-          "matches": 17,
+          "total": 18,
+          "matches": 18,
           "wrong": 0,
-          "unique": 17,
+          "unique": 18,
           "wrong_rate": 0.0
         },
         {
@@ -2005,38 +2005,38 @@
           "tier": "synthetic",
           "plan": "move-heavy",
           "links": {
-            "reported": 101,
+            "reported": 102,
             "truth": 102,
-            "hits": 100,
+            "hits": 102,
             "spurious": 0,
-            "precision": 0.9901,
-            "recall": 0.9804,
-            "f1": 0.9852,
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1": 1.0,
             "spurious_rate": 0.0
           },
           "flat_links": {
-            "reported": 81,
+            "reported": 82,
             "truth": 82,
-            "hits": 80,
+            "hits": 82,
             "spurious": 0,
-            "precision": 0.9877,
-            "recall": 0.9756,
-            "f1": 0.9816,
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1": 1.0,
             "spurious_rate": 0.0
           },
           "moves": {
-            "reported": 3,
+            "reported": 4,
             "truth": 4,
-            "hits": 3,
+            "hits": 4,
             "precision": 1.0,
-            "recall": 0.75
+            "recall": 1.0
           },
           "renumbers": {
-            "reported": 13,
+            "reported": 15,
             "truth": 15,
-            "hits": 13,
+            "hits": 15,
             "precision": 1.0,
-            "recall": 0.8667
+            "recall": 1.0
           },
           "passes": [
             {
@@ -2049,11 +2049,11 @@
             },
             {
               "pass": "label",
-              "total": 2,
-              "matches": 2,
-              "wrong": 1,
-              "unique": 1,
-              "wrong_rate": 0.5
+              "total": 1,
+              "matches": 1,
+              "wrong": 0,
+              "unique": 0,
+              "wrong_rate": 0.0
             },
             {
               "pass": "structural",
@@ -2065,18 +2065,18 @@
             },
             {
               "pass": "fuzzy",
-              "total": 3,
-              "matches": 3,
+              "total": 4,
+              "matches": 4,
               "wrong": 0,
               "unique": 0,
               "wrong_rate": 0.0
             },
             {
               "pass": "move",
-              "total": 3,
-              "matches": 3,
+              "total": 4,
+              "matches": 4,
               "wrong": 0,
-              "unique": 3,
+              "unique": 4,
               "wrong_rate": 0.0
             },
             {
@@ -2614,10 +2614,10 @@
             "recall": 1.0
           },
           "renumbers": {
-            "reported": 20,
+            "reported": 21,
             "truth": 20,
             "hits": 20,
-            "precision": 1.0,
+            "precision": 0.9524,
             "recall": 1.0
           },
           "passes": [
@@ -2631,7 +2631,7 @@
             },
             {
               "pass": "label",
-              "total": 6,
+              "total": 5,
               "matches": 4,
               "wrong": 0,
               "unique": 0,
@@ -2647,7 +2647,7 @@
             },
             {
               "pass": "fuzzy",
-              "total": 2,
+              "total": 3,
               "matches": 2,
               "wrong": 0,
               "unique": 0,
@@ -2975,23 +2975,23 @@
           "tier": "synthetic",
           "plan": "heavy",
           "links": {
-            "reported": 26,
+            "reported": 30,
             "truth": 30,
-            "hits": 7,
+            "hits": 30,
             "spurious": 0,
-            "precision": 0.2692,
-            "recall": 0.2333,
-            "f1": 0.25,
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1": 1.0,
             "spurious_rate": 0.0
           },
           "flat_links": {
-            "reported": 26,
+            "reported": 30,
             "truth": 30,
-            "hits": 7,
+            "hits": 30,
             "spurious": 0,
-            "precision": 0.2692,
-            "recall": 0.2333,
-            "f1": 0.25,
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1": 1.0,
             "spurious_rate": 0.0
           },
           "moves": {
@@ -3013,9 +3013,9 @@
               "pass": "exact",
               "total": 26,
               "matches": 26,
-              "wrong": 19,
+              "wrong": 0,
               "unique": null,
-              "wrong_rate": 0.7308
+              "wrong_rate": 0.0
             },
             {
               "pass": "label",
@@ -3035,11 +3035,11 @@
             },
             {
               "pass": "fuzzy",
-              "total": 0,
-              "matches": 0,
+              "total": 4,
+              "matches": 4,
               "wrong": 0,
               "unique": 0,
-              "wrong_rate": null
+              "wrong_rate": 0.0
             },
             {
               "pass": "move",
@@ -3072,23 +3072,23 @@
           "tier": "synthetic",
           "plan": "light",
           "links": {
-            "reported": 28,
+            "reported": 30,
             "truth": 30,
-            "hits": 10,
+            "hits": 30,
             "spurious": 0,
-            "precision": 0.3571,
-            "recall": 0.3333,
-            "f1": 0.3448,
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1": 1.0,
             "spurious_rate": 0.0
           },
           "flat_links": {
-            "reported": 28,
+            "reported": 30,
             "truth": 30,
-            "hits": 10,
+            "hits": 30,
             "spurious": 0,
-            "precision": 0.3571,
-            "recall": 0.3333,
-            "f1": 0.3448,
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1": 1.0,
             "spurious_rate": 0.0
           },
           "moves": {
@@ -3110,9 +3110,9 @@
               "pass": "exact",
               "total": 28,
               "matches": 28,
-              "wrong": 18,
+              "wrong": 0,
               "unique": null,
-              "wrong_rate": 0.6429
+              "wrong_rate": 0.0
             },
             {
               "pass": "label",
@@ -3132,11 +3132,11 @@
             },
             {
               "pass": "fuzzy",
-              "total": 0,
-              "matches": 0,
+              "total": 2,
+              "matches": 2,
               "wrong": 0,
               "unique": 0,
-              "wrong_rate": null
+              "wrong_rate": 0.0
             },
             {
               "pass": "move",
@@ -3169,23 +3169,23 @@
           "tier": "synthetic",
           "plan": "mixed",
           "links": {
-            "reported": 25,
+            "reported": 30,
             "truth": 30,
-            "hits": 5,
+            "hits": 15,
             "spurious": 0,
-            "precision": 0.2,
-            "recall": 0.1667,
-            "f1": 0.1818,
+            "precision": 0.5,
+            "recall": 0.5,
+            "f1": 0.5,
             "spurious_rate": 0.0
           },
           "flat_links": {
-            "reported": 25,
+            "reported": 30,
             "truth": 30,
-            "hits": 5,
+            "hits": 15,
             "spurious": 0,
-            "precision": 0.2,
-            "recall": 0.1667,
-            "f1": 0.1818,
+            "precision": 0.5,
+            "recall": 0.5,
+            "f1": 0.5,
             "spurious_rate": 0.0
           },
           "moves": {
@@ -3207,9 +3207,9 @@
               "pass": "exact",
               "total": 25,
               "matches": 25,
-              "wrong": 20,
+              "wrong": 14,
               "unique": null,
-              "wrong_rate": 0.8
+              "wrong_rate": 0.56
             },
             {
               "pass": "label",
@@ -3229,11 +3229,11 @@
             },
             {
               "pass": "fuzzy",
-              "total": 0,
-              "matches": 0,
-              "wrong": 0,
+              "total": 5,
+              "matches": 5,
+              "wrong": 1,
               "unique": 0,
-              "wrong_rate": null
+              "wrong_rate": 0.2
             },
             {
               "pass": "move",
@@ -3266,23 +3266,23 @@
           "tier": "synthetic",
           "plan": "move-heavy",
           "links": {
-            "reported": 28,
+            "reported": 30,
             "truth": 30,
-            "hits": 1,
+            "hits": 6,
             "spurious": 0,
-            "precision": 0.0357,
-            "recall": 0.0333,
-            "f1": 0.0345,
+            "precision": 0.2,
+            "recall": 0.2,
+            "f1": 0.2,
             "spurious_rate": 0.0
           },
           "flat_links": {
-            "reported": 28,
+            "reported": 30,
             "truth": 30,
-            "hits": 1,
+            "hits": 6,
             "spurious": 0,
-            "precision": 0.0357,
-            "recall": 0.0333,
-            "f1": 0.0345,
+            "precision": 0.2,
+            "recall": 0.2,
+            "f1": 0.2,
             "spurious_rate": 0.0
           },
           "moves": {
@@ -3304,9 +3304,9 @@
               "pass": "exact",
               "total": 28,
               "matches": 28,
-              "wrong": 27,
+              "wrong": 23,
               "unique": null,
-              "wrong_rate": 0.9643
+              "wrong_rate": 0.8214
             },
             {
               "pass": "label",
@@ -3326,11 +3326,11 @@
             },
             {
               "pass": "fuzzy",
-              "total": 0,
-              "matches": 0,
-              "wrong": 0,
+              "total": 2,
+              "matches": 2,
+              "wrong": 1,
               "unique": 0,
-              "wrong_rate": null
+              "wrong_rate": 0.5
             },
             {
               "pass": "move",
@@ -4335,55 +4335,55 @@
       "engine": "1.0",
       "backend": "rapidfuzz",
       "links": {
-        "reported": 1565,
+        "reported": 1579,
         "truth": 1580,
-        "hits": 1480,
+        "hits": 1540,
         "spurious": 0,
-        "precision": 0.9457,
-        "recall": 0.9367,
-        "f1": 0.9412,
+        "precision": 0.9753,
+        "recall": 0.9747,
+        "f1": 0.975,
         "spurious_rate": 0.0
       },
       "flat_links": {
-        "reported": 1429,
+        "reported": 1443,
         "truth": 1444,
-        "hits": 1344,
+        "hits": 1404,
         "spurious": 0,
-        "precision": 0.9405,
-        "recall": 0.9307,
-        "f1": 0.9356,
+        "precision": 0.973,
+        "recall": 0.9723,
+        "f1": 0.9726,
         "spurious_rate": 0.0
       },
       "moves": {
-        "reported": 17,
+        "reported": 18,
         "truth": 23,
-        "hits": 17,
+        "hits": 18,
         "precision": 1.0,
-        "recall": 0.7391
+        "recall": 0.7826
       },
       "renumbers": {
-        "reported": 145,
+        "reported": 148,
         "truth": 146,
-        "hits": 143,
-        "precision": 0.9862,
-        "recall": 0.9795
+        "hits": 145,
+        "precision": 0.9797,
+        "recall": 0.9932
       },
       "passes": [
         {
           "pass": "exact",
           "total": 1617,
           "matches": 1349,
-          "wrong": 84,
+          "wrong": 37,
           "unique": null,
-          "wrong_rate": 0.0623
+          "wrong_rate": 0.0274
         },
         {
           "pass": "label",
-          "total": 87,
-          "matches": 70,
-          "wrong": 1,
-          "unique": 1,
-          "wrong_rate": 0.0143
+          "total": 85,
+          "matches": 69,
+          "wrong": 0,
+          "unique": 0,
+          "wrong_rate": 0.0
         },
         {
           "pass": "structural",
@@ -4395,18 +4395,18 @@
         },
         {
           "pass": "fuzzy",
-          "total": 27,
-          "matches": 25,
-          "wrong": 0,
+          "total": 42,
+          "matches": 39,
+          "wrong": 2,
           "unique": 2,
-          "wrong_rate": 0.0
+          "wrong_rate": 0.0513
         },
         {
           "pass": "move",
-          "total": 17,
-          "matches": 17,
+          "total": 18,
+          "matches": 18,
           "wrong": 0,
-          "unique": 17,
+          "unique": 18,
           "wrong_rate": 0.0
         },
         {
@@ -5980,38 +5980,38 @@
           "tier": "synthetic",
           "plan": "move-heavy",
           "links": {
-            "reported": 101,
+            "reported": 102,
             "truth": 102,
-            "hits": 100,
+            "hits": 102,
             "spurious": 0,
-            "precision": 0.9901,
-            "recall": 0.9804,
-            "f1": 0.9852,
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1": 1.0,
             "spurious_rate": 0.0
           },
           "flat_links": {
-            "reported": 81,
+            "reported": 82,
             "truth": 82,
-            "hits": 80,
+            "hits": 82,
             "spurious": 0,
-            "precision": 0.9877,
-            "recall": 0.9756,
-            "f1": 0.9816,
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1": 1.0,
             "spurious_rate": 0.0
           },
           "moves": {
-            "reported": 3,
+            "reported": 4,
             "truth": 4,
-            "hits": 3,
+            "hits": 4,
             "precision": 1.0,
-            "recall": 0.75
+            "recall": 1.0
           },
           "renumbers": {
-            "reported": 13,
+            "reported": 15,
             "truth": 15,
-            "hits": 13,
+            "hits": 15,
             "precision": 1.0,
-            "recall": 0.8667
+            "recall": 1.0
           },
           "passes": [
             {
@@ -6024,11 +6024,11 @@
             },
             {
               "pass": "label",
-              "total": 2,
-              "matches": 2,
-              "wrong": 1,
-              "unique": 1,
-              "wrong_rate": 0.5
+              "total": 1,
+              "matches": 1,
+              "wrong": 0,
+              "unique": 0,
+              "wrong_rate": 0.0
             },
             {
               "pass": "structural",
@@ -6040,18 +6040,18 @@
             },
             {
               "pass": "fuzzy",
-              "total": 3,
-              "matches": 3,
+              "total": 4,
+              "matches": 4,
               "wrong": 0,
               "unique": 0,
               "wrong_rate": 0.0
             },
             {
               "pass": "move",
-              "total": 3,
-              "matches": 3,
+              "total": 4,
+              "matches": 4,
               "wrong": 0,
-              "unique": 3,
+              "unique": 4,
               "wrong_rate": 0.0
             },
             {
@@ -6589,10 +6589,10 @@
             "recall": 1.0
           },
           "renumbers": {
-            "reported": 20,
+            "reported": 21,
             "truth": 20,
             "hits": 20,
-            "precision": 1.0,
+            "precision": 0.9524,
             "recall": 1.0
           },
           "passes": [
@@ -6606,7 +6606,7 @@
             },
             {
               "pass": "label",
-              "total": 6,
+              "total": 5,
               "matches": 4,
               "wrong": 0,
               "unique": 0,
@@ -6622,7 +6622,7 @@
             },
             {
               "pass": "fuzzy",
-              "total": 2,
+              "total": 3,
               "matches": 2,
               "wrong": 0,
               "unique": 0,
@@ -6950,23 +6950,23 @@
           "tier": "synthetic",
           "plan": "heavy",
           "links": {
-            "reported": 26,
+            "reported": 30,
             "truth": 30,
-            "hits": 7,
+            "hits": 30,
             "spurious": 0,
-            "precision": 0.2692,
-            "recall": 0.2333,
-            "f1": 0.25,
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1": 1.0,
             "spurious_rate": 0.0
           },
           "flat_links": {
-            "reported": 26,
+            "reported": 30,
             "truth": 30,
-            "hits": 7,
+            "hits": 30,
             "spurious": 0,
-            "precision": 0.2692,
-            "recall": 0.2333,
-            "f1": 0.25,
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1": 1.0,
             "spurious_rate": 0.0
           },
           "moves": {
@@ -6988,9 +6988,9 @@
               "pass": "exact",
               "total": 26,
               "matches": 26,
-              "wrong": 19,
+              "wrong": 0,
               "unique": null,
-              "wrong_rate": 0.7308
+              "wrong_rate": 0.0
             },
             {
               "pass": "label",
@@ -7010,11 +7010,11 @@
             },
             {
               "pass": "fuzzy",
-              "total": 0,
-              "matches": 0,
+              "total": 4,
+              "matches": 4,
               "wrong": 0,
               "unique": 0,
-              "wrong_rate": null
+              "wrong_rate": 0.0
             },
             {
               "pass": "move",
@@ -7047,23 +7047,23 @@
           "tier": "synthetic",
           "plan": "light",
           "links": {
-            "reported": 28,
+            "reported": 30,
             "truth": 30,
-            "hits": 10,
+            "hits": 30,
             "spurious": 0,
-            "precision": 0.3571,
-            "recall": 0.3333,
-            "f1": 0.3448,
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1": 1.0,
             "spurious_rate": 0.0
           },
           "flat_links": {
-            "reported": 28,
+            "reported": 30,
             "truth": 30,
-            "hits": 10,
+            "hits": 30,
             "spurious": 0,
-            "precision": 0.3571,
-            "recall": 0.3333,
-            "f1": 0.3448,
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1": 1.0,
             "spurious_rate": 0.0
           },
           "moves": {
@@ -7085,9 +7085,9 @@
               "pass": "exact",
               "total": 28,
               "matches": 28,
-              "wrong": 18,
+              "wrong": 0,
               "unique": null,
-              "wrong_rate": 0.6429
+              "wrong_rate": 0.0
             },
             {
               "pass": "label",
@@ -7107,11 +7107,11 @@
             },
             {
               "pass": "fuzzy",
-              "total": 0,
-              "matches": 0,
+              "total": 2,
+              "matches": 2,
               "wrong": 0,
               "unique": 0,
-              "wrong_rate": null
+              "wrong_rate": 0.0
             },
             {
               "pass": "move",
@@ -7144,23 +7144,23 @@
           "tier": "synthetic",
           "plan": "mixed",
           "links": {
-            "reported": 25,
+            "reported": 30,
             "truth": 30,
-            "hits": 5,
+            "hits": 15,
             "spurious": 0,
-            "precision": 0.2,
-            "recall": 0.1667,
-            "f1": 0.1818,
+            "precision": 0.5,
+            "recall": 0.5,
+            "f1": 0.5,
             "spurious_rate": 0.0
           },
           "flat_links": {
-            "reported": 25,
+            "reported": 30,
             "truth": 30,
-            "hits": 5,
+            "hits": 15,
             "spurious": 0,
-            "precision": 0.2,
-            "recall": 0.1667,
-            "f1": 0.1818,
+            "precision": 0.5,
+            "recall": 0.5,
+            "f1": 0.5,
             "spurious_rate": 0.0
           },
           "moves": {
@@ -7182,9 +7182,9 @@
               "pass": "exact",
               "total": 25,
               "matches": 25,
-              "wrong": 20,
+              "wrong": 14,
               "unique": null,
-              "wrong_rate": 0.8
+              "wrong_rate": 0.56
             },
             {
               "pass": "label",
@@ -7204,11 +7204,11 @@
             },
             {
               "pass": "fuzzy",
-              "total": 0,
-              "matches": 0,
-              "wrong": 0,
+              "total": 5,
+              "matches": 5,
+              "wrong": 1,
               "unique": 0,
-              "wrong_rate": null
+              "wrong_rate": 0.2
             },
             {
               "pass": "move",
@@ -7241,23 +7241,23 @@
           "tier": "synthetic",
           "plan": "move-heavy",
           "links": {
-            "reported": 28,
+            "reported": 30,
             "truth": 30,
-            "hits": 1,
+            "hits": 6,
             "spurious": 0,
-            "precision": 0.0357,
-            "recall": 0.0333,
-            "f1": 0.0345,
+            "precision": 0.2,
+            "recall": 0.2,
+            "f1": 0.2,
             "spurious_rate": 0.0
           },
           "flat_links": {
-            "reported": 28,
+            "reported": 30,
             "truth": 30,
-            "hits": 1,
+            "hits": 6,
             "spurious": 0,
-            "precision": 0.0357,
-            "recall": 0.0333,
-            "f1": 0.0345,
+            "precision": 0.2,
+            "recall": 0.2,
+            "f1": 0.2,
             "spurious_rate": 0.0
           },
           "moves": {
@@ -7279,9 +7279,9 @@
               "pass": "exact",
               "total": 28,
               "matches": 28,
-              "wrong": 27,
+              "wrong": 23,
               "unique": null,
-              "wrong_rate": 0.9643
+              "wrong_rate": 0.8214
             },
             {
               "pass": "label",
@@ -7301,11 +7301,11 @@
             },
             {
               "pass": "fuzzy",
-              "total": 0,
-              "matches": 0,
-              "wrong": 0,
+              "total": 2,
+              "matches": 2,
+              "wrong": 1,
               "unique": 0,
-              "wrong_rate": null
+              "wrong_rate": 0.5
             },
             {
               "pass": "move",

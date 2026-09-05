@@ -45,7 +45,7 @@ Headline numbers are quoted under the **difflib** backend, which is what the doc
 ```
 passes                    exact, label, structural, fuzzy, move, positional
 fuzzy_min_similarity      0.6
-label_min_similarity      0.35
+label_min_similarity      0.5
 positional_min_similarity 0.35
 move_min_similarity       0.8
 move_tie_margin           0.1
@@ -90,8 +90,8 @@ The honest end-to-end number: every text-bearing block plus table rows.
 
 | Tier | Engine | Backend | Labelled | Reported | Precision | Recall | F1 | Spurious | Move recall | Renumber recall |
 |---|---|---|---|---|---|---|---|---|---|---|
-| `synthetic` | 1.0 | difflib | 1580 | 1565 | 0.9457 | 0.9367 | 0.9412 | 0.0000 | 0.7391 | 0.9795 |
-| `synthetic` | 1.0 | rapidfuzz | 1580 | 1565 | 0.9457 | 0.9367 | 0.9412 | 0.0000 | 0.7391 | 0.9795 |
+| `synthetic` | 1.0 | difflib | 1580 | 1579 | 0.9753 | 0.9747 | 0.9750 | 0.0000 | 0.7826 | 0.9932 |
+| `synthetic` | 1.0 | rapidfuzz | 1580 | 1579 | 0.9753 | 0.9747 | 0.9750 | 0.0000 | 0.7826 | 0.9932 |
 | `synthetic` | 0.6 | none | 1580 | 1327 | 0.9789 | 0.8222 | 0.8937 | 0.0121 | 0.0000 | 0.0000 |
 | `hand` † | 1.0 | difflib | 644 | 644 | 1.0000 | 1.0000 | 1.0000 | 0.0000 | n/a | 1.0000 |
 | `hand` † | 1.0 | rapidfuzz | 644 | 644 | 1.0000 | 1.0000 | 1.0000 | 0.0000 | n/a | 1.0000 |
@@ -103,8 +103,8 @@ The like-for-like number: table `row` and `cell` blocks dropped from both sides,
 
 | Tier | Engine | Backend | Labelled | Reported | Precision | Recall | F1 | Spurious | Move recall | Renumber recall |
 |---|---|---|---|---|---|---|---|---|---|---|
-| `synthetic` | 1.0 | difflib | 1444 | 1429 | 0.9405 | 0.9307 | 0.9356 | 0.0000 | 0.7391 | 0.9795 |
-| `synthetic` | 1.0 | rapidfuzz | 1444 | 1429 | 0.9405 | 0.9307 | 0.9356 | 0.0000 | 0.7391 | 0.9795 |
+| `synthetic` | 1.0 | difflib | 1444 | 1443 | 0.9730 | 0.9723 | 0.9726 | 0.0000 | 0.7826 | 0.9932 |
+| `synthetic` | 1.0 | rapidfuzz | 1444 | 1443 | 0.9730 | 0.9723 | 0.9726 | 0.0000 | 0.7826 | 0.9932 |
 | `synthetic` | 0.6 | none | 1444 | 1327 | 0.9789 | 0.8996 | 0.9376 | 0.0121 | 0.0000 | 0.0000 |
 | `hand` † | 1.0 | difflib | 644 | 644 | 1.0000 | 1.0000 | 1.0000 | 0.0000 | n/a | 1.0000 |
 | `hand` † | 1.0 | rapidfuzz | 644 | 644 | 1.0000 | 1.0000 | 1.0000 | 0.0000 | n/a | 1.0000 |
@@ -120,9 +120,9 @@ A tier whose labels are still drafts reads **not assessed** rather than *met*, h
 
 | Tier | Gate | Target | Measured | Standing |
 |---|---|---|---|---|
-| `synthetic` | correspondence F1 | ≥ 0.95 | 0.9412 | not met |
+| `synthetic` | correspondence F1 | ≥ 0.95 | 0.9750 | met |
 | `hand` † | correspondence F1 | ≥ 0.85 | 1.0000 | not assessed (draft labels) |
-| `synthetic` | move recall | ≥ 0.90 | 0.7391 | not met |
+| `synthetic` | move recall | ≥ 0.90 | 0.7826 | not met |
 | `synthetic` | moves ruled wrong | 0 | 0 | met |
 | `synthetic` | unreviewed engine moves | 0 | 0 | met |
 | `hand` † | moves ruled wrong | 0 | 0 | met |
@@ -136,9 +136,9 @@ A tier whose labels are still drafts reads **not assessed** rather than *met*, h
 
 **The floor's precision is high and its recall is low**, which is the shape a line-unit engine has: the pairs it does report are usually right, and it simply declines to report a correspondence for anything it could not match token-for-token. Its spurious-match rate is where the cost shows.
 
-**The `exact` pass carries the largest wrong-match count.** That is not a bug in exact matching; it is what identical text does. Corpus documents built around repetition -- a schedule of near-identical paragraphs, a lettered list whose items differ by one word -- give the pass several equally exact candidates and it takes the first, which is sometimes not the one the labels name. Fixing it is an alignment question (a tie-break that prefers the structurally nearer candidate) rather than a metric one, and it is recorded here rather than quietly tuned away: this benchmark exists to find exactly this, and a benchmark that got edited when it found something would be worth nothing.
+**The `exact` pass still carries the largest wrong-match count**, and it is what identical text does rather than a bug in exact matching. Corpus documents built around repetition -- a schedule of byte-identical paragraphs, a lettered list whose items differ by one word -- give the pass several equally exact candidates, and *which* of the equals it takes is a decision. The first reading of this report found it taking the first in document order, which shifts every pair after an edited block by one and cost 84 of 1349 scored exact matches; the pass now takes the structurally nearest instead ([ADR-0032](../docs/adr/0032-alignment-passes.md), amended from this report). What is left is the residue that no tie-break can reach: in a group of thirty byte-identical siblings, nearness is the only evidence there is, and where the truth is not the nearest candidate the pass is wrong and cannot know it.
 
-**Move recall is the weakest headline number**, and the per-plan breakdown says where: the `move-heavy` plan, where several blocks move at once and a moved block's candidates include other moved blocks. Move *precision* is not the problem. That asymmetry is the one ADR-0009 asks for -- it would rather miss a move than invent one -- so the number to improve is recall, and improving it must not be allowed to cost precision.
+**Move recall is the weakest headline number, and on this corpus it cannot reach ADR-0009's 0.90 bar.** The per-plan breakdown says where: the `repetitive-schedule` pairs, whose source documents contain exactly one distinct paragraph text repeated thirty times. Five of the corpus's labelled moves live there, and every one of them has thirty equally good candidates on the source side -- no label, no heading, no parent to tell them apart. Reporting one would be a one-in-thirty guess, which is the false positive ADR-0009 says costs more than the silence. That puts the ceiling at 18 of 23, and the shortfall is published here rather than bought with a loosened threshold: move *precision* is 1.0000 on both tiers and the asymmetry is the one ADR-0009 asks for. Lowering the bar is a decision for ADR-0009 to reopen, not for a tuning pass to take.
 
 **Nothing in this file is evidence about the hand-labelled tier yet.** Its labels are engine-seeded drafts; see the dagger note above.
 
@@ -159,11 +159,11 @@ A pass with a low unique count and a high wrong count is the one to cut.
 
 | Tier | Pass | Total | Scored | Wrong | Wrong rate | Unique |
 |---|---|---|---|---|---|---|
-| `synthetic` | `exact` | 1617 | 1349 | 84 | 0.0623 | n/a |
-| `synthetic` | `label` | 87 | 70 | 1 | 0.0143 | 1 |
+| `synthetic` | `exact` | 1617 | 1349 | 37 | 0.0274 | n/a |
+| `synthetic` | `label` | 85 | 69 | 0 | 0.0000 | 0 |
 | `synthetic` | `structural` | 7 | 0 | 0 | n/a | n/a |
-| `synthetic` | `fuzzy` | 27 | 25 | 0 | 0.0000 | 2 |
-| `synthetic` | `move` | 17 | 17 | 0 | 0.0000 | 17 |
+| `synthetic` | `fuzzy` | 42 | 39 | 2 | 0.0513 | 2 |
+| `synthetic` | `move` | 18 | 18 | 0 | 0.0000 | 18 |
 | `synthetic` | `positional` | 104 | 104 | 0 | 0.0000 | n/a |
 | `hand` | `exact` | 588 | 564 | 0 | 0.0000 | n/a |
 | `hand` | `label` | 14 | 14 | 0 | 0.0000 | 0 |
@@ -178,10 +178,10 @@ The 1.0 engine under `difflib`, grouped by the mutation plan that built the pair
 
 | Plan | Pairs | Precision | Recall | F1 | Move recall | Renumber recall |
 |---|---|---|---|---|---|---|
-| `heavy` | 7 | 0.9237 | 0.9091 | 0.9163 | n/a | 1.0000 |
-| `light` | 9 | 0.9366 | 0.9301 | 0.9333 | n/a | n/a |
-| `mixed` | 10 | 0.9286 | 0.9123 | 0.9204 | 0.8571 | 1.0000 |
-| `move-heavy` | 6 | 0.8931 | 0.8830 | 0.8880 | 0.6875 | 0.9200 |
+| `heavy` | 7 | 1.0000 | 1.0000 | 1.0000 | n/a | 1.0000 |
+| `light` | 9 | 1.0000 | 1.0000 | 1.0000 | n/a | n/a |
+| `mixed` | 10 | 0.9474 | 0.9474 | 0.9474 | 0.8571 | 1.0000 |
+| `move-heavy` | 6 | 0.9094 | 0.9094 | 0.9094 | 0.7500 | 1.0000 |
 | `renumber-storm` | 4 | 1.0000 | 1.0000 | 1.0000 | n/a | 1.0000 |
 | `structure` | 3 | 1.0000 | 0.9947 | 0.9973 | n/a | 0.9600 |
 | `table` | 1 | 1.0000 | 1.0000 | 1.0000 | n/a | n/a |
@@ -192,7 +192,7 @@ The 1.0 engine under `difflib`, grouped by the mutation plan that built the pair
 
 | Tier | Labelled | Reported | Hits | Precision | Recall | Ruled wrong | Unreviewed |
 |---|---|---|---|---|---|---|---|
-| `synthetic` | 23 | 17 | 17 | 1.0000 | 0.7391 | 0 | 0 |
+| `synthetic` | 23 | 18 | 18 | 1.0000 | 0.7826 | 0 | 0 |
 | `hand` | 0 | 3 | 0 | 0.0000 | n/a | 0 | 3 |
 
 ## How much to trust the labels
@@ -243,7 +243,7 @@ The 1.0 engine under `difflib`, one row per pair, so a headline number can be tr
 | `synthetic` | `msa-markdown-heavy` | 100 | 1.0000 | 1.0000 | 1.0000 | 0.0000 | 0/0 | 10/10 |
 | `synthetic` | `msa-markdown-light` | 102 | 1.0000 | 1.0000 | 1.0000 | 0.0000 | 0/0 | 0/0 |
 | `synthetic` | `msa-markdown-mixed` | 98 | 1.0000 | 1.0000 | 1.0000 | 0.0000 | 1/1 | 17/17 |
-| `synthetic` | `msa-markdown-move-heavy` | 102 | 0.9901 | 0.9804 | 0.9852 | 0.0000 | 3/4 | 13/15 |
+| `synthetic` | `msa-markdown-move-heavy` | 102 | 1.0000 | 1.0000 | 1.0000 | 0.0000 | 4/4 | 15/15 |
 | `synthetic` | `msa-markdown-renumber-storm` | 101 | 1.0000 | 1.0000 | 1.0000 | 0.0000 | 0/0 | 10/10 |
 | `synthetic` | `msa-markdown-structure` | 96 | 1.0000 | 1.0000 | 1.0000 | 0.0000 | 0/0 | 14/14 |
 | `synthetic` | `msa-markdown-table` | 98 | 1.0000 | 1.0000 | 1.0000 | 0.0000 | 0/0 | 0/0 |
@@ -253,10 +253,10 @@ The 1.0 engine under `difflib`, one row per pair, so a headline number can be tr
 | `synthetic` | `msa-text-move-heavy` | 86 | 1.0000 | 1.0000 | 1.0000 | 0.0000 | 4/4 | 10/10 |
 | `synthetic` | `msa-text-renumber-storm` | 85 | 1.0000 | 1.0000 | 1.0000 | 0.0000 | 0/0 | 5/5 |
 | `synthetic` | `msa-text-structure` | 80 | 1.0000 | 0.9875 | 0.9937 | 0.0000 | 0/0 | 7/8 |
-| `synthetic` | `repetitive-schedule-heavy` | 30 | 0.2692 | 0.2333 | 0.2500 | 0.0000 | 0/0 | 0/0 |
-| `synthetic` | `repetitive-schedule-light` | 30 | 0.3571 | 0.3333 | 0.3448 | 0.0000 | 0/0 | 0/0 |
-| `synthetic` | `repetitive-schedule-mixed` | 30 | 0.2000 | 0.1667 | 0.1818 | 0.0000 | 0/1 | 0/0 |
-| `synthetic` | `repetitive-schedule-move-heavy` | 30 | 0.0357 | 0.0333 | 0.0345 | 0.0000 | 0/4 | 0/0 |
+| `synthetic` | `repetitive-schedule-heavy` | 30 | 1.0000 | 1.0000 | 1.0000 | 0.0000 | 0/0 | 0/0 |
+| `synthetic` | `repetitive-schedule-light` | 30 | 1.0000 | 1.0000 | 1.0000 | 0.0000 | 0/0 | 0/0 |
+| `synthetic` | `repetitive-schedule-mixed` | 30 | 0.5000 | 0.5000 | 0.5000 | 0.0000 | 0/1 | 0/0 |
+| `synthetic` | `repetitive-schedule-move-heavy` | 30 | 0.2000 | 0.2000 | 0.2000 | 0.0000 | 0/4 | 0/0 |
 | `synthetic` | `schedule-restart-heavy` | 11 | 1.0000 | 1.0000 | 1.0000 | 0.0000 | 0/0 | 0/0 |
 | `synthetic` | `schedule-restart-light` | 13 | 1.0000 | 1.0000 | 1.0000 | 0.0000 | 0/0 | 0/0 |
 | `synthetic` | `schedule-restart-mixed` | 12 | 1.0000 | 1.0000 | 1.0000 | 0.0000 | 1/1 | 3/3 |

@@ -5,7 +5,7 @@
     "config": {
       "fuzzy_min_similarity": 0.6,
       "fuzzy_window": 25,
-      "label_min_similarity": 0.35,
+      "label_min_similarity": 0.5,
       "max_comparisons": 2000000,
       "move_kinds": [
         "paragraph",
@@ -1251,7 +1251,7 @@
     "alignment": {
       "fuzzy_min_similarity": 0.6,
       "fuzzy_window": 25,
-      "label_min_similarity": 0.35,
+      "label_min_similarity": 0.5,
       "max_comparisons": 2000000,
       "move_kinds": [
         "paragraph",
