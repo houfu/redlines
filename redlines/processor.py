@@ -97,6 +97,26 @@ It is used to detect a normalized token that consists entirely of punctuation.
 """
 
 
+def _strip_sentence_markers(text: str) -> str:
+    """
+    Remove the sentence boundary markers ('¦ ') emitted by sentence-level tokenization.
+
+    Unlike the paragraph marker '¶', which renders as a real paragraph break ('\\n\\n'),
+    the sentence marker corresponds to nothing in the input text and must never appear
+    in any output (see `SENTENCE_MARKER`).
+
+    It lives here, beside the marker it strips, because both the v1 renderers in
+    `redlines.redlines` and the change tree's opcode conversion in `redlines.changes`
+    need it, and `redlines.changes` cannot import `redlines.redlines`.
+
+    :param text: The text to clean.
+    :type text: str
+    :return: The text with sentence markers removed.
+    :rtype: str
+    """
+    return text.replace(f"{SENTENCE_MARKER} ", "")
+
+
 def _is_punctuation_only(token: str) -> bool:
     """
     Returns True if a normalized (whitespace-stripped) token consists entirely of
