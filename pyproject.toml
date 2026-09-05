@@ -97,3 +97,10 @@ ignore_missing_imports = true
 [[tool.mypy.overrides]]
 module = "pdfplumber"
 ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+# benchmark/fetch_neurotic.py is dev-only and imports python-docx inside a function; the library
+# is deliberately not a dependency of this project in any form (ADR-0034), so there are no stubs
+# to find and mypy must not insist on them.
+module = "docx"
+ignore_missing_imports = true
