@@ -26,12 +26,12 @@ gave (N1). It holds no state between calls.
 exception. `Profile.role_rules` assign roles, `Profile.span_extractors` emit
 spans, and a profile that declares neither leaves the tree exactly as it found
 it. The exception is PRD § 6b's definitions heuristic -- *quoted term,
-"means", text* -- which no profile can express, because all three role match
-kinds are structural and none of them looks at a block's own text (ADR-0028's
-Consequences, and its deferred fourth ``text`` match kind). It is written here
-instead, gated behind the profile naming the `definitions` or `definition`
-role, and every block it touches records `attrs["semantic"]` saying which path
-fired.
+"means", text* -- which no profile can express, because it is a majority vote
+over a section's members and a rule only ever sees one block (a ``text`` rule
+can name the shape, ADR-0031, but not "more than half of them"). It is written
+here instead, gated behind the profile naming the `definitions` or
+`definition` role, and every block it touches records `attrs["semantic"]`
+saying which path fired.
 
 Roles
 -----
@@ -42,9 +42,15 @@ what makes a ``parent_role`` rule work. Each rule kind answers a question
 about a different block:
 
 - ``heading`` -- *this* block is a heading whose text matches.
+- ``text`` -- *this* block's own text matches (ADR-0031).
+- ``label`` -- *this* block's own label matches; a block with no label never
+  does (ADR-0031).
 - ``parent_role`` -- the block's immediate parent carries a role.
 - ``ancestor_heading`` -- the block sits under a heading that matches, at any
   depth.
+
+Any kind but ``heading`` may also carry a ``kind`` filter, and then applies
+only to blocks of that structural kind.
 
 **Rules are tried in profile order and the first match wins** -- the schema's
 "order is precedence" -- with the one exception ADR-0028 names, and only that
@@ -52,10 +58,10 @@ one. ``ancestor_heading`` rules are resolved from the block outwards first, so
 a rule matching the *nearest* heading beats one matching a heading further out
 however the two are listed -- a "Conclusion" inside "My decision" gives its
 paragraphs the conclusion role either way -- and list order only breaks a tie
-between rules matching that same heading. Nothing re-orders the other two
+between rules matching that same heading. Nothing re-orders the other four
 kinds: a ``parent_role`` or ``ancestor_heading`` rule listed above a
-``heading`` rule takes precedence over it, so an author can order rules to
-mean what the schema says they mean.
+``heading``, ``text`` or ``label`` rule takes precedence over it, so an author
+can order rules to mean what the schema says they mean.
 A rule that matches nothing leaves the block's existing role alone,
 so a role a reader or an earlier pass put there survives a profile that has
 nothing to say about it.
@@ -144,14 +150,17 @@ Every block the pass decided something about carries ``attrs["semantic"]``, a
 plain JSON-serialisable mapping, for the same reason every reading stage
 records what it decided (PRD § 6b): a wrong role is otherwise invisible.
 
-- ``role`` -- the role assigned, and ``role_match`` how: one of the three
+- ``role`` -- the role assigned, and ``role_match`` how: one of the five
   profile match kinds, or ``definitions_heading`` / ``definitions_shape`` /
   ``definition_heading`` / ``definition_shape`` where the definitions rule
   above did it.
 - ``role_rule`` -- the rule's position in the profile's ``role_rules``, or
   ``None`` for the definitions rule, which is not in the profile.
-- ``matched`` (``text`` or ``heading_line``), ``ancestor`` (the heading that
-  decided) or ``parent_role`` -- the evidence, by match kind.
+- ``matched`` (``text`` or ``heading_line`` for a heading rule; the substring
+  the pattern found for a ``text`` rule), ``label`` (the label a ``label``
+  rule matched), ``ancestor`` (the heading that decided) or ``parent_role``
+  -- the evidence, by match kind -- and ``kind`` where the rule carried a
+  filter.
 - ``defined_terms`` -- how many definitions a `definition` block holds; more
   than one is the run-on paragraph.
 - ``spans`` -- how many spans the block carries after the pass.
@@ -161,9 +170,15 @@ What the profile format cannot express
 
 Reported here rather than closed by extending the format (ADR-0028):
 
-- **No rule can look at a block's own text.** The definitions heuristic above
-  is exactly the deferred ``text`` match kind, written in Python because the
-  format has no way to say it. This is the evidence ADR-0028 asked #104 for.
+- **No rule can look at more than one block.** A ``text`` rule can name the
+  definition shape on a block (ADR-0031 closed the gap ADR-0028 deferred),
+  but the definitions heuristic above decides a *section* by the shape of
+  more than half its members, and no per-block rule can count. So it stays
+  here, and it is the only rule that does. It takes the list position of the
+  profile rule that names the role it assigns -- `definitions` for the
+  section and its heading, `definition` for the members -- and is settled by
+  list order like every other rule, so a ``clause`` rule listed after
+  ``definition`` loses to it on every tree shape, and one listed before wins.
 - **No rule can say "role the section this heading opens".** ``heading``
   labels the heading block and ``ancestor_heading`` labels what follows it, so
   on a tree that wraps both in a ``section`` the wrapper itself is left
@@ -262,6 +277,8 @@ _WHITESPACE = re.compile(r"\s+")
 _MATCH_HEADING = "heading"
 _MATCH_ANCESTOR = "ancestor_heading"
 _MATCH_PARENT_ROLE = "parent_role"
+_MATCH_TEXT = "text"
+_MATCH_LABEL = "label"
 
 
 # --- addressing -------------------------------------------------------------
@@ -400,11 +417,17 @@ class _Semantics:
     :param extractors: the profile's span extractors, in order.
     :param definitions: whether the PRD § 6b definitions heuristic runs, which
         is whether the profile names the `definitions` or `definition` role.
+    :param definitions_order: the list position the heuristic's `definitions`
+        claims take -- that of the first profile rule naming the role, or the
+        position after the last rule where none does.
+    :param definition_order: the same for its `definition` claims.
     """
 
     rules: tuple[_Rule, ...]
     extractors: tuple[_Extractor, ...]
     definitions: bool
+    definitions_order: int
+    definition_order: int
 
 
 def _compile(profile: Profile) -> _Semantics:
@@ -437,8 +460,20 @@ def _compile(profile: Profile) -> _Semantics:
         rule.role in (DEFINITIONS_ROLE, DEFINITION_ROLE) for rule in profile.role_rules
     )
     return _Semantics(
-        rules=rules, extractors=tuple(extractors), definitions=definitions
+        rules=rules,
+        extractors=tuple(extractors),
+        definitions=definitions,
+        definitions_order=_first_naming(profile.role_rules, DEFINITIONS_ROLE),
+        definition_order=_first_naming(profile.role_rules, DEFINITION_ROLE),
     )
+
+
+def _first_naming(rules: Sequence[RoleRule], role: str) -> int:
+    """Return the position of the first rule assigning ``role``, or ``len(rules)``."""
+    for index, rule in enumerate(rules):
+        if rule.role == role:
+            return index
+    return len(rules)
 
 
 # --- roles ------------------------------------------------------------------
@@ -450,16 +485,20 @@ class _Match:
 
     Claims from the profile are settled by ``order`` -- the schema's "the first
     rule that matches wins" -- except among ``ancestor_heading`` claims, which
-    are settled by ``distance`` first (ADR-0028's one exception). ``distance``
-    is also how the pass's own definitions rule, which is in no profile,
-    competes with the rule the profile chose.
+    are settled by ``distance`` first (ADR-0028's one exception). The pass's
+    own definitions rule, which is in no profile, is ordered as if it were the
+    profile rule that names the role it assigns, so it competes by ``order``
+    like everything else.
 
     :param distance: how far away the evidence is -- 0 for the block itself,
         1 for its parent or the nearest heading it sits under, 2 for the
-        heading outside that, and so on.
+        heading outside that, and so on. Recorded for every claim; decisive
+        only among ``ancestor_heading`` claims.
     :param order: the claimant's position in the profile's ``role_rules``. The
-        pass's own definitions rule takes the position after the last of them,
-        so a profile rule wins a tie with it.
+        definitions rule takes the position of the first rule naming
+        `definitions` or `definition`, as the claim requires, and the position
+        after the last rule where the profile names neither; a profile rule
+        wins a tie with it.
     :param role: the role claimed.
     :param kind: what to record in ``attrs["semantic"]`` as ``role_match``.
     :param rule: the profile rule's index, or ``None`` for the definitions rule.
@@ -536,6 +575,39 @@ def _match_one(
 ) -> _Match | None:
     """Return ``entry``'s claim on ``block``, at the distance it applies from."""
     rule = entry.rule
+    if rule.kind is not None and block.kind.value != rule.kind:
+        return None
+    filtered: tuple[tuple[str, Any], ...] = (
+        (("kind", block.kind.value),) if rule.kind is not None else ()
+    )
+    if rule.match == _MATCH_TEXT:
+        # The block's own evidence, so distance 0: nothing is closer.
+        if entry.pattern is None or not block.text:
+            return None
+        found = entry.pattern.search(block.text)
+        if found is None:
+            return None
+        return _Match(
+            0,
+            entry.index,
+            rule.role,
+            rule.match,
+            entry.index,
+            (("matched", found.group(0)),) + filtered,
+        )
+    if rule.match == _MATCH_LABEL:
+        if entry.pattern is None or not block.label:
+            return None
+        if entry.pattern.search(block.label) is None:
+            return None
+        return _Match(
+            0,
+            entry.index,
+            rule.role,
+            rule.match,
+            entry.index,
+            (("label", block.label),) + filtered,
+        )
     if rule.match == _MATCH_HEADING:
         if block.kind is not BlockKind.HEADING or entry.pattern is None:
             return None
@@ -554,7 +626,7 @@ def _match_one(
             rule.role,
             rule.match,
             entry.index,
-            (("parent_role", parent_role),),
+            (("parent_role", parent_role),) + filtered,
         )
     if rule.match == _MATCH_ANCESTOR:
         if entry.pattern is None:
@@ -567,7 +639,7 @@ def _match_one(
                     rule.role,
                     rule.match,
                     entry.index,
-                    (("ancestor", heading_line(ancestor)),),
+                    (("ancestor", heading_line(ancestor)),) + filtered,
                 )
     # An unknown match kind is not reachable through the loader, whose enum is
     # closed; a hand-built rule that invents one simply never matches.
@@ -809,10 +881,11 @@ def _visit(
         if claim is not None
     ]
     if claims:
-        # The profile has already settled its own rules by list order; this is
-        # the one comparison distance still decides, because the definitions
-        # rule is in no profile and so has no list position to be ordered by.
-        match = min(claims, key=lambda claim: (claim.distance, claim.order))
+        # The profile has already settled its own rules by list order, and the
+        # definitions rule stands at the position of the profile rule that
+        # names its role, so this is list order too. The profile's claim is
+        # first in the list, so it wins a tie.
+        match = min(claims, key=lambda claim: claim.order)
         role = match.role
         note.update(
             {
@@ -879,10 +952,12 @@ def _definitions_match(
     """Return PRD § 6b's definitions rule's claim on ``block``, if it has one.
 
     The rule is written here because the profile format cannot say it, so it
-    competes on the format's own terms: it claims the role at the distance of
-    the evidence it used -- the block's own heading, or the heading beside it
-    -- and takes the list position after the profile's last rule, so a profile
-    rule that ties with it wins.
+    competes on the format's own terms: it records the distance of the
+    evidence it used -- the block's own heading, or the heading beside it --
+    and takes the list position of the profile rule that names the role it is
+    assigning, so that "``clause`` listed after ``definition``" means the same
+    on a tree with no section block to carry a ``parent_role`` as on one with
+    it. A profile rule that ties with it wins.
 
     :param planned: ``(role, path)`` from `_definitions_plan`, set by the
         block's parent where the block is a definitions heading or one of its
@@ -891,14 +966,20 @@ def _definitions_match(
     """
     if not semantics.definitions:
         return None
-    order = len(semantics.rules)
     if planned is not None:
         role, path = planned
         # A heading is its own evidence; a member is told by the heading beside
         # it, one step away, like a `parent_role` or a nearest ancestor.
-        distance = 0 if role == DEFINITIONS_ROLE else 1
-        return _Match(distance, order, role, f"{role}_{path}", None)
+        if role == DEFINITIONS_ROLE:
+            return _Match(0, semantics.definitions_order, role, f"{role}_{path}", None)
+        return _Match(1, semantics.definition_order, role, f"{role}_{path}", None)
     opened = _definitions_container(block, semantics.rules)
     if opened is None:
         return None
-    return _Match(0, order, DEFINITIONS_ROLE, f"{DEFINITIONS_ROLE}_{opened}", None)
+    return _Match(
+        0,
+        semantics.definitions_order,
+        DEFINITIONS_ROLE,
+        f"{DEFINITIONS_ROLE}_{opened}",
+        None,
+    )

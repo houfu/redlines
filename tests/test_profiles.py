@@ -8,6 +8,7 @@ from typing import Any
 
 import pytest
 
+from redlines.blocks import BLOCK_KINDS
 from redlines.profiles import (
     Profile,
     ProfileError,
@@ -47,7 +48,7 @@ def test_load_profile_from_path() -> None:
     assert profile.name == "example-contract"
     assert len(profile.label_patterns) == 3
     assert len(profile.heading_resets) == 1
-    assert len(profile.role_rules) == 5
+    assert len(profile.role_rules) == 6
     assert len(profile.span_extractors) == 4
 
 
@@ -211,6 +212,49 @@ def test_role_rule_parent_role_rejects_pattern() -> None:
             }
         )
     assert any("role_rules[0].pattern" in error for error in excinfo.value.errors)
+
+
+def test_role_rule_kind_must_be_a_block_kind_and_says_so() -> None:
+    with pytest.raises(ProfileError) as excinfo:
+        load_profile(
+            {
+                "name": "x",
+                "role_rules": [
+                    {
+                        "role": "clause",
+                        "match": "label",
+                        "pattern": "^1",
+                        "kind": "clause",
+                    }
+                ],
+            }
+        )
+    (error,) = excinfo.value.errors
+    assert error.startswith("role_rules[0].kind: must be one of")
+    assert "list_item" in error
+
+
+def test_role_rule_heading_rejects_kind() -> None:
+    with pytest.raises(ProfileError) as excinfo:
+        load_profile(
+            {
+                "name": "x",
+                "role_rules": [
+                    {
+                        "role": "r",
+                        "match": "heading",
+                        "pattern": "^x",
+                        "kind": "heading",
+                    }
+                ],
+            }
+        )
+    assert any("role_rules[0].kind" in error for error in excinfo.value.errors)
+
+
+def test_schema_kind_enum_is_the_block_kind_vocabulary() -> None:
+    kinds = _schema()["definitions"]["roleRule"]["properties"]["kind"]["enum"]
+    assert tuple(kinds) == BLOCK_KINDS
 
 
 def test_span_extractor_group_out_of_range_is_rejected() -> None:
@@ -409,6 +453,51 @@ _ROLE_RULE_CASES: list[tuple[str, dict[str, object], bool]] = [
         {"role": "r", "match": "parent_role", "parent_role": "p", "pattern": "^x"},
         False,
     ),
+    # ADR-0031: the two kinds that look at the block itself, and the filter.
+    ("text with pattern", {"role": "r", "match": "text", "pattern": "^x"}, True),
+    ("text without pattern", {"role": "r", "match": "text"}, False),
+    (
+        "text with parent_role",
+        {"role": "r", "match": "text", "pattern": "^x", "parent_role": "p"},
+        False,
+    ),
+    ("label with pattern", {"role": "r", "match": "label", "pattern": "^x"}, True),
+    ("label without pattern", {"role": "r", "match": "label"}, False),
+    (
+        "label with parent_role",
+        {"role": "r", "match": "label", "pattern": "^x", "parent_role": "p"},
+        False,
+    ),
+    (
+        "label with kind",
+        {"role": "r", "match": "label", "pattern": "^x", "kind": "list_item"},
+        True,
+    ),
+    (
+        "text with kind",
+        {"role": "r", "match": "text", "pattern": "^x", "kind": "paragraph"},
+        True,
+    ),
+    (
+        "ancestor_heading with kind",
+        {"role": "r", "match": "ancestor_heading", "pattern": "^x", "kind": "row"},
+        True,
+    ),
+    (
+        "parent_role with kind",
+        {"role": "r", "match": "parent_role", "parent_role": "p", "kind": "cell"},
+        True,
+    ),
+    (
+        "heading with kind",
+        {"role": "r", "match": "heading", "pattern": "^x", "kind": "heading"},
+        False,
+    ),
+    (
+        "text with a kind that is not a block kind",
+        {"role": "r", "match": "text", "pattern": "^x", "kind": "clause"},
+        False,
+    ),
 ]
 
 
@@ -441,12 +530,20 @@ def test_schema_encodes_the_role_rule_conditionals_the_loader_enforces() -> None
         for kind in match_schema.get("enum", [match_schema.get("const")]):
             by_match[kind] = branch["then"]
 
+    def forbidden(then: dict[str, Any]) -> set[str]:
+        """The fields a branch's ``not`` forbids: one ``required`` or an ``anyOf`` of them."""
+        clause = then["not"]
+        parts = clause["anyOf"] if "anyOf" in clause else [clause]
+        return {field for part in parts for field in part["required"]}
+
     assert set(by_match) == set(ROLE_MATCH_KINDS), "every match kind needs a branch"
-    for kind in ("heading", "ancestor_heading"):
+    for kind in ("ancestor_heading", "text", "label"):
         assert by_match[kind]["required"] == ["pattern"]
-        assert by_match[kind]["not"]["required"] == ["parent_role"]
+        assert forbidden(by_match[kind]) == {"parent_role"}
+    assert by_match["heading"]["required"] == ["pattern"]
+    assert forbidden(by_match["heading"]) == {"parent_role", "kind"}
     assert by_match["parent_role"]["required"] == ["parent_role"]
-    assert by_match["parent_role"]["not"]["required"] == ["pattern"]
+    assert forbidden(by_match["parent_role"]) == {"pattern"}
 
 
 @pytest.mark.parametrize("definition_name", sorted(_EXEMPLARS))

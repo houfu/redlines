@@ -14,6 +14,7 @@ from typing import Any
 
 import yaml
 
+from ..blocks import BLOCK_KINDS
 from .errors import ProfileError
 from .model import (
     LABEL_DEPTH_MODES,
@@ -44,7 +45,7 @@ _HEADING_RULE_KEYS = {
 }
 _LABEL_PATTERN_KEYS = {"name", "pattern", "style", "depth_mode"}
 _HEADING_RESET_KEYS = {"name", "pattern"}
-_ROLE_RULE_KEYS = {"role", "match", "pattern", "parent_role"}
+_ROLE_RULE_KEYS = {"role", "match", "pattern", "parent_role", "kind"}
 _SPAN_EXTRACTOR_KEYS = {"type", "pattern", "group"}
 
 
@@ -395,8 +396,9 @@ def _build_role_rule(
 
     pattern = item.get("pattern")
     parent_role = item.get("parent_role")
+    kind = item.get("kind")
 
-    if match in ("heading", "ancestor_heading"):
+    if match in ("heading", "ancestor_heading", "text", "label"):
         if not isinstance(pattern, str) or not pattern:
             errors.append(
                 f"{path}.pattern: required and must be a non-empty string when match={match!r}"
@@ -417,6 +419,16 @@ def _build_role_rule(
             errors.append(f"{path}.pattern: must not be set when match='parent_role'")
             ok = False
 
+    if kind is not None:
+        if match == "heading":
+            # A heading rule already names its kind; a filter here is either
+            # redundant or a rule that can never fire.
+            errors.append(f"{path}.kind: must not be set when match='heading'")
+            ok = False
+        elif kind not in BLOCK_KINDS:
+            errors.append(f"{path}.kind: must be one of {list(BLOCK_KINDS)}")
+            ok = False
+
     if not ok:
         return None
     assert isinstance(role, str)
@@ -426,6 +438,7 @@ def _build_role_rule(
         match=match,
         pattern=pattern if isinstance(pattern, str) else None,
         parent_role=parent_role if isinstance(parent_role, str) else None,
+        kind=kind if isinstance(kind, str) else None,
     )
 
 

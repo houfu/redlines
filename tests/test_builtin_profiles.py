@@ -9,12 +9,18 @@ stops recognising one of them fails here rather than in a reader.
 from __future__ import annotations
 
 import itertools
+from collections.abc import Callable
 from importlib.resources import files
 from pathlib import Path
 
 import pytest
 
-from redlines.blocks import RECOMMENDED_ROLES, RECOMMENDED_SPAN_TYPES
+from redlines.blocks import (
+    RECOMMENDED_ROLES,
+    RECOMMENDED_SPAN_TYPES,
+    BlockKind,
+    BlockTree,
+)
 from redlines.profiles import (
     BUILTIN_PROFILE_NAMES,
     Profile,
@@ -22,6 +28,9 @@ from redlines.profiles import (
     builtin_profile,
     parse_profile_yaml,
 )
+from redlines.readers.markdown import MarkdownReader
+from redlines.readers.text import PlainTextReader
+from redlines.semantic import apply_semantics
 
 BUILTIN_DIR = Path(__file__).parent.parent / "redlines" / "profiles" / "builtin"
 
@@ -405,7 +414,82 @@ def test_contract_role_rules_cover_the_sections_the_prd_names() -> None:
         "recital",
         "schedule",
         "signature",
+        "clause",
+        "sub_clause",
     }
+
+
+@pytest.mark.parametrize("name", ["contract", "markdown"])
+def test_the_clause_rules_come_last_so_every_section_role_wins(name: str) -> None:
+    """ADR-0031: a definition, a recital and a schedule item are numbered list
+    items too, and the `label` rules are the fallback for what nothing else
+    claims."""
+    kinds = [(rule.role, rule.match) for rule in builtin_profile(name).role_rules]
+    assert kinds[-2:] == [("clause", "label"), ("sub_clause", "label")]
+    assert all(
+        rule.kind == "list_item" for rule in builtin_profile(name).role_rules[-2:]
+    )
+
+
+PLAIN_BODY = (
+    "1. BACKGROUND\n"
+    "\n"
+    "1.1 The Client runs shops.\n"
+    "\n"
+    "3. SUPPLY\n"
+    "\n"
+    "3.1 The Supplier shall supply.\n"
+    "\n"
+    "(a) with care;\n"
+    "\n"
+    "(i) and skill.\n"
+)
+MARKED_BODY = (
+    "## 1. Background\n"
+    "\n"
+    "1.1 The Client runs shops.\n"
+    "\n"
+    "## 3. Supply\n"
+    "\n"
+    "3.1 The Supplier shall supply.\n"
+    "\n"
+    "(a) with care;\n"
+    "\n"
+    "(i) and skill.\n"
+)
+
+
+@pytest.mark.parametrize(
+    ("name", "read"),
+    [
+        (
+            "contract",
+            lambda profile: PlainTextReader().read(PLAIN_BODY, profile=profile),
+        ),
+        (
+            "markdown",
+            lambda profile: MarkdownReader().read(MARKED_BODY, profile=profile),
+        ),
+    ],
+    ids=["contract", "markdown"],
+)
+def test_the_body_of_an_agreement_carries_clause_and_sub_clause(
+    name: str, read: Callable[[Profile], BlockTree]
+) -> None:
+    """The gap #130 named, closed: 3.1 and (a) carry a role, the numbered
+    heading above them does not, and a recital numbered like a clause is
+    still a recital."""
+    profile = builtin_profile(name)
+    tree = apply_semantics(read(profile), profile)
+    by_label = {block.label: block for block in tree.walk() if block.label}
+
+    assert by_label["1.1"].role == "recital"
+    assert by_label["3"].kind is BlockKind.HEADING
+    assert by_label["3"].role is None
+    assert by_label["3.1"].role == "clause"
+    assert by_label["3.1"].attrs["semantic"]["role_match"] == "label"
+    assert by_label["(a)"].role == "sub_clause"
+    assert by_label["(i)"].role == "sub_clause"
 
 
 def test_definitions_rule_precedes_the_rule_that_builds_on_it() -> None:
@@ -534,6 +618,27 @@ def test_markdown_resets_numbering_at_a_schedule() -> None:
     assert reset_names(builtin_profile("markdown"), "Schedule 1") == ["schedule"]
 
 
+def test_markdown_recognises_an_inline_drafting_note_from_its_text() -> None:
+    """The one `text` rule a built-in carries (ADR-0031)."""
+    profile = builtin_profile("markdown")
+    tree = apply_semantics(
+        MarkdownReader().read(
+            "## 3. Supply\n\n3.1 The Supplier shall supply.\n\n"
+            "[Drafting note: confirm the service levels.]\n\n"
+            "Note: the notes above are not part of the agreement.\n",
+            profile=profile,
+        ),
+        profile,
+    )
+    notes = [block for block in tree.walk() if block.role == "note"]
+
+    assert [block.text[:15] for block in notes] == [
+        "[Drafting note:",
+        "Note: the notes",
+    ]
+    assert all(block.attrs["semantic"]["role_match"] == "text" for block in notes)
+
+
 def test_markdown_adds_the_note_role() -> None:
     """The one role `contract` does not carry: markdown is the drafting format."""
     contract_roles = {rule.role for rule in builtin_profile("contract").role_rules}
@@ -602,7 +707,7 @@ VERBATIM_OVERLAP = {
     ("contract", "markdown"): {
         "label_patterns": 6,
         "heading_resets": 1,
-        "role_rules": 6,
+        "role_rules": 10,
         "span_extractors": 10,
     },
 }

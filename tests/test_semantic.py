@@ -212,11 +212,16 @@ def test_recital_and_signature_headings_carry_their_roles(
 ) -> None:
     assert texted(agreement, "RECITALS").role == "recital"
     assert texted(agreement, "SIGNATURES").role == "signature"
-    # `contract` writes both as `heading` rules, so they land on the heading
-    # and not on what follows it. That is the profile's choice, not the pass's.
-    assert (
-        texted(agreement, "The Supplier provides data analytics services.").role is None
-    )
+    # `contract` writes both as a `heading` rule and an `ancestor_heading`
+    # rule (ADR-0031), so the heading and what follows it carry the role --
+    # and the lettered recital is a recital, not the `sub_clause` its label
+    # alone would make it.
+    recital = texted(agreement, "The Supplier provides data analytics services.")
+    assert recital.role == "recital"
+    assert recital.attrs["semantic"]["role_match"] == "ancestor_heading"
+    assert texted(
+        agreement, "Signed for and on behalf of Acme Analytics Ltd."
+    ).role == ("signature")
 
 
 def test_a_cross_reference_carries_the_label_it_refers_to(
@@ -680,6 +685,213 @@ def test_parent_role_sees_the_role_its_parent_was_given_this_pass() -> None:
     assert child.attrs["semantic"]["role_match"] == "parent_role"
 
 
+# --- the block's own evidence: text, label and the kind filter (ADR-0031) ---
+
+
+def test_a_text_rule_matches_the_blocks_own_text_and_records_what_it_found() -> None:
+    profile = profile_from_mapping(
+        {
+            "name": "noted",
+            "role_rules": [{"role": "note", "match": "text", "pattern": "(?i)^note:"}],
+        }
+    )
+    tree = BlockTree.build(
+        block(
+            BlockKind.DOCUMENT,
+            children=(
+                block(BlockKind.PARAGRAPH, text="Note: revisit before signing."),
+                block(BlockKind.PARAGRAPH, text="A note is not a Note."),
+            ),
+        )
+    )
+
+    applied = apply_semantics(tree, profile)
+
+    noted = texted(applied, "Note: revisit before signing.")
+    assert noted.role == "note"
+    assert noted.attrs["semantic"] == {
+        "role": "note",
+        "role_match": "text",
+        "role_rule": 0,
+        "matched": "Note:",
+    }
+    assert texted(applied, "A note is not a Note.").role is None
+
+
+def test_a_text_rule_sees_the_text_with_the_label_already_off_it(
+    contract: Profile,
+) -> None:
+    """What the reader stripped is not there to match: '^7' does not see "7.1"."""
+    profile = profile_from_mapping(
+        {
+            "name": "stripped",
+            "label_patterns": [
+                {
+                    "name": "decimal",
+                    "pattern": r"^(\d+(?:\.\d+)*)\.?\s+",
+                    "style": "decimal",
+                }
+            ],
+            "role_rules": [
+                {"role": "wrong", "match": "text", "pattern": r"^\d"},
+                {"role": "right", "match": "text", "pattern": "^The Supplier"},
+            ],
+        }
+    )
+    tree = read("7.1 The Supplier shall deliver.\n", profile)
+
+    assert one(tree, "7.1").role == "right"
+
+
+def test_a_label_rule_matches_the_label_and_never_a_block_without_one() -> None:
+    profile = profile_from_mapping(
+        {
+            "name": "labelled",
+            "role_rules": [{"role": "clause", "match": "label", "pattern": r"^\d"}],
+        }
+    )
+    tree = BlockTree.build(
+        block(
+            BlockKind.DOCUMENT,
+            children=(
+                block(BlockKind.LIST_ITEM, text="The first clause.", label="1.1"),
+                # Looks like a label, is not one: the reader left it as text.
+                block(BlockKind.PARAGRAPH, text="1.1 million was paid."),
+            ),
+        )
+    )
+
+    applied = apply_semantics(tree, profile)
+
+    clause = texted(applied, "The first clause.")
+    assert clause.role == "clause"
+    assert clause.attrs["semantic"]["role_match"] == "label"
+    assert clause.attrs["semantic"]["label"] == "1.1"
+    assert texted(applied, "1.1 million was paid.").role is None
+
+
+def test_a_kind_filter_restricts_a_rule_to_one_structural_kind() -> None:
+    """The same label on a heading and a list item: only the list item is a clause."""
+    profile = profile_from_mapping(
+        {
+            "name": "kinded",
+            "role_rules": [
+                {
+                    "role": "clause",
+                    "match": "label",
+                    "kind": "list_item",
+                    "pattern": r"^\d",
+                },
+                {
+                    "role": "body",
+                    "match": "ancestor_heading",
+                    "kind": "paragraph",
+                    "pattern": "^Schedule",
+                },
+            ],
+        }
+    )
+    tree = BlockTree.build(
+        block(
+            BlockKind.DOCUMENT,
+            children=(
+                block(BlockKind.HEADING, text="Schedule 1", label="1", level=1),
+                block(BlockKind.LIST_ITEM, text="An item.", label="1.1"),
+                block(BlockKind.PARAGRAPH, text="A paragraph."),
+            ),
+        )
+    )
+
+    applied = apply_semantics(tree, profile)
+
+    assert texted(applied, "Schedule 1").role is None
+    item = texted(applied, "An item.")
+    assert item.role == "clause"
+    assert item.attrs["semantic"]["kind"] == "list_item"
+    paragraph = texted(applied, "A paragraph.")
+    assert paragraph.role == "body"
+    assert paragraph.attrs["semantic"]["kind"] == "paragraph"
+
+
+def test_the_blocks_own_evidence_follows_list_order_like_every_other_kind() -> None:
+    """No proximity exception for `text` or `label`: the profile's order decides."""
+    rules = [
+        {"role": "self", "match": "text", "pattern": "^The"},
+        {"role": "under", "match": "ancestor_heading", "pattern": "^Schedule"},
+    ]
+    tree = BlockTree.build(
+        block(
+            BlockKind.DOCUMENT,
+            children=(
+                block(BlockKind.HEADING, text="Schedule 1", level=1),
+                block(BlockKind.PARAGRAPH, text="The Services are hosted."),
+            ),
+        )
+    )
+
+    self_first = apply_semantics(
+        tree, profile_from_mapping({"name": "a", "role_rules": rules})
+    )
+    under_first = apply_semantics(
+        tree, profile_from_mapping({"name": "b", "role_rules": list(reversed(rules))})
+    )
+
+    assert texted(self_first, "The Services are hosted.").role == "self"
+    assert texted(under_first, "The Services are hosted.").role == "under"
+
+
+DEFINITIONS_THEN_CLAUSE = [
+    {"role": DEFINITIONS_ROLE, "match": "heading", "pattern": "^Definitions"},
+    {"role": DEFINITION_ROLE, "match": "parent_role", "parent_role": DEFINITIONS_ROLE},
+    {"role": "clause", "match": "label", "kind": "list_item", "pattern": r"^\d"},
+]
+
+
+@pytest.mark.parametrize("build", [section_shaped, flat_shaped])
+def test_the_definitions_rule_stands_where_the_profile_names_the_role(
+    build: object,
+) -> None:
+    """A `clause` rule listed after `definition` loses to the pass's own
+    definitions rule on both tree shapes -- including the flat one, where no
+    section block exists for `parent_role` to reach and the heuristic is the
+    only path to `definition`."""
+    ordered = profile_from_mapping(
+        {"name": "ordered", "role_rules": DEFINITIONS_THEN_CLAUSE}
+    )
+    reversed_ = profile_from_mapping(
+        {"name": "reversed", "role_rules": list(reversed(DEFINITIONS_THEN_CLAUSE))}
+    )
+
+    assert one(apply_semantics(build(), ordered), "1.1").role == DEFINITION_ROLE  # type: ignore[operator]
+    assert one(apply_semantics(build(), reversed_), "1.1").role == "clause"  # type: ignore[operator]
+
+
+def test_the_definitions_rule_ranks_last_where_the_profile_names_only_the_section() -> (
+    None
+):
+    """A profile that names `definitions` but never `definition` has not
+    ordered the member role, so the heuristic's claim on a member comes after
+    every rule the profile did write."""
+    profile = profile_from_mapping(
+        {
+            "name": "section_only",
+            "role_rules": [
+                {
+                    "role": DEFINITIONS_ROLE,
+                    "match": "heading",
+                    "pattern": "^Definitions",
+                },
+                {"role": "clause", "match": "label", "pattern": r"^\d"},
+            ],
+        }
+    )
+
+    applied = apply_semantics(flat_shaped(), profile)
+
+    assert texted(applied, "Definitions").role == DEFINITIONS_ROLE
+    assert one(applied, "1.1").role == "clause"
+
+
 ORDERED = [
     {"role": "body", "match": "ancestor_heading", "pattern": "^Schedule"},
     {"role": "schedule", "match": "heading", "pattern": "^Schedule"},
@@ -916,14 +1128,16 @@ def test_a_markdown_contract_gets_the_same_roles_as_its_plain_text_twin() -> Non
             "This Agreement is made between Acme Analytics Ltd and Beta Retail plc.",
             None,
         ),
+        # A numbered heading is not a clause: the rule is gated on list_item.
         ("3", None),
-        ("3.1", None),
+        ("3.1", "clause"),
+        # A continuation paragraph carries no label, so no `label` rule reaches it.
         ("The Supplier issues invoices monthly in arrears.", None),
-        ("(a)", None),
-        ("(b)", None),
+        ("(a)", "sub_clause"),
+        ("(b)", "sub_clause"),
         ("7", None),
-        ("7.1", None),
-        ("7.2", None),
+        ("7.1", "clause"),
+        ("7.2", "clause"),
         ("Schedule 1", "schedule"),
         ("1", "schedule"),
         ("2", "schedule"),

@@ -7,7 +7,7 @@ from dataclasses import dataclass, field
 
 LABEL_STYLES = ("decimal", "alpha", "roman", "word")
 LABEL_DEPTH_MODES = ("arithmetic", "stack")
-ROLE_MATCH_KINDS = ("heading", "ancestor_heading", "parent_role")
+ROLE_MATCH_KINDS = ("heading", "ancestor_heading", "parent_role", "text", "label")
 
 
 @dataclass(frozen=True, slots=True)
@@ -58,12 +58,21 @@ class RoleRule:
       ``pattern`` (e.g. everything under a "Schedule" heading).
     - ``parent_role``: the block's immediate parent already carries the
       role named in ``parent_role`` (e.g. items under a definitions block).
+    - ``text``: the block's own text matches ``pattern`` (ADR-0031).
+    - ``label``: the block's own label matches ``pattern``; a block with no
+      label never matches (ADR-0031).
+
+    ``kind`` restricts any rule but ``heading`` to blocks of one structural
+    kind (a `redlines.blocks.BlockKind` value), which is what lets a rule say
+    "a ``list_item`` whose label is decimal" rather than "anything whose
+    label is decimal".
     """
 
     role: str
     match: str
     pattern: str | None = None
     parent_role: str | None = None
+    kind: str | None = None
 
     def compiled(self) -> re.Pattern[str]:
         if self.pattern is None:
