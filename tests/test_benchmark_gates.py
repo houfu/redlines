@@ -75,13 +75,15 @@ def _proposed_rows(results: Mapping[str, Any], tier: str) -> int:
 # --- the gates --------------------------------------------------------------
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="alignment is untuned; #131 and #132 close this gap, and the shortfall "
-    "is concentrated in the move-heavy and heavy plans (see benchmark/REPORT.md)",
-)
 def test_synthetic_correspondence_f1_meets_the_target(results: dict[str, Any]) -> None:
-    """PRD § 10: correspondence F1 ≥ 0.95 on the synthetic tier."""
+    """PRD § 10: correspondence F1 ≥ 0.95 on the synthetic tier.
+
+    Met, and the ``xfail(strict=True)`` mark this test carried until the
+    alignment tuning pass is gone rather than relaxed: the exact and label
+    passes now break a tie between equally exact candidates on structural
+    nearness rather than on document order alone, which is what the first
+    report's 84 wrong exact matches were.
+    """
     f1 = _tier(results, "synthetic")["links"]["f1"]
     assert f1 is not None
     assert f1 >= 0.95
@@ -110,8 +112,11 @@ def test_hand_correspondence_f1_meets_the_target(results: dict[str, Any]) -> Non
 
 @pytest.mark.xfail(
     strict=True,
-    reason="move recall is short of ADR-0009's bar; #132 is where it is earned, and "
-    "the move-heavy plan is where it is lost (see benchmark/REPORT.md)",
+    reason="move recall is short of ADR-0009's bar and cannot reach it on this "
+    "corpus: 5 of the 23 labelled moves are byte-identical paragraphs among 30 "
+    "byte-identical siblings in the repetitive-schedule pairs, where 30 candidates "
+    "are equally good and reporting one would be a guess. 18/23 = 0.7826 is the "
+    "ceiling that keeps move precision at 1.0000 (see benchmark/REPORT.md)",
 )
 def test_synthetic_move_recall_meets_the_target(results: dict[str, Any]) -> None:
     """ADR-0009: move recall ≥ 0.90 on synthetic mutations."""

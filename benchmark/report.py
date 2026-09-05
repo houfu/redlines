@@ -832,23 +832,32 @@ def _observations() -> list[str]:
         "simply declines to report a correspondence for anything it could not match "
         "token-for-token. Its spurious-match rate is where the cost shows.",
         "",
-        "**The `exact` pass carries the largest wrong-match count.** That is not a bug "
-        "in exact matching; it is what identical text does. Corpus documents built "
-        "around repetition -- a schedule of near-identical paragraphs, a lettered list "
-        "whose items differ by one word -- give the pass several equally exact "
-        "candidates and it takes the first, which is sometimes not the one the labels "
-        "name. Fixing it is an alignment question (a tie-break that prefers the "
-        "structurally nearer candidate) rather than a metric one, and it is recorded "
-        "here rather than quietly tuned away: this benchmark exists to find exactly "
-        "this, and a benchmark that got edited when it found something would be worth "
-        "nothing.",
+        "**The `exact` pass still carries the largest wrong-match count**, and it is "
+        "what identical text does rather than a bug in exact matching. Corpus "
+        "documents built around repetition -- a schedule of byte-identical "
+        "paragraphs, a lettered list whose items differ by one word -- give the pass "
+        "several equally exact candidates, and *which* of the equals it takes is a "
+        "decision. The first reading of this report found it taking the first in "
+        "document order, which shifts every pair after an edited block by one and "
+        "cost 84 of 1349 scored exact matches; the pass now takes the structurally "
+        "nearest instead ([ADR-0032](../docs/adr/0032-alignment-passes.md), amended "
+        "from this report). What is left is the residue that no tie-break can reach: "
+        "in a group of thirty byte-identical siblings, nearness is the only evidence "
+        "there is, and where the truth is not the nearest candidate the pass is "
+        "wrong and cannot know it.",
         "",
-        "**Move recall is the weakest headline number**, and the per-plan breakdown "
-        "says where: the `move-heavy` plan, where several blocks move at once and a "
-        "moved block's candidates include other moved blocks. Move *precision* is not "
-        "the problem. That asymmetry is the one ADR-0009 asks for -- it would rather "
-        "miss a move than invent one -- so the number to improve is recall, and "
-        "improving it must not be allowed to cost precision.",
+        "**Move recall is the weakest headline number, and on this corpus it cannot "
+        "reach ADR-0009's 0.90 bar.** The per-plan breakdown says where: the "
+        "`repetitive-schedule` pairs, whose source documents contain exactly one "
+        "distinct paragraph text repeated thirty times. Five of the corpus's "
+        "labelled moves live there, and every one of them has thirty equally good "
+        "candidates on the source side -- no label, no heading, no parent to tell "
+        "them apart. Reporting one would be a one-in-thirty guess, which is the "
+        "false positive ADR-0009 says costs more than the silence. That puts the "
+        "ceiling at 18 of 23, and the shortfall is published here rather than bought "
+        "with a loosened threshold: move *precision* is 1.0000 on both tiers and the "
+        "asymmetry is the one ADR-0009 asks for. Lowering the bar is a decision for "
+        "ADR-0009 to reopen, not for a tuning pass to take.",
         "",
         "**Nothing in this file is evidence about the hand-labelled tier yet.** Its "
         "labels are engine-seeded drafts; see the dagger note above.",

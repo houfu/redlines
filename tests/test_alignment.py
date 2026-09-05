@@ -200,6 +200,82 @@ def test_repeated_text_is_consumed_in_document_order() -> None:
         )
 
 
+def test_an_edited_block_does_not_shift_every_identical_pair_after_it() -> None:
+    """The tie-break the #143 report bought, in one sentence.
+
+    Ten byte-identical paragraphs, one of which was reworded in the test
+    document. The reworded block matches no key, so it consumes no source, and
+    a bucket taken in document order hands source 4 to test 5 and shifts every
+    pair below it -- which is what cost the ``repetitive-schedule`` pairs
+    almost all of their correspondences. Nearest-position pairing keeps every
+    index on itself and leaves source 4 to the fuzzy pass, where it belongs.
+    """
+    same = "Intentionally omitted, and left here to keep the numbering."
+    edited = "Intentionally omitted, and kept here to keep the numbering."
+    source = tree(*(block("paragraph", same) for _ in range(10)))
+    test = tree(
+        *(
+            block("paragraph", edited if index == 3 else same)
+            for index in range(10)
+        )
+    )
+    alignment = align(source, test)
+    for index in range(1, 11):
+        assert matched(alignment, f"/paragraph[{index}]").test_path == (
+            f"/paragraph[{index}]"
+        ), f"paragraph {index} drifted"
+    assert matched(alignment, "/paragraph[4]").matched_by == "fuzzy"
+    assert alignment.pass_counts["exact"] == 9
+
+
+def test_equally_exact_candidates_never_cross_each_other() -> None:
+    """Nearest wins, but only inside an order-preserving assignment.
+
+    Two equals cannot swap places just because one of them is a block nearer
+    to something: an exact pair that crossed another exact pair would be
+    reported as a move, on no evidence at all.
+    """
+    same = "The same words, again and again, for the avoidance of doubt."
+    source = tree(*(block("paragraph", same) for _ in range(4)))
+    test = tree(
+        block("paragraph", "Something else entirely, inserted at the top."),
+        *(block("paragraph", same) for _ in range(3)),
+    )
+    alignment = align(source, test)
+    taken = [
+        pair.test_path for pair in alignment.pairs if pair.matched_by == "exact"
+    ]
+    assert taken == ["/paragraph[2]", "/paragraph[3]", "/paragraph[4]"], taken
+    assert alignment.deleted == ("/paragraph[1]",)
+    assert not [pair for pair in alignment.pairs if pair.moved]
+
+
+def test_nearness_is_absolute_and_not_scaled_to_the_group() -> None:
+    """A group that grew in one place did not grow evenly (ADR-0032, amended).
+
+    Two sections in the source, twenty in the test, with the source's second
+    heading unchanged as the test's third. Scaling positions to a common
+    length would put source section 2 near test section 20; absolute distance
+    keeps it on test section 3, which is where it is.
+    """
+    source = tree(
+        block("section", children=(block("heading", "Alpha", label="1"),)),
+        block("section", children=(block("heading", "Beta", label="2"),)),
+    )
+    test = tree(
+        block("section", children=(block("heading", "Alpha", label="1"),)),
+        block("section", children=(block("heading", "Inserted", label="1A"),)),
+        block("section", children=(block("heading", "Beta", label="2"),)),
+        *(
+            block("section", children=(block("heading", f"Extra {n}", label=str(n)),))
+            for n in range(10, 27)
+        ),
+    )
+    alignment = align(source, test)
+    assert matched(alignment, "/section[2]").test_path == "/section[3]"
+    assert matched(alignment, "/section[2]").matched_by == "exact"
+
+
 def test_a_paragraph_may_match_a_list_item() -> None:
     """A clause that lost its number is still the same clause (ADR-0032)."""
     source = tree(block("list_item", "Alpha.", label="1"))
@@ -711,7 +787,7 @@ def test_the_defaults_are_the_ones_the_adr_tabulates() -> None:
     assert config.passes == PASS_NAMES
     assert config.similarity == "auto"
     assert config.fuzzy_min_similarity == 0.60
-    assert config.label_min_similarity == 0.35
+    assert config.label_min_similarity == 0.50
     assert config.positional_min_similarity == 0.35
     assert config.move_min_similarity == 0.80
     assert config.move_tie_margin == 0.10
