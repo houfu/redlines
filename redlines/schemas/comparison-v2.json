@@ -1,0 +1,558 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://houfu.github.io/redlines/schemas/comparison-v2.json",
+  "title": "Redlines Comparison (JSON v2)",
+  "description": "Schema for redlines.comparison.Comparison.to_dict() -- the M2 comparison document: two block trees, what corresponds between them, and what changed (ADR-0032, ADR-0033). Frozen at schema_version 2.0. Policy: an additive change (a new optional field, a new change kind, a new statistic) bumps the minor and widens this same file; a breaking change bumps the major, gets its own ADR, and the previous major stays producible from its own schema file. This one file also carries the block tree, at #/definitions/blockTree -- there is no separate block-tree schema -- because a second file would need a cross-file $ref to a URL that does not exist until this file itself is published (M4), which is a resolution trap offline and in tests. The presence of the schema_version key is itself the v1/v2 discriminator: v1's Redlines.output_json has no such key at all.",
+  "type": "object",
+  "required": ["schema_version", "config", "source", "test", "changes"],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": "2.0",
+      "description": "This file's own version, drift-tested against redlines.comparison.SCHEMA_VERSION."
+    },
+    "config": { "$ref": "#/definitions/comparisonConfig" },
+    "source": {
+      "$ref": "#/definitions/blockTree",
+      "description": "The earlier document, byte-for-byte redlines.blocks.BlockTree.to_dict() output -- not reshaped, so an M1 expected tree stays valid as a slice of this document."
+    },
+    "test": {
+      "$ref": "#/definitions/blockTree",
+      "description": "The later document, in the same shape as source."
+    },
+    "changes": {
+      "type": "array",
+      "description": "The change tree: a flat, document-ordered list of Change objects. The only nesting is a change's own inline ops; there are no child change nodes (ADR-0033).",
+      "items": { "$ref": "#/definitions/change" }
+    },
+    "alignment": {
+      "$ref": "#/definitions/alignment",
+      "description": "OPTIONAL. Present only when the document was written with to_dict(include_alignment=True)/to_json(include_alignment=True). Every correspondence between the two trees, unchanged pairs included -- the whole set the change tree cannot express, because an unchanged pair produces no change node."
+    }
+  },
+  "definitions": {
+    "comparisonConfig": {
+      "type": "object",
+      "description": "redlines.comparison.ComparisonConfig.to_dict() -- everything that decided what this comparison says (#135), so a reader can reproduce why two blocks were paired.",
+      "required": [
+        "source_format",
+        "test_format",
+        "profile",
+        "alignment",
+        "similarity",
+        "processor",
+        "budget_exhausted"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "source_format": {
+          "type": "string",
+          "description": "The format the source side was read as (e.g. 'markdown', 'text'), or 'blocks' if it arrived as an already-read block tree."
+        },
+        "test_format": {
+          "type": "string",
+          "description": "The same for the test side. A separate field because per-side detection means the two can legitimately differ."
+        },
+        "profile": {
+          "type": "string",
+          "description": "The structure profile both sides were read under, or '' when neither side was read (both arrived as block trees)."
+        },
+        "alignment": {
+          "$ref": "#/definitions/alignmentConfig",
+          "description": "The AlignmentConfig in force, embedded whole -- one source of truth, so a new threshold is one edit."
+        },
+        "similarity": {
+          "type": "string",
+          "enum": ["difflib", "rapidfuzz"],
+          "description": "The RESOLVED similarity backend that actually ran. config.alignment.similarity is what was asked for ('auto' by default); this is what 'auto' resolved to, or what was demanded."
+        },
+        "processor": {
+          "type": "string",
+          "description": "The leaf differ's type name, e.g. 'WholeDocumentProcessor'. A name, not a serialised object -- a custom RedlinesProcessor is supported (R17) and this is how the payload records that one was used."
+        },
+        "budget_exhausted": {
+          "type": "boolean",
+          "description": "Whether alignment's max_comparisons ran out. True means 'we stopped looking', not 'nothing more was there'."
+        }
+      }
+    },
+    "alignmentConfig": {
+      "type": "object",
+      "description": "redlines.alignment.AlignmentConfig.to_dict() -- every alignment knob (ADR-0032).",
+      "required": [
+        "passes",
+        "similarity",
+        "fuzzy_min_similarity",
+        "label_min_similarity",
+        "positional_min_similarity",
+        "move_min_similarity",
+        "move_tie_margin",
+        "move_min_tokens",
+        "move_kinds",
+        "fuzzy_window",
+        "table_fuzzy",
+        "max_comparisons"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "passes": {
+          "type": "array",
+          "description": "Which passes run, always in the fixed PASS_NAMES order regardless of the order a caller supplied.",
+          "items": { "$ref": "#/definitions/passName" }
+        },
+        "similarity": {
+          "type": "string",
+          "enum": ["auto", "difflib", "rapidfuzz"],
+          "description": "The backend that was ASKED for. The RESOLVED backend that ran is recorded separately, at config.similarity and alignment.backend."
+        },
+        "fuzzy_min_similarity": { "type": "number", "minimum": 0.0, "maximum": 1.0 },
+        "label_min_similarity": { "type": "number", "minimum": 0.0, "maximum": 1.0 },
+        "positional_min_similarity": { "type": "number", "minimum": 0.0, "maximum": 1.0 },
+        "move_min_similarity": { "type": "number", "minimum": 0.0, "maximum": 1.0 },
+        "move_tie_margin": { "type": "number", "minimum": 0.0, "maximum": 1.0 },
+        "move_min_tokens": { "type": "integer", "minimum": 0 },
+        "move_kinds": {
+          "type": "array",
+          "description": "Which structural kinds the move pass may report. Container moves are not reported in 1.0; they surface as their children moving.",
+          "items": { "$ref": "#/definitions/blockKind" }
+        },
+        "fuzzy_window": { "type": "integer", "minimum": 1 },
+        "table_fuzzy": { "type": "boolean" },
+        "max_comparisons": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "passName": {
+      "type": "string",
+      "enum": ["exact", "label", "structural", "fuzzy", "move", "positional"],
+      "description": "redlines.alignment.PASS_NAMES -- a closed vocabulary naming the engine's own passes, not an open reader vocabulary."
+    },
+    "blockKind": {
+      "type": "string",
+      "enum": [
+        "document",
+        "section",
+        "heading",
+        "paragraph",
+        "list_item",
+        "table",
+        "row",
+        "cell",
+        "unknown"
+      ],
+      "description": "redlines.blocks.BlockKind (R1, ADR-0005)."
+    },
+    "blockTree": {
+      "type": "object",
+      "description": "redlines.blocks.BlockTree.to_dict().",
+      "required": ["root", "dropped", "fallback_count"],
+      "additionalProperties": false,
+      "properties": {
+        "root": { "$ref": "#/definitions/block" },
+        "dropped": {
+          "type": "array",
+          "description": "What the reader did not carry across, one entry per kind (R3).",
+          "items": { "$ref": "#/definitions/dropped" }
+        },
+        "fallback_count": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "How many blocks matched no rule at all (derived; ADR-0030)."
+        }
+      }
+    },
+    "block": {
+      "type": "object",
+      "description": "redlines.blocks.Block.to_dict() -- one node of the document tree.",
+      "required": [
+        "kind",
+        "text",
+        "label",
+        "level",
+        "path",
+        "role",
+        "spans",
+        "matched_by",
+        "confidence",
+        "attrs",
+        "children"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "kind": { "$ref": "#/definitions/blockKind" },
+        "text": {
+          "type": "string",
+          "description": "The block's own text, label already stripped. Container blocks (document, section, table, row) normally leave this empty."
+        },
+        "label": {
+          "type": ["string", "null"],
+          "description": "The document's own label for this block ('7.2', '(a)', 'Schedule 2'), or null."
+        },
+        "level": { "type": "integer", "minimum": 0 },
+        "path": {
+          "type": "string",
+          "description": "The ADR-0029 address: '/' for the root, or '/kind[n]' segments repeated."
+        },
+        "role": {
+          "type": ["string", "null"],
+          "description": "The optional semantic role (ADR-0005); open vocabulary, not enforced here."
+        },
+        "spans": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/span" }
+        },
+        "matched_by": {
+          "type": "string",
+          "description": "The rule that recognised this block (ADR-0030). Open reader vocabulary -- deliberately not closed, unlike the alignment pass names."
+        },
+        "confidence": {
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 1.0,
+          "description": "How sure the reader is (ADR-0030). Not rounded on the wire -- that rounding is reserved for alignment and change confidence (N1)."
+        },
+        "attrs": {
+          "type": "object",
+          "description": "Reader-specific detail with no place in the core model. Shape is the reader's own; not constrained here."
+        },
+        "children": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/block" }
+        }
+      }
+    },
+    "span": {
+      "type": "object",
+      "description": "redlines.blocks.Span.to_dict() -- a typed range of characters inside one block's own text.",
+      "required": ["type", "start", "end", "value"],
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "type": "string",
+          "description": "An open span type (ADR-0005): e.g. defined_term, cross_reference, party, date, amount, citation."
+        },
+        "start": { "type": "integer", "minimum": 0 },
+        "end": { "type": "integer", "minimum": 0 },
+        "value": {
+          "type": ["string", "null"],
+          "description": "What the span means where that differs from what it says, or null when the text speaks for itself."
+        }
+      }
+    },
+    "dropped": {
+      "type": "object",
+      "description": "redlines.blocks.Dropped.to_dict() -- one kind of content a reader did not carry into the tree (R3).",
+      "required": ["kind", "count", "reason"],
+      "additionalProperties": false,
+      "properties": {
+        "kind": { "type": "string" },
+        "count": { "type": "integer", "minimum": 0 },
+        "reason": { "type": "string" }
+      }
+    },
+    "changeKind": {
+      "type": "string",
+      "enum": ["insert", "delete", "modify", "move", "renumber"],
+      "description": "redlines.changes.ChangeKind -- a closed set in 1.0 (ADR-0033). 'split' and 'merge' are reserved names nothing in 1.0 emits; adding them is a 1.1, minor-version change that widens this enum."
+    },
+    "inlineKind": {
+      "type": "string",
+      "enum": ["insert", "delete", "replace"],
+      "description": "redlines.changes.InlineKind -- what one edit inside a block's text did."
+    },
+    "change": {
+      "type": "object",
+      "description": "redlines.changes.Change.to_dict() -- one thing that happened to one block. Every node carries both addresses, both labels and its inline ops regardless of which kind won under the move > renumber > modify precedence.",
+      "required": [
+        "kind",
+        "source_address",
+        "test_address",
+        "block_kind",
+        "source_label",
+        "test_label",
+        "role",
+        "span_types",
+        "matched_by",
+        "confidence",
+        "source_text",
+        "test_text",
+        "inline",
+        "breadcrumb"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "kind": { "$ref": "#/definitions/changeKind" },
+        "source_address": {
+          "type": ["string", "null"],
+          "description": "The block's address in the source tree, or null on an insert (the block is not in the source document)."
+        },
+        "test_address": {
+          "type": ["string", "null"],
+          "description": "The block's address in the test tree, or null on a delete."
+        },
+        "block_kind": { "$ref": "#/definitions/blockKind" },
+        "source_label": { "type": ["string", "null"] },
+        "test_label": { "type": ["string", "null"] },
+        "role": {
+          "type": ["string", "null"],
+          "description": "Single-valued, from the test block, or the source block on a delete."
+        },
+        "span_types": {
+          "type": "array",
+          "description": "The types of spans this change TOUCHED -- sorted and deduplicated: for a modify, the span types on either side that overlap an inline op; for an insert/delete, every span type on the block. The values themselves are not copied here; they are on the blocks at these addresses.",
+          "items": { "type": "string" }
+        },
+        "matched_by": {
+          "type": "string",
+          "enum": ["exact", "label", "structural", "fuzzy", "move", "positional", "unmatched"],
+          "description": "Which alignment pass found the pair, or 'unmatched' for an insert or a delete. This is alignment's own answer, not the reader's Block.matched_by (ADR-0030)."
+        },
+        "confidence": {
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 1.0,
+          "description": "The alignment's confidence in the pair, rounded to 4 decimal places here and nowhere else (N1) -- 0.0 for an insert or a delete."
+        },
+        "source_text": { "type": "string" },
+        "test_text": { "type": "string" },
+        "inline": {
+          "type": "array",
+          "description": "The edits inside the text, in order. Empty on an insert or a delete.",
+          "items": { "$ref": "#/definitions/inlineOp" }
+        },
+        "breadcrumb": {
+          "type": "array",
+          "description": "The ADR-0029 heading breadcrumb, test side (source side on a delete), outermost first.",
+          "items": { "type": "string" }
+        }
+      }
+    },
+    "inlineOp": {
+      "type": "object",
+      "description": "redlines.changes.InlineOp.to_dict() -- one edit inside a block's text, in CHARACTER offsets into that block's own text (the same frame Span uses), never into the document.",
+      "required": [
+        "kind",
+        "source_start",
+        "source_end",
+        "test_start",
+        "test_end",
+        "source_text",
+        "test_text"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "kind": { "$ref": "#/definitions/inlineKind" },
+        "source_start": { "type": "integer", "minimum": 0 },
+        "source_end": { "type": "integer", "minimum": 0 },
+        "test_start": { "type": "integer", "minimum": 0 },
+        "test_end": { "type": "integer", "minimum": 0 },
+        "source_text": {
+          "type": "string",
+          "description": "The source run, '' for an insert. A slice of the source block's text, not a paraphrase (R27a)."
+        },
+        "test_text": {
+          "type": "string",
+          "description": "The test run, '' for a delete."
+        }
+      }
+    },
+    "alignment": {
+      "type": "object",
+      "description": "redlines.alignment.Alignment.to_dict() -- what align() found: every pair, everything left over, and how.",
+      "required": [
+        "pairs",
+        "inserted",
+        "deleted",
+        "config",
+        "backend",
+        "pass_counts",
+        "budget_exhausted"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "pairs": {
+          "type": "array",
+          "description": "Every correspondence, source document order, root first. Unchanged pairs are included.",
+          "items": { "$ref": "#/definitions/alignedPair" }
+        },
+        "inserted": {
+          "type": "array",
+          "description": "Addresses of test blocks nothing matched, document order. Every one, not only the root of an inserted subtree.",
+          "items": { "type": "string" }
+        },
+        "deleted": {
+          "type": "array",
+          "description": "Addresses of unmatched source blocks, likewise.",
+          "items": { "type": "string" }
+        },
+        "config": { "$ref": "#/definitions/alignmentConfig" },
+        "backend": {
+          "type": "string",
+          "enum": ["difflib", "rapidfuzz"],
+          "description": "The RESOLVED similarity backend that ran."
+        },
+        "pass_counts": {
+          "type": "object",
+          "description": "How many pairs each pass contributed, 'root' included and zeros present -- the evidence ADR-0008's review gate asks for.",
+          "required": ["root", "exact", "label", "structural", "fuzzy", "move", "positional"],
+          "additionalProperties": false,
+          "properties": {
+            "root": { "type": "integer", "minimum": 0 },
+            "exact": { "type": "integer", "minimum": 0 },
+            "label": { "type": "integer", "minimum": 0 },
+            "structural": { "type": "integer", "minimum": 0 },
+            "fuzzy": { "type": "integer", "minimum": 0 },
+            "move": { "type": "integer", "minimum": 0 },
+            "positional": { "type": "integer", "minimum": 0 }
+          }
+        },
+        "budget_exhausted": { "type": "boolean" }
+      }
+    },
+    "alignedPair": {
+      "type": "object",
+      "description": "redlines.alignment.AlignedPair.to_dict() -- one correspondence: this source block is that test block.",
+      "required": ["source_path", "test_path", "matched_by", "confidence", "moved", "renumbered"],
+      "additionalProperties": false,
+      "properties": {
+        "source_path": { "type": "string" },
+        "test_path": { "type": "string" },
+        "matched_by": {
+          "type": "string",
+          "enum": ["exact", "label", "structural", "fuzzy", "move", "positional", "root"],
+          "description": "Which pass found it, or 'root' for the root pair, which is given rather than found."
+        },
+        "confidence": {
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 1.0,
+          "description": "Rounded to 4 decimal places on the wire (N1)."
+        },
+        "moved": {
+          "type": "boolean",
+          "description": "Whether the two blocks' parents fail to correspond, or the pair crosses its own siblings."
+        },
+        "renumbered": {
+          "type": "boolean",
+          "description": "Whether the parents correspond and the labels differ."
+        }
+      }
+    }
+  },
+  "examples": [
+    {
+      "schema_version": "2.0",
+      "config": {
+        "source_format": "markdown",
+        "test_format": "markdown",
+        "profile": "markdown",
+        "alignment": {
+          "passes": ["exact", "label", "structural", "fuzzy", "move", "positional"],
+          "similarity": "auto",
+          "fuzzy_min_similarity": 0.6,
+          "label_min_similarity": 0.35,
+          "positional_min_similarity": 0.35,
+          "move_min_similarity": 0.8,
+          "move_tie_margin": 0.1,
+          "move_min_tokens": 8,
+          "move_kinds": ["paragraph", "list_item", "heading"],
+          "fuzzy_window": 25,
+          "table_fuzzy": false,
+          "max_comparisons": 2000000
+        },
+        "similarity": "difflib",
+        "processor": "WholeDocumentProcessor",
+        "budget_exhausted": false
+      },
+      "source": {
+        "root": {
+          "kind": "document",
+          "text": "",
+          "label": null,
+          "level": 0,
+          "path": "/",
+          "role": null,
+          "spans": [],
+          "matched_by": "document",
+          "confidence": 1.0,
+          "attrs": {},
+          "children": [
+            {
+              "kind": "paragraph",
+              "text": "This agreement starts today.",
+              "label": null,
+              "level": 0,
+              "path": "/paragraph[1]",
+              "role": null,
+              "spans": [],
+              "matched_by": "fallback",
+              "confidence": 0.0,
+              "attrs": {},
+              "children": []
+            }
+          ]
+        },
+        "dropped": [],
+        "fallback_count": 1
+      },
+      "test": {
+        "root": {
+          "kind": "document",
+          "text": "",
+          "label": null,
+          "level": 0,
+          "path": "/",
+          "role": null,
+          "spans": [],
+          "matched_by": "document",
+          "confidence": 1.0,
+          "attrs": {},
+          "children": [
+            {
+              "kind": "paragraph",
+              "text": "This agreement starts tomorrow.",
+              "label": null,
+              "level": 0,
+              "path": "/paragraph[1]",
+              "role": null,
+              "spans": [],
+              "matched_by": "fallback",
+              "confidence": 0.0,
+              "attrs": {},
+              "children": []
+            }
+          ]
+        },
+        "dropped": [],
+        "fallback_count": 1
+      },
+      "changes": [
+        {
+          "kind": "modify",
+          "source_address": "/paragraph[1]",
+          "test_address": "/paragraph[1]",
+          "block_kind": "paragraph",
+          "source_label": null,
+          "test_label": null,
+          "role": null,
+          "span_types": [],
+          "matched_by": "exact",
+          "confidence": 1.0,
+          "source_text": "This agreement starts today.",
+          "test_text": "This agreement starts tomorrow.",
+          "inline": [
+            {
+              "kind": "replace",
+              "source_start": 23,
+              "source_end": 28,
+              "test_start": 23,
+              "test_end": 31,
+              "source_text": "today",
+              "test_text": "tomorrow"
+            }
+          ],
+          "breadcrumb": []
+        }
+      ]
+    }
+  ]
+}
