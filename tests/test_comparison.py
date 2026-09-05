@@ -355,7 +355,7 @@ def test_to_json_is_to_dict_and_nothing_else() -> None:
     result = compare("The Supplier — one.", "The Supplier — two.", format="text")
     assert json.loads(result.to_json()) == result.to_dict()
     assert "—" in result.to_json()
-    assert "\n" in result.to_json(pretty=True)
+    assert "\n" in result.to_json(indent=2)
 
 
 def test_a_config_round_trips_through_from_dict() -> None:
