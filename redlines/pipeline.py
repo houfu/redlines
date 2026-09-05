@@ -17,12 +17,16 @@ structure and never runs semantics, and that contract is worth keeping true --
 a reader that quietly assigned roles would make "the tree a reader returned"
 mean two different things. Not in `redlines.semantic` either: that module runs
 on a tree and knows nothing about readers, and importing them there would
-invert the dependency. This module sits above both and is imported by neither,
-which also leaves it free to grow: M2's compare pipeline (read both sides,
-align, build a change tree) belongs here, next to this function.
+invert the dependency. This module sits above both and is imported by neither.
 
 Nothing here is re-exported from ``redlines/__init__.py``; import it by its
-full path, as the examples above do.
+full path, as the examples above do. That is also why M2's compare pipeline --
+read both sides, align, build a change tree -- lives in `redlines.comparison`
+rather than here. `redlines.comparison.compare` is the headline public API
+PRD § 9 describes, imported as ``from redlines import compare``, and a
+re-exported function inside a deliberately-not-re-exported module would make
+this module half-public (ADR-0033). It calls `read_document` once per side,
+which is the composition this module exists to provide.
 """
 
 from __future__ import annotations
