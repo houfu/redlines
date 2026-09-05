@@ -17,18 +17,44 @@ benchmark/
   generate.py           # plan in, corpus out; derives the seeds, writes the labels
   plans/synthetic.yaml  # the committed plan: source documents, named plans, and the pairs
   fetch_neurotic.py     # dev-only: fetch neurotic_docx_bench text into external/
+  prepare.py             # dev-only: fetch and normalise the ten hand-labelled pairs (#142)
+  label.py               # init/check/sign one pair's labels.yaml (#142)
   corpus/
-    synthetic/<pair>/{source.*, test.*, labels.yaml}         # committed (#141)
-    hand/<pair>/{source.*, test.*, labels.yaml, NOTICE.md}   # committed (#142)
-    external/                                                # gitignored — never committed
+    synthetic/<pair>/{source.*, test.*, labels.yaml}           # committed (#141)
+    hand/<pair>/{source.*, test.*, labels.yaml, NOTICE.md,
+                 prepare_manifest.json, worksheet.md,
+                 move_worksheet.md}                            # committed (#142)
+    external/                                                  # gitignored — never committed
   results/latest.json  # committed; the metric's output, so a number changing is a diff (#143)
   REPORT.md             # committed; generated from results/latest.json (#143)
 ```
 
-Pieces not yet written — the hand-labelled tier (`prepare.py`, `label.py`), the metric and report
-(`score.py`, `baselines.py`, `units.py`, `report.py`) and the runner (`run.py`) — land against
-issues [#142](https://github.com/houfu/redlines/issues/142)-[#144](https://github.com/houfu/redlines/issues/144)
-as separate pieces of work. This README is updated as each lands.
+Pieces not yet written — the metric and report (`score.py`, `baselines.py`, `units.py`,
+`report.py`) and the runner (`run.py`) — land against
+[#143](https://github.com/houfu/redlines/issues/143) as a separate piece of work. This README
+is updated as each lands.
+
+## The hand-labelled tier (#142)
+
+`benchmark/corpus/hand/` holds ten real before/after pairs: eight Common Paper standard
+agreement tag pairs (CC BY 4.0) and two U.S. bill version pairs from govinfo.gov (public
+domain, 17 U.S.C. § 105) — real edits nobody on this project made, which is the point
+(ADR-0021's anti-self-marking mitigation, ADR-0034 D-9).
+
+```
+uv run python -m benchmark.prepare                                  # fetch + normalise all ten
+uv run python -m benchmark.prepare --pair csa-1.1-to-2.0             # just one, for a retry
+uv run python -m benchmark.label init benchmark/corpus/hand/<pair>   # draft labels.yaml + worksheets
+uv run python -m benchmark.label check benchmark/corpus/hand/<pair>  # schema, digests, totality
+uv run python -m benchmark.label sign benchmark/corpus/hand/<pair> --as NAME --role labeller
+```
+
+Every pair committed in this repository today is at the `init` stage: `labels.yaml` carries
+`status: proposed` on every row, `review:` is absent, and **no row anywhere has `kind:
+move`** — moves are never engine-seeded (`benchmark/label.py`'s own docstring says why), so a
+pair's `move_worksheet.md` is where a human labels them, from a blank sheet. These are drafts,
+not ground truth, until a maintainer has worked through each `worksheet.md`, corrected what the
+engine got wrong, labelled moves independently, and run `label.py sign`.
 
 ## The synthetic tier (#141)
 
@@ -68,8 +94,9 @@ mutation rather than the edit history.
 ## How to run
 
 Nothing here is runnable end-to-end yet — that lands with `benchmark/run.py` (#143). The generator
-above runs today; everything else is loaded like any other module, with the repository root on the
-path (already true under `uv run pytest`, via `[tool.pytest.ini_options] pythonpath = ["."]`):
+and the hand-set tooling above both run today; everything else is loaded like any other module,
+with the repository root on the path (already true under `uv run pytest`, via
+`[tool.pytest.ini_options] pythonpath = ["."]`):
 
 ```python
 from benchmark.labels import load_labels, verify_digests, check_totality
@@ -82,11 +109,11 @@ Once the generator and scorer land, the intended entry point is
 
 ## Licence note
 
-`benchmark/corpus/hand/` will carry real, licensed legal text from external sources — Common Paper's
+`benchmark/corpus/hand/` carries real, licensed legal text from external sources — Common Paper's
 standard agreements (CC BY 4.0) and, for shape diversity, U.S. bill version pairs from govinfo.gov
 (public domain, 17 U.S.C. § 105). Each hand-labelled pair directory carries its own `NOTICE.md` stating
-its origin, licence and required attribution, and this README's own licence line is added alongside the
-first hand-labelled pair (#142). `redlines` itself remains MIT-licensed throughout; committing these
+its origin, licence and required attribution, and the top-level [README](../README.md#license) carries
+the same licence line. `redlines` itself remains MIT-licensed throughout; committing these
 documents does not change that, but their own licence terms travel with them and must be honoured by
 anyone who redistributes the corpus.
 

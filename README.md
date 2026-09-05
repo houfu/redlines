@@ -139,3 +139,10 @@ See [demo comparison](demo/README.md) for benchmarks.
 ## License
 
 MIT License
+
+`redlines` itself is MIT-licensed throughout. The hand-labelled benchmark corpus under
+[`benchmark/corpus/hand/`](benchmark/corpus/hand/) additionally carries real, licensed legal
+and legislative text from external sources: Common Paper's standard agreements (CC BY 4.0)
+and U.S. bill version pairs from [govinfo.gov](https://www.govinfo.gov/) (public domain, 17
+U.S.C. § 105). Each pair's own directory has a `NOTICE.md` stating its origin, licence and
+required attribution; those terms travel with the corpus and apply to it alone.
