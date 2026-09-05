@@ -148,6 +148,26 @@ def test_the_sample_pair_comparison_validates_under_both_profiles(
     validator.validate(result.to_dict())
 
 
+@pytest.mark.parametrize("fmt", ["contract", "markdown"])
+def test_the_committed_change_tree_goldens_validate(
+    validator: jsonschema.protocols.Validator, fmt: str
+) -> None:
+    """The two #144 goldens, as stored, are valid v2 documents.
+
+    The test above validates freshly built output; this one validates the
+    bytes under ``expected/``, which is what a consumer would actually be
+    handed and the only place a hand-edited or half-regenerated golden shows
+    up as a schema failure rather than as a passing equality check against
+    itself.
+    """
+
+    payload = json.loads(
+        (SAMPLE_DIR / f"change_tree.{fmt}.json").read_text(encoding="utf-8")
+    )
+    assert "alignment" in payload
+    validator.validate(payload)
+
+
 def test_a_comparison_with_include_alignment_validates(
     validator: jsonschema.protocols.Validator,
 ) -> None:

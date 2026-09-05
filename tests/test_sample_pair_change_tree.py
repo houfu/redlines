@@ -8,10 +8,27 @@ between them: one named test per row of that table, so a failure says which
 promise broke rather than printing a hundred kilobytes of diff.
 
 Each test composes the comparison itself, through the public `compare`, rather
-than loading a golden. The goldens (`expected/change_tree.*.json`) arrive with
-#144's second phase and pin the *whole* tree; these eight pin the parts the
-pair exists to demonstrate, and they were written before `redlines.comparison`
-existed, as the specification it was built against.
+than loading a golden. The eight pin the parts the pair exists to demonstrate,
+and they were written before `redlines.comparison` existed, as the
+specification it was built against.
+
+Beneath them sit the whole-tree tests, which load the two goldens
+`tests/corpus/sample_pair/expected/change_tree.{contract,markdown}.json` and
+pin every byte: both block trees, all ten change nodes, the alignment and the
+statistics, as JSON v2. They compose the comparison themselves too -- the
+regeneration script is never imported -- so a drift between what `compare`
+composes and what the script wrote is a failure rather than a silently
+regenerated golden, exactly as `tests/test_sample_pair.py` treats the block
+trees. When one fails, the eight above say which promise broke; when they all
+pass and a whole-tree test still fails, something changed that CHANGES.md
+never promised, and the diff is the review.
+
+The goldens are generated under an explicitly named ``difflib`` backend
+(`GOLDEN_BACKEND`), because ``auto`` resolves differently depending on whether
+the ``[fuzzy]`` extra is installed and the resolved name goes on the wire. The
+backend costs no coverage here: `test_the_similarity_backend_does_not_change_the_answer`
+asserts the two agree on every node, every pair and every statistic of this
+pair.
 
 **What is asserted, and what deliberately is not.** Kind, both addresses, both
 labels, `span_types` and the inline ops are asserted: they are what CHANGES.md
@@ -29,16 +46,30 @@ divergence is a stated property of the pair.
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 import pytest
+
+from redlines.similarity import RAPIDFUZZ_AVAILABLE
 
 if TYPE_CHECKING:  # pragma: no cover - typing only
     from redlines.changes import Change
     from redlines.comparison import Comparison
 
 CASE_DIR = Path(__file__).parent / "corpus" / "sample_pair"
+EXPECTED_DIR = CASE_DIR / "expected"
+
+GOLDEN_BACKEND = "difflib"
+"""The similarity backend the goldens were generated under.
+
+Spelled here rather than imported from
+`tests/corpus/sample_pair/regenerate.py`, so that the script and the test have
+to agree by review rather than by construction -- the same reason
+`tests/test_sample_pair.py` writes the M1 pipeline out again instead of
+calling the script's `build_tree`.
+"""
 
 # (profile name, source file, test file, reader format), mirroring
 # tests/test_sample_pair.py's PAIRINGS. The two twins say the same thing in
@@ -66,32 +97,87 @@ INSERTED_SCHEDULE_PARAGRAPH = "/section[3]/list_item[3]/paragraph[5]"
 NOTICES_CLAUSE = "/section[1]/section[11]/list_item[5]"
 REPETITIVE_SCHEDULE_ITEM = "/section[4]/list_item[3]"
 
-_CACHE: dict[str, Comparison] = {}
+_CACHE: dict[tuple[str, str | None], Comparison] = {}
 
 
-def comparison_for(profile_name: str) -> Comparison:
+def comparison_for(profile_name: str, *, backend: str | None = None) -> Comparison:
     """Compare the sample pair under one profile, through the public entry point.
 
     The import is inside the function on purpose: these tests were written
     before `redlines.comparison` existed, and a module-level import would have
     turned eight expected failures into one collection error.
-    """
-    if profile_name not in _CACHE:
-        from redlines import compare
 
-        for name, source_name, test_name, format_name in PAIRINGS:
-            if name != profile_name:
-                continue
-            _CACHE[profile_name] = compare(
-                (CASE_DIR / source_name).read_text(encoding="utf-8"),
-                (CASE_DIR / test_name).read_text(encoding="utf-8"),
-                format=format_name,
-                profile=profile_name,
-            )
-            break
-        else:  # pragma: no cover - a typo in a parametrisation
-            raise AssertionError(f"{profile_name!r} is not one of the sample pair's")
-    return _CACHE[profile_name]
+    :param profile_name: which twin of the pair to compare.
+    :param backend: the similarity backend to pin, or ``None`` -- the default
+        -- to let `redlines.alignment.DEFAULT_ALIGNMENT` resolve ``"auto"``.
+        The eight named tests below leave it alone, so they exercise whatever
+        the installed extras actually give a user; the whole-tree tests pin
+        `GOLDEN_BACKEND`, because the resolved name goes on the wire.
+    :return: the `redlines.comparison.Comparison`, cached per (profile, backend).
+    """
+    key = (profile_name, backend)
+    if key not in _CACHE:
+        _CACHE[key] = fresh_comparison(profile_name, backend=backend)
+    return _CACHE[key]
+
+
+def fresh_comparison(profile_name: str, *, backend: str | None = None) -> Comparison:
+    """Compare the pair again, bypassing the cache.
+
+    Separate from `comparison_for` so that the determinism test can ask for
+    two genuinely independent runs and get two, rather than the same object
+    twice.
+
+    :param profile_name: which twin of the pair to compare.
+    :param backend: the similarity backend to pin, or ``None`` for the default.
+    :return: a newly built `redlines.comparison.Comparison`.
+    """
+    from redlines import compare
+    from redlines.alignment import DEFAULT_ALIGNMENT, AlignmentConfig
+
+    config = (
+        DEFAULT_ALIGNMENT if backend is None else AlignmentConfig(similarity=backend)
+    )
+    for name, source_name, test_name, format_name in PAIRINGS:
+        if name != profile_name:
+            continue
+        return compare(
+            (CASE_DIR / source_name).read_text(encoding="utf-8"),
+            (CASE_DIR / test_name).read_text(encoding="utf-8"),
+            format=format_name,
+            profile=profile_name,
+            alignment=config,
+        )
+    raise AssertionError(  # pragma: no cover - a typo in a parametrisation
+        f"{profile_name!r} is not one of the sample pair's"
+    )
+
+
+def golden_path(profile_name: str) -> Path:
+    """The change-tree golden for one twin."""
+    return EXPECTED_DIR / f"change_tree.{profile_name}.json"
+
+
+def golden_text(profile_name: str) -> str:
+    """The golden exactly as it is stored, bytes and all."""
+    return golden_path(profile_name).read_text(encoding="utf-8")
+
+
+def golden_dict(profile_name: str) -> dict[str, Any]:
+    """The golden parsed."""
+    loaded: dict[str, Any] = json.loads(golden_text(profile_name))
+    return loaded
+
+
+def golden_form(document: dict[str, Any]) -> str:
+    """Serialise a v2 document the way the goldens are stored.
+
+    Sorted keys, two-space indent, trailing newline -- the same form
+    `tests/corpus/sample_pair/regenerate.py` writes and the same form the four
+    block-tree goldens use, spelled out here rather than imported so the two
+    have to agree by review.
+    """
+    return json.dumps(document, indent=2, sort_keys=True) + "\n"
 
 
 def changes_at(
@@ -403,3 +489,200 @@ def test_the_edit_inside_the_repetitive_schedule_is_found(profile_name: str) -> 
         for c in comparison.changes
         if (c.source_address or "").startswith("/section[4]/")
     ] == [REPETITIVE_SCHEDULE_ITEM]
+
+
+# --- the whole tree, against the two goldens -------------------------------
+#
+# Everything above says what CHANGES.md promises. Everything below says that
+# nothing else happened -- and that what did happen is exactly the bytes under
+# `expected/`, so a change anywhere in the engine, the readers or the profiles
+# arrives as a reviewable diff instead of as silence.
+
+
+DIVERGES = "<resolved per twin: CHANGES.md change 6>"
+"""Placeholder for the one address the two twins do not share."""
+
+# The ten nodes, as (kind, source address, test address), in the order the
+# change tree emits them: flat, document-ordered on the test address, with a
+# deleted block sorted by its predecessor (ADR-0033). Nine of the ten are the
+# same in both twins; the tenth is CHANGES.md change 6, the one divergence.
+TEN_NODES: tuple[tuple[str, str | None, str | None], ...] = (
+    ("modify", CONFIDENTIAL_INFORMATION, CONFIDENTIAL_INFORMATION),
+    ("insert", None, INSERTED_CLAUSE),
+    (
+        "renumber",
+        f"{RENUMBERED_SECTION}/list_item[3]",
+        f"{RENUMBERED_SECTION}/list_item[4]",
+    ),
+    (
+        "renumber",
+        f"{RENUMBERED_SECTION}/list_item[4]",
+        f"{RENUMBERED_SECTION}/list_item[5]",
+    ),
+    ("delete", DELETED_SUB_CLAUSE, None),
+    ("modify", CROSS_REFERENCE_CLAUSE, CROSS_REFERENCE_CLAUSE),
+    ("move", MOVED_CLAUSE_SOURCE, MOVED_CLAUSE_TEST),
+    ("modify", MOVED_BODY_SOURCE, MOVED_BODY_TEST),
+    ("insert", None, DIVERGES),
+    ("modify", REPETITIVE_SCHEDULE_ITEM, REPETITIVE_SCHEDULE_ITEM),
+)
+
+# Where change 6 lands in each twin: a table row in markdown, an ordinary
+# paragraph in the plain text, which has no table to put a row in.
+CHANGE_SIX: dict[str, str] = {
+    "markdown": INSERTED_TABLE_ROW,
+    "contract": INSERTED_SCHEDULE_PARAGRAPH,
+}
+
+
+def expected_nodes(profile_name: str) -> list[tuple[str, str | None, str | None]]:
+    """`TEN_NODES` with change 6's address resolved for one twin."""
+    resolved: list[tuple[str, str | None, str | None]] = []
+    for kind, source, test in TEN_NODES:
+        if test == DIVERGES:
+            test = CHANGE_SIX[profile_name]
+        resolved.append((kind, source, test))
+    return resolved
+
+
+@pytest.mark.parametrize("profile_name", PROFILES)
+def test_the_pair_produces_exactly_ten_change_nodes(profile_name: str) -> None:
+    """Eight promises, ten nodes, and nothing else in the document.
+
+    CHANGES.md says the amended version carries "exactly eight changes, one of
+    each thing the engine is meant to detect ... Nothing else differs". Ten
+    nodes rather than eight because change 3 is an insert plus the two
+    renumbers it causes, and change 2 is a move plus the edit that rode along
+    in its body -- both of which are the point of those rows -- while changes 7
+    and 8's absences are already asserted above. This is the readable half of
+    the whole-tree golden: when it fails, it names the node that appeared or
+    vanished instead of printing three hundred kilobytes.
+    """
+    comparison = comparison_for(profile_name, backend=GOLDEN_BACKEND)
+    assert [
+        (str(change.kind), change.source_address, change.test_address)
+        for change in comparison.changes
+    ] == expected_nodes(profile_name)
+
+
+@pytest.mark.parametrize("profile_name", PROFILES)
+def test_the_whole_comparison_matches_the_golden(profile_name: str) -> None:
+    """The golden, byte for byte: both trees, the changes, the alignment, the stats.
+
+    Compared a section at a time before the whole document, so a failure names
+    the part that moved -- a change node, a correspondence, a statistic, a
+    configuration field -- rather than dumping the lot. The final assertion is
+    on the stored *text*, which is what catches a golden that was reformatted
+    or hand-edited rather than regenerated.
+    """
+    comparison = comparison_for(profile_name, backend=GOLDEN_BACKEND)
+    built = comparison.to_dict(include_alignment=True)
+    golden = golden_dict(profile_name)
+
+    assert built["schema_version"] == golden["schema_version"]
+    assert built["config"] == golden["config"]
+    assert built["changes"] == golden["changes"]
+    assert built["statistics"] == golden["statistics"]
+    assert built["alignment"] == golden["alignment"]
+    assert built["source"] == golden["source"]
+    assert built["test"] == golden["test"]
+    assert golden_form(built) == golden_text(profile_name)
+
+
+@pytest.mark.parametrize("profile_name", PROFILES)
+def test_the_golden_is_the_same_block_trees_the_m1_goldens_froze(
+    profile_name: str,
+) -> None:
+    """ADR-0033: ``source`` and ``test`` are byte-for-byte `BlockTree.to_dict`.
+
+    The clause is a conformance requirement, not a convenience, and this is
+    where it is checked: the two sections of the change-tree golden are the
+    four trees `tests/test_sample_pair.py` already froze, unreshaped. If they
+    ever diverge, every consumer that reads a block tree out of a v2 payload
+    is reading something M1 did not promise.
+    """
+    golden = golden_dict(profile_name)
+    for side in ("source", "test"):
+        frozen = json.loads(
+            (EXPECTED_DIR / f"{side}.{profile_name}.json").read_text(encoding="utf-8")
+        )
+        assert golden[side] == frozen
+
+
+@pytest.mark.parametrize("profile_name", PROFILES)
+def test_the_golden_round_trips_through_from_dict(profile_name: str) -> None:
+    """A golden is a *complete* comparison: it can be read back and re-emitted.
+
+    This is why the goldens carry their alignment --
+    `redlines.comparison.Comparison.from_dict` refuses a payload without one,
+    on the grounds that rebuilding it as empty would be a lie about which
+    blocks correspond. Round-tripping is the strongest form of the freeze: it
+    says the format can express everything the engine produced, with nothing
+    lost on the way out and nothing invented on the way back in.
+    """
+    from redlines.comparison import Comparison
+
+    golden = golden_dict(profile_name)
+    rebuilt = Comparison.from_dict(golden)
+    assert rebuilt.to_dict(include_alignment=True) == golden
+
+
+@pytest.mark.parametrize("profile_name", PROFILES)
+def test_comparing_the_pair_twice_gives_the_same_bytes(profile_name: str) -> None:
+    """Determinism, within one process, over the whole document.
+
+    `tests/test_determinism.py` runs the alignment across ``PYTHONHASHSEED``
+    values; this is the cheaper end of the same property, and it is the one
+    that would catch a set iterated somewhere in the change tree, the
+    statistics or the serialisation.
+    """
+    runs = [
+        golden_form(
+            fresh_comparison(profile_name, backend=GOLDEN_BACKEND).to_dict(
+                include_alignment=True
+            )
+        )
+        for _ in range(2)
+    ]
+    assert runs[0] == runs[1]
+
+
+@pytest.mark.skipif(
+    not RAPIDFUZZ_AVAILABLE,
+    reason="the claim is about the two backends agreeing, so both must be "
+    "installed; run `uv sync --all-extras --dev`",
+)
+@pytest.mark.parametrize("profile_name", PROFILES)
+def test_the_similarity_backend_does_not_change_the_answer(profile_name: str) -> None:
+    """Why one golden, generated under one named backend, is honest.
+
+    ADR-0008 notes that results differ subtly with and without rapidfuzz, and
+    ADR-0032 requires the two to search the same space; on this pair they
+    agree on every change node, every correspondence and every statistic, and
+    differ only in the two places that *record* which backend ran. So pinning
+    ``difflib`` in the golden costs no coverage -- and if that ever stops being
+    true, this test says so rather than the goldens quietly failing on one CI
+    leg.
+    """
+    floor = comparison_for(profile_name, backend="difflib").to_dict(
+        include_alignment=True
+    )
+    fast = comparison_for(profile_name, backend="rapidfuzz").to_dict(
+        include_alignment=True
+    )
+
+    assert floor["changes"] == fast["changes"]
+    assert floor["statistics"] == fast["statistics"]
+    assert floor["alignment"]["pairs"] == fast["alignment"]["pairs"]
+    assert floor["alignment"]["inserted"] == fast["alignment"]["inserted"]
+    assert floor["alignment"]["deleted"] == fast["alignment"]["deleted"]
+    assert floor["alignment"]["pass_counts"] == fast["alignment"]["pass_counts"]
+
+    assert (floor["config"]["similarity"], fast["config"]["similarity"]) == (
+        "difflib",
+        "rapidfuzz",
+    )
+    assert (floor["alignment"]["backend"], fast["alignment"]["backend"]) == (
+        "difflib",
+        "rapidfuzz",
+    )
