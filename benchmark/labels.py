@@ -437,15 +437,29 @@ class MergeEntry:
 
 @dataclass(frozen=True, slots=True)
 class UnscoredRegion:
+    """A region deliberately excused from the totality check (ADR-0034).
+
+    ``side`` says which tree ``region`` excuses: addresses are position-based,
+    so an unchanged block almost always has the identical address string on
+    both source and test trees. Without ``side``, one entry meant to excuse
+    only the source side would also silently excuse a genuinely missing
+    label on the test side (or vice versa), defeating the totality check.
+    """
+
     region: str
+    side: str  # "source" | "test" | "both"
     reason: str
 
     def to_dict(self) -> dict[str, Any]:
-        return {"region": self.region, "reason": self.reason}
+        return {"region": self.region, "side": self.side, "reason": self.reason}
 
     @classmethod
     def from_dict(cls, data: Mapping[str, Any]) -> UnscoredRegion:
-        return cls(region=str(data["region"]), reason=str(data["reason"]))
+        return cls(
+            region=str(data["region"]),
+            side=str(data["side"]),
+            reason=str(data["reason"]),
+        )
 
 
 @dataclass(frozen=True, slots=True)
@@ -763,13 +777,15 @@ def check_totality(labels: LabelFile, *, source_tree: BlockTree, test_tree: Bloc
         seen_source.extend(merge.sources)
         seen_test.append(merge.test)
     for region in labels.unscored:
-        # An unscored region may name an address on either side (or neither,
-        # if it is a prose description); count it on whichever side(s) it
-        # matches so a labelled block covered only by `unscored` is not
-        # flagged as missing.
-        if region.region in expected_source:
+        # `region.side` says which tree(s) this entry actually excuses.
+        # Addresses are position-based, so an unchanged block usually has
+        # the same address string on both trees -- testing membership in
+        # both `expected_source`/`expected_test` (rather than trusting
+        # `side`) would silently excuse the *other* side too, hiding a
+        # genuinely missing label there.
+        if region.side in ("source", "both"):
             seen_source.append(region.region)
-        if region.region in expected_test:
+        if region.side in ("test", "both"):
             seen_test.append(region.region)
 
     problems: list[str] = []

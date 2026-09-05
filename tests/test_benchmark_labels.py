@@ -386,6 +386,32 @@ def test_check_totality_raises_on_duplicate_address(
     assert any("appears" in problem for problem in excinfo.value.problems)
 
 
+def test_check_totality_unscored_source_does_not_excuse_test(
+    simple_labels: LabelFile, simple_trees: tuple[BlockTree, BlockTree]
+) -> None:
+    """An `unscored` entry naming only the source side must not also excuse
+    the test side, even though position-based addresses make the two
+    identical strings for an unchanged block."""
+    from dataclasses import replace
+
+    from benchmark.labels import UnscoredRegion
+
+    source_tree, test_tree = simple_trees
+    dropped = simple_labels.correspondences[0]
+    assert dropped.source == dropped.test  # same address on both sides
+    without_it = replace(
+        simple_labels,
+        correspondences=simple_labels.correspondences[1:],
+        unscored=(UnscoredRegion(region=dropped.source, side="source", reason="fixture test"),),
+    )
+    with pytest.raises(TotalityError) as excinfo:
+        check_totality(without_it, source_tree=source_tree, test_tree=test_tree)
+    assert not any(
+        problem.startswith(f"source {dropped.source}:") for problem in excinfo.value.problems
+    )
+    assert any(problem.startswith(f"test {dropped.test}:") for problem in excinfo.value.problems)
+
+
 def test_check_totality_accepts_an_unscored_region(
     renumber_labels: LabelFile, renumber_trees: tuple[BlockTree, BlockTree]
 ) -> None:
@@ -401,7 +427,7 @@ def test_check_totality_accepts_an_unscored_region(
     without_it = replace(
         renumber_labels,
         correspondences=renumber_labels.correspondences[1:],
-        unscored=(UnscoredRegion(region=dropped.source, reason="fixture test"),),
+        unscored=(UnscoredRegion(region=dropped.source, side="source", reason="fixture test"),),
     )
     # The source side is covered by `unscored`; the test side is still missing.
     with pytest.raises(TotalityError) as excinfo:

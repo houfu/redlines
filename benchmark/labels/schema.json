@@ -186,10 +186,15 @@
     },
     "unscoredRegion": {
       "type": "object",
-      "required": ["region", "reason"],
+      "required": ["region", "side", "reason"],
       "additionalProperties": false,
       "properties": {
         "region": { "type": "string", "minLength": 1, "description": "An address, or a description of the region, excluded from scoring." },
+        "side": {
+          "type": "string",
+          "enum": ["source", "test", "both"],
+          "description": "Which tree(s) `region` excuses from the totality check. Addresses are position-based, so an unchanged block usually has the identical address string on both trees -- `side` says which one this entry actually covers, so excusing one side never silently excuses the other too."
+        },
         "reason": { "type": "string", "minLength": 1 }
       }
     },
