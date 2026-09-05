@@ -65,6 +65,9 @@ build-backend = "hatchling.build"
 # `import benchmark...` from a test needs the repository root on the path. `tests/`
 # has no `__init__.py`, so pytest prepends `tests/` rather than the root.
 pythonpath = ["."]
+markers = [
+    "slow: a test that measures something rather than asserting it quickly (N2)",
+]
 
 
 [tool.mypy]
@@ -88,6 +91,12 @@ ignore_missing_imports = true
 
 [[tool.mypy.overrides]]
 module = "Levenshtein"
+ignore_missing_imports = true
+
+# The `[fuzzy]` extra is absent from the Python 3.10 job and from the plain
+# wheel the Pyodide job builds; `redlines/similarity.py` guards the import.
+[[tool.mypy.overrides]]
+module = ["rapidfuzz", "rapidfuzz.*"]
 ignore_missing_imports = true
 
 [[tool.mypy.overrides]]
