@@ -1,0 +1,16 @@
+{
+  "attribution": "Common Paper Pilot Agreement, copyright Common Paper, Inc., CC BY 4.0",
+  "format": "markdown",
+  "kind": "hand",
+  "licence": "CC-BY-4.0",
+  "normalisations": [
+    "strip_inline_html",
+    "promote_span_ids_to_labels"
+  ],
+  "origin": "CommonPaper/Pilot-Agreement tags 1.0 and 1.1",
+  "pair": "pilot-agreement-1.0-to-1.1",
+  "prepared_by": "benchmark/prepare.py",
+  "profile": "markdown",
+  "source_file": "source.md",
+  "test_file": "test.md"
+}
