@@ -75,8 +75,29 @@ redlines markdown file1.txt file2.txt  # Markdown output
 * [Processor](redlines/processor.html) - Custom tokenization
 * [CLI](redlines/cli.html) - Command-line interface
 
+## The structured comparison (M2)
+
+`compare` is the structured half of the library: it reads both documents into
+block trees, aligns them and returns a `Comparison` carrying both trees, the
+alignment and a flat change tree.
+
+```python
+from redlines import compare
+
+result = compare(source_markdown, test_markdown)
+for change in result.changes:
+    print(change.kind, change.test_address or change.source_address)
+```
+
+* [Comparison](redlines/comparison.html) - `compare`, `Comparison`, `ComparisonConfig`
+* [Changes](redlines/changes.html) - `ChangeTree`, `Change`, `InlineOp`
+* [Alignment](redlines/alignment.html) - `AlignmentConfig` and the passes it configures
+
 """
 
+from .alignment import AlignmentConfig
+from .changes import Change, ChangeTree, InlineOp
+from .comparison import *
 from .document import *
 from .enums import *
 from .pdf import *
