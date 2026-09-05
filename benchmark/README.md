@@ -29,10 +29,9 @@ benchmark/
   REPORT.md             # committed; generated from results/latest.json (#143)
 ```
 
-Pieces not yet written — the metric and report (`score.py`, `baselines.py`, `units.py`,
-`report.py`) and the runner (`run.py`) — land against
-[#143](https://github.com/houfu/redlines/issues/143) as a separate piece of work. This README
-is updated as each lands.
+The metric and its report — `units.py`, `baselines.py`, `score.py`, `report.py` and the
+`run.py` entry point — landed against
+[#143](https://github.com/houfu/redlines/issues/143); see [The metric](#the-metric-143) below.
 
 ## The hand-labelled tier (#142)
 
@@ -91,21 +90,49 @@ mutation rather than the edit history.
   claim). Numbers computed against this tier, once the scorer exists, are reported as *not reproducible
   from this repository*.
 
-## How to run
+## The metric (#143)
 
-Nothing here is runnable end-to-end yet — that lands with `benchmark/run.py` (#143). The generator
-and the hand-set tooling above both run today; everything else is loaded like any other module,
-with the repository root on the path (already true under `uv run pytest`, via
-`[tool.pytest.ini_options] pythonpath = ["."]`):
+```
+uv sync --all-extras --dev
+uv run python -m benchmark.run --tier all     # rewrites REPORT.md and results/latest.json
+uv run python -m benchmark.run --check        # rebuild in memory; non-zero if either is stale
+uv run python -m benchmark.run --tier hand --backends difflib
+```
+
+Four modules, in dependency order:
+
+- **`units.py`** — the 0.6 engine's unit is a *line*, and the labels' unit is a block. This lifts
+  one into the other, and it is the only place that translation happens because it is the only
+  place the floor can be flattered. Both of its rules are in its docstring and in `REPORT.md`.
+- **`baselines.py`** — the flat floor: `WholeDocumentProcessor` called directly, opcodes voted
+  into unit pairs, unit pairs lifted into block pairs by plurality. It must never import
+  `redlines.Redlines` — [ADR-0003](../docs/adr/0003-compatibility-facade.md) has M3 reimplement
+  that class over this core, so a baseline going through the facade would stop being the 0.6
+  baseline the day the facade lands. `tests/test_benchmark_score.py` asserts the prohibition
+  against the source.
+- **`score.py`** — every definition, written to be read as the definition: links-only
+  precision/recall/F1 with the root pair and the containers excluded, a spurious-match rate
+  beside them, subtree-moves-once, the four-tuple renumber key, splits and merges skipped with
+  the count published, and a per-pass table whose unique column is *measured* by re-running the
+  alignment with that pass switched off.
+- **`report.py`** / **`run.py`** — the runner scores both committed tiers under both similarity
+  backends plus the floor, and writes `results/latest.json` (what a machine diffs) and `REPORT.md`
+  (what a person reads). Neither carries a clock, so an unchanged checkout rewrites both byte for
+  byte and `--check` is a real test. The engine commit is not stamped into either file for the
+  same reason: `git log -1 --format=%H benchmark/results/latest.json` answers that from git.
+
+`tests/test_benchmark_score.py` tests the metric against toy labels with hand-computed answers,
+never against the engine's own output. `tests/test_benchmark_gates.py` carries PRD § 10's release
+gates as `xfail(strict=True)` tests, so the day a gate is met its test fails *because it passed*.
+
+Everything is loaded like any other module, with the repository root on the path (already true
+under `uv run pytest`, via `[tool.pytest.ini_options] pythonpath = ["."]`):
 
 ```python
 from benchmark.labels import load_labels, verify_digests, check_totality
 
 labels = load_labels("benchmark/corpus/hand/csa-1.1-to-2.0/labels.yaml")
 ```
-
-Once the generator and scorer land, the intended entry point is
-`uv run python -m benchmark.run --tier all`.
 
 ## Licence note
 
