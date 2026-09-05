@@ -1,0 +1,233 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/houfu/redlines/blob/main/benchmark/labels/schema.json",
+  "title": "Redlines Alignment Benchmark Labels",
+  "description": "Schema for one pair's ground-truth label file (ADR-0034, D-7): the correspondences, insertions, deletions, splits, merges and unscored regions the alignment metric (#143) scores against, plus the provenance, review and move-verdict records that make the numbers trustworthy. Written by the synthetic generator (#141) or a human labeller (#142) and read by benchmark/labels.py, which additionally checks two things this schema cannot: that every digest still matches the block it names, and that every text-bearing block (plus table row blocks; containers -- document, section, table -- are never labelled) appears exactly once across correspondences, inserted, deleted, splits, merges and unscored.",
+  "type": "object",
+  "required": ["schema", "pair", "source", "test", "provenance", "correspondences", "inserted", "deleted"],
+  "additionalProperties": false,
+  "properties": {
+    "schema": {
+      "const": "redlines/alignment-labels/1",
+      "description": "The label format's own version, so a future format change can be detected before it is silently misread."
+    },
+    "pair": {
+      "type": "string",
+      "minLength": 1,
+      "description": "A short, unique name for this pair, used in the report and in file paths (e.g. 'csa-1.1-to-2.0')."
+    },
+    "source": { "$ref": "#/definitions/side" },
+    "test": { "$ref": "#/definitions/side" },
+    "provenance": { "$ref": "#/definitions/provenance" },
+    "correspondences": {
+      "type": "array",
+      "description": "Every matched pair, including unchanged ones -- the metric's denominator needs them (ADR-0034).",
+      "items": { "$ref": "#/definitions/correspondence" }
+    },
+    "inserted": {
+      "type": "array",
+      "description": "Test-side blocks with no source counterpart.",
+      "items": { "$ref": "#/definitions/insertedEntry" }
+    },
+    "deleted": {
+      "type": "array",
+      "description": "Source-side blocks with no test counterpart.",
+      "items": { "$ref": "#/definitions/deletedEntry" }
+    },
+    "splits": {
+      "type": "array",
+      "description": "One source block became several test blocks. Labelled now so the 1.1 metric has data; excluded from every 1.0 denominator (#141).",
+      "items": { "$ref": "#/definitions/splitEntry" },
+      "default": []
+    },
+    "merges": {
+      "type": "array",
+      "description": "Several source blocks became one test block. Labelled now, not scored in 1.0.",
+      "items": { "$ref": "#/definitions/mergeEntry" },
+      "default": []
+    },
+    "unscored": {
+      "type": "array",
+      "description": "Regions deliberately left out of the correspondence set, with a stated reason (e.g. a baseline that cannot address table rows).",
+      "items": { "$ref": "#/definitions/unscoredRegion" },
+      "default": []
+    },
+    "review": { "$ref": "#/definitions/review" },
+    "move_verdicts": {
+      "type": "array",
+      "description": "Reviewer rulings on engine-reported moves that are not in `correspondences` (ADR-0009's move gate). Fail-closed: an engine move with no verdict here fails the gate exactly as `verdict: wrong` does.",
+      "items": { "$ref": "#/definitions/moveVerdict" },
+      "default": []
+    }
+  },
+  "definitions": {
+    "address": {
+      "type": "string",
+      "description": "An ADR-0029 block address, e.g. '/section[1]/list_item[3]'. Never the root '/': containers, including the document root, are never labelled.",
+      "pattern": "^(/[a-z_]+\\[[1-9][0-9]*\\])+$"
+    },
+    "digest": {
+      "type": "string",
+      "description": "The first 16 hex characters of the sha256 of the block's normalised text (whitespace collapsed, label re-prefixed where the block has one; a table row's content is its cells' texts). Verified on load; a mismatch means the labels are stale (ADR-0034).",
+      "pattern": "^[0-9a-f]{16}$"
+    },
+    "status": {
+      "type": "string",
+      "enum": ["proposed", "confirmed", "corrected"],
+      "description": "'proposed': written by the generator or `label.py init`, not yet looked at by a human. 'confirmed': a human looked and agreed. 'corrected': a human looked and changed it -- the row that feeds `override_rate`."
+    },
+    "side": {
+      "type": "object",
+      "required": ["file", "format", "profile", "sha256"],
+      "additionalProperties": false,
+      "properties": {
+        "file": { "type": "string", "minLength": 1, "description": "The document file's name within the pair's directory." },
+        "format": { "type": "string", "minLength": 1, "description": "The reader format ('text', 'markdown', ...) this side is read as." },
+        "profile": { "type": "string", "minLength": 1, "description": "The structure profile name this side is read under." },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$",
+          "description": "sha256 of the committed file's exact bytes, so a labels file always names a specific, checkable document."
+        }
+      }
+    },
+    "provenance": {
+      "type": "object",
+      "required": ["kind", "origin"],
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": ["hand", "synthetic"],
+          "description": "Which corpus tier this pair belongs to (ADR-0034); the two must stay separate (ADR-0021)."
+        },
+        "origin": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Where the source documents came from, e.g. 'CommonPaper/CSA tags 1.1 and 2.0' or 'tests/corpus/sample_pair + plan:heavy'."
+        },
+        "licence": { "type": "string", "description": "The upstream document's licence, when the pair is hand-labelled from a licensed source." },
+        "attribution": { "type": "string", "description": "The attribution line to publish alongside the pair, when the licence requires one." },
+        "prepared_by": { "type": "string", "description": "The script that produced the committed, prepared text, e.g. 'benchmark/prepare.py'." },
+        "normalisations": {
+          "type": "array",
+          "items": { "type": "string" },
+          "default": [],
+          "description": "Every deterministic transformation `prepared_by` applied, named, so a reader of the corpus can trust the provenance rather than diffing against upstream by hand."
+        },
+        "generator": { "type": "string", "description": "Synthetic pairs only: the module that produced this pair, e.g. 'benchmark/generate.py'." },
+        "generator_version": { "type": "integer", "minimum": 0, "description": "Synthetic pairs only: the generator's own version, bumped deliberately (ADR-0034)." },
+        "seed": { "type": "integer", "description": "Synthetic pairs only: the seed the generator's own `random.Random` instance was constructed with." },
+        "plan": { "type": "string", "description": "Synthetic pairs only: the named mutation plan applied (e.g. 'heavy', 'move-heavy')." }
+      }
+    },
+    "correspondence": {
+      "type": "object",
+      "required": ["source", "test", "kind", "source_digest", "test_digest", "status"],
+      "additionalProperties": false,
+      "properties": {
+        "source": { "$ref": "#/definitions/address" },
+        "test": { "$ref": "#/definitions/address" },
+        "kind": {
+          "type": "string",
+          "enum": ["same", "move", "renumber"],
+          "description": "'same': parents correspond and labels match (or neither side has one) -- unchanged or edited in place. 'move': parents do not correspond, or the pair crosses another pair in its scope. 'renumber': parents correspond but the labels differ. A block can be both moved and relabelled; record 'move' and let the differing labels carry the renumber (ADR-0034)."
+        },
+        "source_label": { "type": ["string", "null"], "description": "The source block's label, or null if it has none." },
+        "test_label": { "type": ["string", "null"], "description": "The test block's label, or null if it has none." },
+        "source_digest": { "$ref": "#/definitions/digest" },
+        "test_digest": { "$ref": "#/definitions/digest" },
+        "status": { "$ref": "#/definitions/status" }
+      }
+    },
+    "insertedEntry": {
+      "type": "object",
+      "required": ["test", "test_digest", "status"],
+      "additionalProperties": false,
+      "properties": {
+        "test": { "$ref": "#/definitions/address" },
+        "test_digest": { "$ref": "#/definitions/digest" },
+        "status": { "$ref": "#/definitions/status" }
+      }
+    },
+    "deletedEntry": {
+      "type": "object",
+      "required": ["source", "source_digest", "status"],
+      "additionalProperties": false,
+      "properties": {
+        "source": { "$ref": "#/definitions/address" },
+        "source_digest": { "$ref": "#/definitions/digest" },
+        "status": { "$ref": "#/definitions/status" }
+      }
+    },
+    "splitEntry": {
+      "type": "object",
+      "required": ["source", "tests", "source_digest", "test_digests", "status"],
+      "additionalProperties": false,
+      "properties": {
+        "source": { "$ref": "#/definitions/address" },
+        "tests": { "type": "array", "items": { "$ref": "#/definitions/address" }, "minItems": 2 },
+        "source_digest": { "$ref": "#/definitions/digest" },
+        "test_digests": { "type": "array", "items": { "$ref": "#/definitions/digest" }, "minItems": 2 },
+        "status": { "$ref": "#/definitions/status" }
+      }
+    },
+    "mergeEntry": {
+      "type": "object",
+      "required": ["sources", "test", "source_digests", "test_digest", "status"],
+      "additionalProperties": false,
+      "properties": {
+        "sources": { "type": "array", "items": { "$ref": "#/definitions/address" }, "minItems": 2 },
+        "test": { "$ref": "#/definitions/address" },
+        "source_digests": { "type": "array", "items": { "$ref": "#/definitions/digest" }, "minItems": 2 },
+        "test_digest": { "$ref": "#/definitions/digest" },
+        "status": { "$ref": "#/definitions/status" }
+      }
+    },
+    "unscoredRegion": {
+      "type": "object",
+      "required": ["region", "reason"],
+      "additionalProperties": false,
+      "properties": {
+        "region": { "type": "string", "minLength": 1, "description": "An address, or a description of the region, excluded from scoring." },
+        "reason": { "type": "string", "minLength": 1 }
+      }
+    },
+    "review": {
+      "type": "object",
+      "required": ["labelled_by", "labelled_at"],
+      "additionalProperties": false,
+      "properties": {
+        "labelled_by": { "type": "string", "minLength": 1 },
+        "labelled_at": { "type": "string", "format": "date", "description": "ISO 8601 date, e.g. '2026-09-12'." },
+        "reviewed_by": { "type": "string" },
+        "reviewed_at": { "type": "string", "format": "date" },
+        "decision": { "type": "string", "description": "e.g. 'accepted', 'changes_requested'." },
+        "override_rate": {
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 1.0,
+          "description": "Fraction of engine-proposed rows the labeller changed (status: corrected / total) -- the anti-self-marking symptom (ADR-0034)."
+        },
+        "signature": {
+          "type": "string",
+          "description": "A digest of the label content as of signing, stamped by `label.py sign`, so a later edit invalidates the signature."
+        }
+      }
+    },
+    "moveVerdict": {
+      "type": "object",
+      "required": ["source", "test", "engine", "verdict", "reason", "reviewed_by", "reviewed_at"],
+      "additionalProperties": false,
+      "properties": {
+        "source": { "$ref": "#/definitions/address" },
+        "test": { "$ref": "#/definitions/address" },
+        "engine": { "type": "string", "minLength": 1, "description": "The engine commit that reported this move." },
+        "verdict": { "type": "string", "enum": ["wrong", "acceptable"] },
+        "reason": { "type": "string", "minLength": 1 },
+        "reviewed_by": { "type": "string", "minLength": 1 },
+        "reviewed_at": { "type": "string", "format": "date" }
+      }
+    }
+  }
+}
