@@ -11,15 +11,16 @@ if sys.version_info >= (3, 11):
 else:
     from typing_extensions import Unpack
 
+from .changes import redlines_from_opcodes
 from .document import Document
 from .enums import MarkdownStyle, OutputType
 from .processor import (
-    SENTENCE_MARKER,
     DiffOperation,
     Redline,
     RedlinesProcessor,
     Stats,
     WholeDocumentProcessor,
+    _strip_sentence_markers,
 )
 
 __all__: tuple[str, ...] = (
@@ -41,21 +42,6 @@ def trailing_whitespace(token: str) -> str:
     :rtype: str
     """
     return token[len(token.rstrip()) :]
-
-
-def _strip_sentence_markers(text: str) -> str:
-    """
-    Remove the sentence boundary markers ('¦ ') emitted by sentence-level tokenization.
-
-    Unlike the paragraph marker '¶', which renders as a real paragraph break ('\\n\\n'),
-    the sentence marker corresponds to nothing in the input text and must never appear
-    in any output (see `redlines.processor.SENTENCE_MARKER`).
-
-    :param text: The text to clean.
-    :return: The text with sentence markers removed.
-    :rtype: str
-    """
-    return text.replace(f"{SENTENCE_MARKER} ", "")
 
 
 def join_equal_tokens(
@@ -340,50 +326,10 @@ class Redlines:
 
         :return: List of Redline objects (only actual changes, no 'equal' operations)
         """
-        result = []
-        for diff_op in self._diff_ops:
-            tag, i1, i2, j1, j2 = diff_op.opcodes
-
-            # Skip equal operations - only return actual changes
-            if tag == "equal":
-                continue
-
-            source_tokens = diff_op.source_chunk.text
-            test_tokens = diff_op.test_chunk.text
-
-            # Extract text and positions based on operation type
-            # Sentence markers ('¦') are internal anchors with no counterpart in the
-            # input text, so they must not leak into the public Redline API.
-            if tag == "delete":
-                redline = Redline(
-                    operation="delete",
-                    source_text=_strip_sentence_markers("".join(source_tokens[i1:i2])),
-                    test_text=None,
-                    source_position=(i1, i2),
-                    test_position=None,
-                )
-            elif tag == "insert":
-                redline = Redline(
-                    operation="insert",
-                    source_text=None,
-                    test_text=_strip_sentence_markers("".join(test_tokens[j1:j2])),
-                    source_position=None,
-                    test_position=(j1, j2),
-                )
-            elif tag == "replace":
-                redline = Redline(
-                    operation="replace",
-                    source_text=_strip_sentence_markers("".join(source_tokens[i1:i2])),
-                    test_text=_strip_sentence_markers("".join(test_tokens[j1:j2])),
-                    source_position=(i1, i2),
-                    test_position=(j1, j2),
-                )
-            else:
-                continue
-
-            result.append(redline)
-
-        return result
+        # The conversion itself lives in `redlines.changes.redlines_from_opcodes`,
+        # which the M2 change tree reads the same opcodes through, so the two
+        # cannot drift apart about which edits there were (ADR-0010, ADR-0033).
+        return redlines_from_opcodes(self._diff_ops)
 
     def get_changes(self, operation: str | None = None) -> list[Redline]:
         """

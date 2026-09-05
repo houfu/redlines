@@ -1,0 +1,15 @@
+{
+  "attribution": "",
+  "format": "text",
+  "kind": "hand",
+  "licence": "public-domain-17-usc-105",
+  "normalisations": [
+    "extract_preformatted_text"
+  ],
+  "origin": "govinfo.gov 118th Congress HR 7385, versions ih and eh",
+  "pair": "govinfo-hr7385-ih-to-eh",
+  "prepared_by": "benchmark/prepare.py",
+  "profile": "contract",
+  "source_file": "source.txt",
+  "test_file": "test.txt"
+}
