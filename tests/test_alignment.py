@@ -11,9 +11,9 @@ the pass record is the thing users are asked to trust.
 The second run the real thing over the PRD § 3a sample pair, under both
 profiles, and pin every pair the design predicts -- the two renumbers, the
 three edited clauses and their scores, the inserted table row, the deleted
-sub-clause. The move pass is a hook until #132 lands, so the clause that moved
-from section 7 to section 9 is expected here as a delete and an insert; that
-expectation is written down as such, and it is what #132 will flip.
+sub-clause, and the clause that moved from section 7 to section 9. The move
+pass itself is exercised in ``tests/test_alignment_moves.py`` (#132); what is
+pinned here is the shape of the whole record with it running.
 
 The third are the promises that are not about any one pass: that the same
 input aligned twice gives the same record (#135), that what a *reader* wrote
@@ -378,7 +378,10 @@ def test_the_fuzzy_pass_does_not_look_across_an_anchor() -> None:
     The two rewritten paragraphs sit on opposite sides of an anchor. Matching
     them would claim a correspondence that crosses a block both documents
     agree about, which is a move, not an edit -- and moves are the move pass's
-    to find, with its own much higher threshold.
+    to find, with its own much higher threshold. So the pair is asserted twice:
+    with the move pass dropped there is no pair at all, which is what proves
+    ``fuzzy`` never looked across the anchor, and with it running the pair
+    exists and says ``move``.
     """
     source = tree(
         block("paragraph", "The Supplier shall provide the Services with care."),
@@ -390,11 +393,18 @@ def test_the_fuzzy_pass_does_not_look_across_an_anchor() -> None:
         block("paragraph", "ANCHOR."),
         block("paragraph", "The Supplier shall provide the Services with due care."),
     )
-    alignment = align(
-        source, test, config=AlignmentConfig(positional_min_similarity=0.9)
+    without_moves = AlignmentConfig(
+        passes=("exact", "label", "structural", "fuzzy", "positional"),
+        positional_min_similarity=0.9,
     )
+    alignment = align(source, test, config=without_moves)
     assert "/paragraph[1]" in alignment.deleted
     assert "/paragraph[3]" in alignment.inserted
+    found = matched(
+        align(source, test, config=AlignmentConfig(positional_min_similarity=0.9)),
+        "/paragraph[1]",
+    )
+    assert (found.matched_by, found.test_path) == ("move", "/paragraph[3]")
 
 
 def test_the_fuzzy_window_bounds_how_far_the_pass_looks() -> None:
@@ -406,7 +416,8 @@ def test_the_fuzzy_window_bounds_how_far_the_pass_looks() -> None:
     rank 0 on the source side and rank 20 on the test side. At the default
     window it is a candidate; at a window of five it is never scored at all.
     That is a real recall cost, and it is stated here rather than left to be
-    discovered.
+    discovered -- though the move pass does pick the pair up afterwards, at
+    its own much higher threshold, which is why the narrow leg drops it too.
     """
     original = "The Supplier shall provide the Services with care."
     edited = "The Supplier shall provide the Services with due care."
@@ -424,7 +435,11 @@ def test_the_fuzzy_window_bounds_how_far_the_pass_looks() -> None:
         block("paragraph", edited),
         *(noise("t", index) for index in range(20, 29)),
     )
-    narrow = AlignmentConfig(fuzzy_window=5, positional_min_similarity=0.9)
+    narrow = AlignmentConfig(
+        passes=("exact", "label", "structural", "fuzzy", "positional"),
+        fuzzy_window=5,
+        positional_min_similarity=0.9,
+    )
     wide = AlignmentConfig(positional_min_similarity=0.9)
     assert "/paragraph[1]" in align(source, test, config=narrow).deleted
     widened = matched(align(source, test, config=wide), "/paragraph[1]")
@@ -629,15 +644,13 @@ def test_a_renumber_survives_an_edit_to_the_same_clause() -> None:
     assert pair.confidence < 1.0
 
 
-# --- moves: the hook A2 fills (#132) ---------------------------------------
+# --- moves (#132) ----------------------------------------------------------
+# The pass itself lives in tests/test_alignment_moves.py; these two pin its
+# place in the order and what dropping it costs.
 
 
-def test_nothing_is_reported_as_moved_until_the_move_pass_lands() -> None:
-    """The pass name exists, is counted, and finds nothing (#132 is task A2).
-
-    A block that moved between scopes comes out as a delete and an insert,
-    which is silent rather than wrong -- ADR-0009's gate is asymmetric.
-    """
+def test_a_block_that_changed_scope_is_matched_by_the_move_pass() -> None:
+    """The one pass that can pair blocks whose parents do not correspond."""
     moved_text = (
         "Each party shall return or destroy all Confidential Information on "
         "termination of this agreement."
@@ -654,21 +667,40 @@ def test_nothing_is_reported_as_moved_until_the_move_pass_lands() -> None:
         block("section", children=(nine, clause)),
     )
     alignment = align(source, test)
+    assert alignment.pass_counts["move"] == 1
+    pair = matched(alignment, "/section[1]/paragraph[1]")
+    assert (pair.test_path, pair.matched_by, pair.moved) == (
+        "/section[2]/paragraph[1]",
+        "move",
+        True,
+    )
+    assert alignment.deleted == ()
+    assert alignment.inserted == ()
+
+
+def test_dropping_the_move_pass_turns_a_move_back_into_two_changes() -> None:
+    """What the pass costs when it is off: silence, not a wrong answer."""
+    clause = block(
+        "paragraph",
+        "Each party shall return or destroy all Confidential Information on "
+        "termination of this agreement.",
+    )
+    source = tree(
+        block("section", children=(block("heading", "Seven", label="7"), clause)),
+        block("section", children=(block("heading", "Nine", label="9"),)),
+    )
+    test = tree(
+        block("section", children=(block("heading", "Seven", label="7"),)),
+        block("section", children=(block("heading", "Nine", label="9"), clause)),
+    )
+    config = AlignmentConfig(
+        passes=("exact", "label", "structural", "fuzzy", "positional")
+    )
+    alignment = align(source, test, config=config)
     assert alignment.pass_counts["move"] == 0
     assert not [pair for pair in alignment.pairs if pair.moved]
     assert alignment.deleted == ("/section[1]/paragraph[1]",)
     assert alignment.inserted == ("/section[2]/paragraph[1]",)
-
-
-def test_the_move_pass_can_be_dropped_without_changing_anything_yet() -> None:
-    source = tree(block("paragraph", "Alpha."))
-    test = tree(block("paragraph", "Alpha."))
-    config = AlignmentConfig(
-        passes=("exact", "label", "structural", "fuzzy", "positional")
-    )
-    assert align(source, test, config=config).to_dict()["pairs"] == (
-        align(source, test).to_dict()["pairs"]
-    )
 
 
 # --- AlignmentConfig -------------------------------------------------------
@@ -890,7 +922,7 @@ def test_the_sample_pair_aligns_the_way_the_design_predicts(
     the two renumbers, the three edits, and (on the markdown twin) the
     inserted table row. The seventh -- the whitespace-only reflow -- is
     visible as an ``exact`` match, which is the point of it. The eighth is the
-    move, which is a delete and an insert until #132 lands.
+    move, which the move pass finds as one pair (#132).
     """
     source, test = sample
     alignment = align(source, test)
@@ -898,7 +930,7 @@ def test_the_sample_pair_aligns_the_way_the_design_predicts(
     assert counted == len(alignment.pairs)
     assert counted + len(alignment.deleted) == len(list(source.walk()))
     assert counted + len(alignment.inserted) == len(list(test.walk()))
-    assert alignment.pass_counts["move"] == 0
+    assert alignment.pass_counts["move"] == 1
     assert alignment.budget_exhausted is False
 
 
@@ -964,14 +996,14 @@ def test_the_sample_pairs_edited_clauses_match_on_their_labels(
 def test_the_sample_pairs_inserted_clause_and_deleted_sub_clause(
     sample: tuple[BlockTree, BlockTree],
 ) -> None:
-    """Changes 2 and 5, plus the move that #132 will turn into one pair."""
+    """Changes 2 and 5: one insert, one delete, and the move that is neither."""
     source, test = sample
     alignment = align(source, test)
     assert "/section[1]/section[3]/list_item[3]" in alignment.inserted
     assert "/section[1]/section[5]/list_item[4]/list_item[3]" in alignment.deleted
-    # Change 2, the moved clause, until #132: a delete and an insert.
-    assert "/section[1]/section[7]/list_item[5]" in alignment.deleted
-    assert "/section[1]/section[9]/list_item[6]" in alignment.inserted
+    # Change 2, the moved clause: one pair, not a delete and an insert.
+    assert "/section[1]/section[7]/list_item[5]" not in alignment.deleted
+    assert "/section[1]/section[9]/list_item[6]" not in alignment.inserted
 
 
 def test_the_sample_pairs_markdown_twin_reports_one_inserted_table_row() -> None:
@@ -1017,8 +1049,8 @@ def test_the_sample_pairs_pass_counts_are_pinned() -> None:
         "exact": 96,
         "label": 3,
         "structural": 1,
-        "fuzzy": 0,
-        "move": 0,
+        "fuzzy": 1,
+        "move": 1,
         "positional": 15,
     }
     contract = align(
@@ -1029,8 +1061,8 @@ def test_the_sample_pairs_pass_counts_are_pinned() -> None:
         "exact": 95,
         "label": 3,
         "structural": 0,
-        "fuzzy": 0,
-        "move": 0,
+        "fuzzy": 1,
+        "move": 1,
         "positional": 0,
     }
 
