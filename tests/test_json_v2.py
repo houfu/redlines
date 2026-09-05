@@ -165,6 +165,28 @@ def test_an_empty_comparison_validates(
     validator.validate(payload)
 
 
+def test_a_single_block_comparison_validates(
+    validator: jsonschema.protocols.Validator,
+) -> None:
+    """The smallest non-trivial payload: one block per side, one change.
+
+    The other cases above exercise the ~120-block sample document (twice, on
+    two profiles) or that same document compared against itself. Neither is
+    a minimal document: this builds a one-paragraph source/test pair
+    directly, so the schema is checked against the smallest shape a real
+    caller can produce -- one block on each side, exactly one change, and
+    (with ``include_alignment=True``) exactly one alignment pair.
+    """
+
+    result = compare("One paragraph.", "One paragraph edited.", format="text")
+    payload = result.to_dict(include_alignment=True)
+    assert len(payload["source"]["root"]["children"]) == 1
+    assert len(payload["test"]["root"]["children"]) == 1
+    assert payload["changes"]
+    assert payload["alignment"]
+    validator.validate(payload)
+
+
 def test_to_json_round_trips_through_the_schema(
     validator: jsonschema.protocols.Validator,
 ) -> None:
