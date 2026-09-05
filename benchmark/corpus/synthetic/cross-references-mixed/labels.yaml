@@ -1,0 +1,64 @@
+schema: redlines/alignment-labels/1
+pair: cross-references-mixed
+source:
+  file: source.txt
+  format: text
+  profile: contract
+  sha256: 3e544dbb7b9476b817744ecd788906f47392e0155ad764fbcfd00811fa21151b
+test:
+  file: test.txt
+  format: text
+  profile: contract
+  sha256: c85d8f6470d9752d50767bcf780bf7a361e8aeda90720a3a1538e87382cf30b5
+provenance:
+  kind: synthetic
+  origin: tests/corpus/hard_cases/cross_references_in_prose.txt + plan:mixed
+  generator: benchmark/generate.py
+  generator_version: 1
+  seed: 13924628018799878679
+  plan: mixed
+correspondences:
+- source: /section[1]/heading[1]
+  test: /section[1]/heading[1]
+  kind: same
+  source_label: '4'
+  test_label: '4'
+  source_digest: f21be82dbecea003
+  test_digest: f21be82dbecea003
+  status: confirmed
+- source: /section[1]/list_item[1]
+  test: /section[1]/list_item[1]
+  kind: renumber
+  source_label: '4.1'
+  test_label: '4.2'
+  source_digest: 5511137b03df8ef3
+  test_digest: af81002716f8a97a
+  status: confirmed
+- source: /section[1]/list_item[2]
+  test: /section[1]/list_item[3]
+  kind: renumber
+  source_label: '4.2'
+  test_label: '4.4'
+  source_digest: 17238a1a07c70e57
+  test_digest: ea2c192081e8ae92
+  status: confirmed
+- source: /section[1]/list_item[3]
+  test: /section[1]/list_item[4]
+  kind: renumber
+  source_label: '4.3'
+  test_label: '4.5'
+  source_digest: 425bd00fb9339938
+  test_digest: 2a4dde200ba68f32
+  status: confirmed
+inserted:
+- test: /section[1]/list_item[2]
+  test_digest: d6c1b40b4c15edca
+  status: confirmed
+deleted:
+- source: /section[1]/list_item[4]
+  source_digest: ecc7fe43954c4792
+  status: confirmed
+splits: []
+merges: []
+unscored: []
+move_verdicts: []

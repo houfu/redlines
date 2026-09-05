@@ -1,0 +1,25 @@
+# Master Services Agreement
+
+This Agreement is made between Acme Analytics Ltd and Beta Retail plc.
+
+## 3. Charges
+
+3.1 The Client shall pay each invoice within thirty Business Days of receipt.
+
+The Supplier issues invoices monthly in arrears.
+
+(a) Invoices are sent by email.
+
+(b) Payment is made by bank transfer.
+
+## 7. Termination
+
+7.1 Either party may terminate this Agreement on sixty days' written
+notice.
+
+7.2 Termination does not affect any accrued rights.
+
+## Schedule 1
+
+1. The Services comprise hosting and support.
+2. Support is provided during business hours.

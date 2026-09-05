@@ -13,19 +13,46 @@ benchmark/
   labels.py            # the label file: dataclasses, schema validation, digests, totality
   labels/schema.json   # the published JSON Schema (draft-07) for a pair's labels.yaml
   reanchor.py           # repair label addresses after a reader change, by digest
+  mutate.py             # the mutation operators, and the ground truth about what they did
+  generate.py           # plan in, corpus out; derives the seeds, writes the labels
+  plans/synthetic.yaml  # the committed plan: source documents, named plans, and the pairs
+  fetch_neurotic.py     # dev-only: fetch neurotic_docx_bench text into external/
   corpus/
-    synthetic/<doc>/<plan>/{source.*, test.*, labels.yaml}   # committed (#141)
+    synthetic/<pair>/{source.*, test.*, labels.yaml}         # committed (#141)
     hand/<pair>/{source.*, test.*, labels.yaml, NOTICE.md}   # committed (#142)
     external/                                                # gitignored — never committed
   results/latest.json  # committed; the metric's output, so a number changing is a diff (#143)
   REPORT.md             # committed; generated from results/latest.json (#143)
 ```
 
-Pieces not yet written — the generator (`generate.py`, `mutate.py`, `prepare.py`, `units.py`), the
-metric and report (`score.py`, `baselines.py`, `report.py`), the labelling tool (`label.py`), the
-runner (`run.py`), and `fetch_neurotic.py` — land against issues
-[#141](https://github.com/houfu/redlines/issues/141)-[#144](https://github.com/houfu/redlines/issues/144)
+Pieces not yet written — the hand-labelled tier (`prepare.py`, `label.py`), the metric and report
+(`score.py`, `baselines.py`, `units.py`, `report.py`) and the runner (`run.py`) — land against
+issues [#142](https://github.com/houfu/redlines/issues/142)-[#144](https://github.com/houfu/redlines/issues/144)
 as separate pieces of work. This README is updated as each lands.
+
+## The synthetic tier (#141)
+
+`benchmark/plans/synthetic.yaml` names ten source documents, seven named mutation plans and the
+forty pairs built from them. Every pair's mutations come from a `random.Random` seeded with a
+value **derived**, not counted, from the generator version, the document id and the plan id, so
+adding a document or a plan to the plan file leaves every other pair — and every number already
+published from it — untouched.
+
+```
+uv run python -m benchmark.generate --check    # is the committed corpus what the generator writes?
+uv run python -m benchmark.generate            # rewrite it after changing the plan or an operator
+```
+
+The corpus is **committed, and regenerating it is a test**: `tests/test_benchmark_corpus.py`
+rebuilds every pair into a temporary directory and compares byte for byte, so a change to an
+operator that would move every published number is a diff a reviewer reads rather than a silent
+drift. That test also loads every `labels.yaml`, re-derives every digest against the committed
+documents, and asserts the totality rule.
+
+The source documents are the repository's own corpus files and one ADR. That is deliberate:
+ADR-0034 keeps the repository's documents *out* of the hand-labelled tier — labelling one's own
+edits is the softest possible test — and puts them here instead, where what is being scored is the
+mutation rather than the edit history.
 
 ## Two tiers, and the distinction is committed versus not
 
@@ -40,9 +67,9 @@ as separate pieces of work. This README is updated as each lands.
 
 ## How to run
 
-Nothing here is runnable end-to-end yet — that lands with `benchmark/run.py` (#143). What exists today
-is loaded like any other module, with the repository root on the path (already true under
-`uv run pytest`, via `[tool.pytest.ini_options] pythonpath = ["."]`):
+Nothing here is runnable end-to-end yet — that lands with `benchmark/run.py` (#143). The generator
+above runs today; everything else is loaded like any other module, with the repository root on the
+path (already true under `uv run pytest`, via `[tool.pytest.ini_options] pythonpath = ["."]`):
 
 ```python
 from benchmark.labels import load_labels, verify_digests, check_totality
@@ -62,3 +89,24 @@ its origin, licence and required attribution, and this README's own licence line
 first hand-labelled pair (#142). `redlines` itself remains MIT-licensed throughout; committing these
 documents does not change that, but their own licence terms travel with them and must be honoured by
 anyone who redistributes the corpus.
+
+## `benchmark/corpus/external/` and neurotic_docx_bench
+
+`benchmark/fetch_neurotic.py` clones
+[`neurotic_docx_bench`](https://github.com/frankiedrake/neurotic_docx_bench) and extracts its
+documents' paragraph text, as a *mutation source* for local runs. It is dev-only and nothing in
+CI or in any gate depends on it:
+
+```
+uv run --with python-docx python benchmark/fetch_neurotic.py
+```
+
+python-docx is deliberately not a dependency of this project in any form. Everything the script
+writes goes under `benchmark/corpus/external/`, which is gitignored, and the script refuses any
+other destination: the upstream repository is AGPL-licensed, so neither its documents nor the text
+extracted from them is ever committed or redistributed. Extraction fails on some documents (#96
+found 18 of the 763 unreadable); those are logged and skipped.
+
+It does **not** re-run the bench's own adapter for a like-for-like comparison with the published
+45.9 figure — that benchmark scores a tracked-changes DOCX, ADR-0014 rules out writing OOXML, and
+that figure came from a third-party adapter rather than from this project.
