@@ -260,3 +260,60 @@ def test_an_explicitly_requested_backend_is_recorded_as_both_asked_and_resolved(
     result = json.loads(output)
     assert result["backend"] == "difflib"
     assert result["config"]["similarity"] == "difflib"
+
+
+# --- the full comparison, not just the alignment (#137) --------------------
+
+# The same seed matrix, this time over `Comparison.to_json()` -- the whole v2
+# payload, source and test trees, change tree, config and alignment all
+# together -- rather than only `Alignment.to_dict()`. A `dict`- or
+# `set`-ordering bug in `redlines.changes` or `redlines.comparison` that the
+# alignment-only scripts above cannot see (because they never build a change
+# tree) has somewhere to show up here.
+_COMPARE_SAMPLE_PAIR = """
+import json
+from pathlib import Path
+from redlines.blocks import BlockTree
+from redlines.comparison import compare
+
+expected = Path({expected_dir!r})
+source = BlockTree.from_dict(json.loads((expected / "source.markdown.json").read_text()))
+test = BlockTree.from_dict(json.loads((expected / "test.markdown.json").read_text()))
+result = compare(source, test)
+print(result.to_json(include_alignment=True))
+""".format(expected_dir=str(SAMPLE_DIR))
+
+
+def test_comparing_the_sample_pair_is_byte_identical_across_hash_seeds() -> None:
+    """`Comparison.to_json()` on the demo document, five seeds (#137)."""
+    output = assert_byte_identical_across_hash_seeds(
+        _COMPARE_SAMPLE_PAIR, cwd=REPO_ROOT
+    )
+    result = json.loads(output)
+    assert result["schema_version"] == "2.0"
+    assert len(result["changes"]) > 0
+    assert "alignment" in result
+
+
+def test_comparing_the_synthetic_cascade_is_byte_identical_across_hash_seeds() -> (
+    None
+):
+    """The same every-pass-fires document as above, through the full pipeline.
+
+    `_ALIGN_SYNTHETIC_CASCADE` builds its two trees and prints the alignment
+    directly; here the same two trees are compared end to end, so the change
+    tree's own sequencing of insert/delete/modify/move/renumber nodes is
+    under the same cross-process byte-identity check the alignment already
+    has.
+    """
+    script = _ALIGN_SYNTHETIC_CASCADE.replace(
+        "import json\n",
+        "import json\nfrom redlines.comparison import compare\n",
+    ).replace(
+        "print(json.dumps(align(source, test).to_dict()))",
+        "print(compare(source, test).to_json(include_alignment=True))",
+    )
+    output = assert_byte_identical_across_hash_seeds(script, cwd=REPO_ROOT)
+    result = json.loads(output)
+    assert result["schema_version"] == "2.0"
+    assert len(result["changes"]) > 0
