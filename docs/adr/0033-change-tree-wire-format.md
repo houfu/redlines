@@ -34,7 +34,7 @@ On the wire it is an **optional top-level key**, emitted only under `to_dict(inc
 
 Five kinds: `insert`, `delete`, `modify`, `move`, `renumber`. `split` and `merge` are **not** members of the enum in 1.0 — a consumer switching exhaustively should not have to handle a value nothing produces — but are reserved as a documented constant and named in the schema's `description`, so adding them in 1.1 ([ADR-0009](0009-moves-before-splits.md)) is an additive minor bump with the enum widened.
 
-**Kind precedence when more than one is true is `move > renumber > modify`.** No information is lost, because every node carries both addresses, both labels and its inline ops regardless of which kind won.
+**Kind precedence when more than one is true is `move > renumber > modify`.** No information is lost, because every node carries both addresses, both labels and its inline ops regardless of which kind won. This is a deliberate clarification of the M2 decisions record's D-4 shorthand ("inline ops nested only under `modify`"): read literally, a block that is both renumbered and edited would win kind `renumber` and carry no inline ops, silently losing the text edit. `inline` therefore nests under `move` and `renumber` nodes too, not only `modify` — D-4's phrasing describes *where* inline ops nest (inside a change node, never as a sibling list of their own), not which kinds may carry them.
 
 Every node carries:
 
@@ -48,7 +48,7 @@ Every node carries:
 | `matched_by` | the alignment pass name, or `"unmatched"` on insert and delete |
 | `confidence` | the alignment confidence; `0.0` for `unmatched` |
 | `source_text`, `test_text` | the affected block's own text on each side |
-| `inline` | `InlineOp` tuple; only ever non-empty on `modify`, `move` or `renumber` |
+| `inline` | `InlineOp` tuple; only ever non-empty on `modify`, `move` or `renumber` (see the kind-precedence note above on why `move`/`renumber` carry it too) |
 | `breadcrumb` | the ADR-0029 heading breadcrumb, test side, precomputed |
 
 Both addresses are on every node because a `modify` inside a moved clause genuinely has two — the sample pair has exactly one such node — and a format where only `move` carried both would force that node to lie about one of them.
