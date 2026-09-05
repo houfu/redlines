@@ -304,9 +304,13 @@ def statistics(comparison: Comparison) -> ComparisonStatistics:
         block.path: block for block in source.walk() if _is_section_unit(block)
     }
 
-    # blocks whose nearest enclosing (test-side) section is each unit.
+    # blocks whose nearest enclosing (test-side) section is each unit. A
+    # section unit's own container block is not one of "its" blocks -- it is
+    # skipped here, or it would double-count against itself.
     block_counts: dict[str, int] = dict.fromkeys(test_units, 0)
     for block in test.walk():
+        if block.path in test_units:
+            continue
         nearest = _nearest_enclosing(block.path, test_parents, test_units)
         if nearest is not None:
             block_counts[nearest] += 1
