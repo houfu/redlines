@@ -136,6 +136,10 @@
                   "level_reason": "arithmetic",
                   "numbering_run": "first_value",
                   "semantic": {
+                    "ancestor": "1 Background",
+                    "role": "recital",
+                    "role_match": "ancestor_heading",
+                    "role_rule": 3,
                     "spans": 1
                   },
                   "style_reason": "only"
@@ -147,7 +151,7 @@
                 "level": 2,
                 "matched_by": "label:decimal",
                 "path": "/section[1]/section[1]/list_item[1]",
-                "role": null,
+                "role": "recital",
                 "spans": [
                   {
                     "end": 10,
@@ -172,6 +176,10 @@
                   "level_reason": "arithmetic",
                   "numbering_run": "sequence",
                   "semantic": {
+                    "ancestor": "1 Background",
+                    "role": "recital",
+                    "role_match": "ancestor_heading",
+                    "role_rule": 3,
                     "spans": 2
                   },
                   "style_reason": "only"
@@ -183,7 +191,7 @@
                 "level": 2,
                 "matched_by": "label:decimal",
                 "path": "/section[1]/section[1]/list_item[2]",
-                "role": null,
+                "role": "recital",
                 "spans": [
                   {
                     "end": 12,
@@ -213,6 +221,12 @@
                   "label_style": "decimal",
                   "level_reason": "arithmetic",
                   "numbering_run": "sequence",
+                  "semantic": {
+                    "ancestor": "1 Background",
+                    "role": "recital",
+                    "role_match": "ancestor_heading",
+                    "role_rule": 3
+                  },
                   "style_reason": "only"
                 },
                 "children": [],
@@ -222,7 +236,7 @@
                 "level": 2,
                 "matched_by": "label:decimal",
                 "path": "/section[1]/section[1]/list_item[3]",
-                "role": null,
+                "role": "recital",
                 "spans": [],
                 "text": "The parties have agreed to record in this Agreement the terms on which the Services are supplied."
               }
@@ -717,6 +731,11 @@
                   "level_reason": "arithmetic",
                   "numbering_run": "first_value",
                   "semantic": {
+                    "kind": "list_item",
+                    "label": "3.1",
+                    "role": "clause",
+                    "role_match": "label",
+                    "role_rule": 8,
                     "spans": 3
                   },
                   "style_reason": "only"
@@ -728,7 +747,7 @@
                 "level": 2,
                 "matched_by": "label:decimal",
                 "path": "/section[1]/section[3]/list_item[1]",
-                "role": null,
+                "role": "clause",
                 "spans": [
                   {
                     "end": 12,
@@ -765,6 +784,11 @@
                   "level_reason": "arithmetic",
                   "numbering_run": "sequence",
                   "semantic": {
+                    "kind": "list_item",
+                    "label": "3.2",
+                    "role": "clause",
+                    "role_match": "label",
+                    "role_rule": 8,
                     "spans": 1
                   },
                   "style_reason": "only"
@@ -776,7 +800,7 @@
                 "level": 2,
                 "matched_by": "label:decimal",
                 "path": "/section[1]/section[3]/list_item[2]",
-                "role": null,
+                "role": "clause",
                 "spans": [
                   {
                     "end": 12,
@@ -801,6 +825,11 @@
                   "level_reason": "arithmetic",
                   "numbering_run": "sequence",
                   "semantic": {
+                    "kind": "list_item",
+                    "label": "3.3",
+                    "role": "clause",
+                    "role_match": "label",
+                    "role_rule": 8,
                     "spans": 1
                   },
                   "style_reason": "only"
@@ -812,7 +841,7 @@
                 "level": 2,
                 "matched_by": "label:decimal",
                 "path": "/section[1]/section[3]/list_item[3]",
-                "role": null,
+                "role": "clause",
                 "spans": [
                   {
                     "end": 12,
@@ -837,6 +866,11 @@
                   "level_reason": "arithmetic",
                   "numbering_run": "sequence",
                   "semantic": {
+                    "kind": "list_item",
+                    "label": "3.4",
+                    "role": "clause",
+                    "role_match": "label",
+                    "role_rule": 8,
                     "spans": 1
                   },
                   "style_reason": "only"
@@ -848,7 +882,7 @@
                 "level": 2,
                 "matched_by": "label:decimal",
                 "path": "/section[1]/section[3]/list_item[4]",
-                "role": null,
+                "role": "clause",
                 "spans": [
                   {
                     "end": 12,
@@ -873,6 +907,11 @@
                   "level_reason": "arithmetic",
                   "numbering_run": "sequence",
                   "semantic": {
+                    "kind": "list_item",
+                    "label": "3.5",
+                    "role": "clause",
+                    "role_match": "label",
+                    "role_rule": 8,
                     "spans": 1
                   },
                   "style_reason": "only"
@@ -884,7 +923,7 @@
                 "level": 2,
                 "matched_by": "label:decimal",
                 "path": "/section[1]/section[3]/list_item[5]",
-                "role": null,
+                "role": "clause",
                 "spans": [
                   {
                     "end": 12,
@@ -954,6 +993,11 @@
                   "level_reason": "arithmetic",
                   "numbering_run": "first_value",
                   "semantic": {
+                    "kind": "list_item",
+                    "label": "4.1",
+                    "role": "clause",
+                    "role_match": "label",
+                    "role_rule": 8,
                     "spans": 3
                   },
                   "style_reason": "only"
@@ -965,7 +1009,7 @@
                 "level": 2,
                 "matched_by": "label:decimal",
                 "path": "/section[1]/section[4]/list_item[1]",
-                "role": null,
+                "role": "clause",
                 "spans": [
                   {
                     "end": 10,
@@ -1002,6 +1046,11 @@
                   "level_reason": "arithmetic",
                   "numbering_run": "sequence",
                   "semantic": {
+                    "kind": "list_item",
+                    "label": "4.2",
+                    "role": "clause",
+                    "role_match": "label",
+                    "role_rule": 8,
                     "spans": 2
                   },
                   "style_reason": "only"
@@ -1013,7 +1062,7 @@
                 "level": 2,
                 "matched_by": "label:decimal",
                 "path": "/section[1]/section[4]/list_item[2]",
-                "role": null,
+                "role": "clause",
                 "spans": [
                   {
                     "end": 10,
@@ -1044,6 +1093,11 @@
                   "level_reason": "arithmetic",
                   "numbering_run": "sequence",
                   "semantic": {
+                    "kind": "list_item",
+                    "label": "4.3",
+                    "role": "clause",
+                    "role_match": "label",
+                    "role_rule": 8,
                     "spans": 1
                   },
                   "style_reason": "only"
@@ -1055,7 +1109,7 @@
                 "level": 2,
                 "matched_by": "label:decimal",
                 "path": "/section[1]/section[4]/list_item[3]",
-                "role": null,
+                "role": "clause",
                 "spans": [
                   {
                     "end": 10,
@@ -1125,6 +1179,11 @@
                   "level_reason": "arithmetic",
                   "numbering_run": "first_value",
                   "semantic": {
+                    "kind": "list_item",
+                    "label": "5.1",
+                    "role": "clause",
+                    "role_match": "label",
+                    "role_rule": 8,
                     "spans": 1
                   },
                   "style_reason": "only"
@@ -1136,7 +1195,7 @@
                 "level": 2,
                 "matched_by": "label:decimal",
                 "path": "/section[1]/section[5]/list_item[1]",
-                "role": null,
+                "role": "clause",
                 "spans": [
                   {
                     "end": 10,
@@ -1161,6 +1220,11 @@
                   "level_reason": "arithmetic",
                   "numbering_run": "sequence",
                   "semantic": {
+                    "kind": "list_item",
+                    "label": "5.2",
+                    "role": "clause",
+                    "role_match": "label",
+                    "role_rule": 8,
                     "spans": 1
                   },
                   "style_reason": "only"
@@ -1172,7 +1236,7 @@
                 "level": 2,
                 "matched_by": "label:decimal",
                 "path": "/section[1]/section[5]/list_item[2]",
-                "role": null,
+                "role": "clause",
                 "spans": [
                   {
                     "end": 26,
@@ -1197,6 +1261,11 @@
                   "level_reason": "arithmetic",
                   "numbering_run": "sequence",
                   "semantic": {
+                    "kind": "list_item",
+                    "label": "5.3",
+                    "role": "clause",
+                    "role_match": "label",
+                    "role_rule": 8,
                     "spans": 2
                   },
                   "style_reason": "only"
@@ -1208,7 +1277,7 @@
                 "level": 2,
                 "matched_by": "label:decimal",
                 "path": "/section[1]/section[5]/list_item[3]",
-                "role": null,
+                "role": "clause",
                 "spans": [
                   {
                     "end": 12,
@@ -1239,6 +1308,11 @@
                   "level_reason": "arithmetic",
                   "numbering_run": "sequence",
                   "semantic": {
+                    "kind": "list_item",
+                    "label": "5.4",
+                    "role": "clause",
+                    "role_match": "label",
+                    "role_rule": 8,
                     "spans": 1
                   },
                   "style_reason": "only"
@@ -1258,6 +1332,11 @@
                       "level_reason": "push",
                       "numbering_run": "first_value",
                       "semantic": {
+                        "kind": "list_item",
+                        "label": "(a)",
+                        "role": "sub_clause",
+                        "role_match": "label",
+                        "role_rule": 9,
                         "spans": 2
                       },
                       "style_reason": "only"
@@ -1269,7 +1348,7 @@
                     "level": 3,
                     "matched_by": "label:alpha_paren",
                     "path": "/section[1]/section[5]/list_item[4]/list_item[1]",
-                    "role": null,
+                    "role": "sub_clause",
                     "spans": [
                       {
                         "end": 10,
@@ -1299,6 +1378,13 @@
                       "label_style": "alpha",
                       "level_reason": "reopen",
                       "numbering_run": "sequence",
+                      "semantic": {
+                        "kind": "list_item",
+                        "label": "(b)",
+                        "role": "sub_clause",
+                        "role_match": "label",
+                        "role_rule": 9
+                      },
                       "style_reason": "only"
                     },
                     "children": [],
@@ -1308,7 +1394,7 @@
                     "level": 3,
                     "matched_by": "label:alpha_paren",
                     "path": "/section[1]/section[5]/list_item[4]/list_item[2]",
-                    "role": null,
+                    "role": "sub_clause",
                     "spans": [],
                     "text": "The notice states the amount in dispute and the reason for it."
                   }
@@ -1319,7 +1405,7 @@
                 "level": 2,
                 "matched_by": "label:decimal",
                 "path": "/section[1]/section[5]/list_item[4]",
-                "role": null,
+                "role": "clause",
                 "spans": [
                   {
                     "end": 10,
@@ -1343,6 +1429,13 @@
                   "label_style": "decimal",
                   "level_reason": "arithmetic",
                   "numbering_run": "sequence",
+                  "semantic": {
+                    "kind": "list_item",
+                    "label": "5.5",
+                    "role": "clause",
+                    "role_match": "label",
+                    "role_rule": 8
+                  },
                   "style_reason": "only"
                 },
                 "children": [],
@@ -1352,7 +1445,7 @@
                 "level": 2,
                 "matched_by": "label:decimal",
                 "path": "/section[1]/section[5]/list_item[5]",
-                "role": null,
+                "role": "clause",
                 "spans": [],
                 "text": "Interest runs on any overdue amount at one per cent for each month from the due date until payment."
               }
@@ -1414,6 +1507,13 @@
                   "label_style": "decimal",
                   "level_reason": "arithmetic",
                   "numbering_run": "first_value",
+                  "semantic": {
+                    "kind": "list_item",
+                    "label": "6.1",
+                    "role": "clause",
+                    "role_match": "label",
+                    "role_rule": 8
+                  },
                   "style_reason": "only"
                 },
                 "children": [],
@@ -1423,7 +1523,7 @@
                 "level": 2,
                 "matched_by": "label:decimal",
                 "path": "/section[1]/section[6]/list_item[1]",
-                "role": null,
+                "role": "clause",
                 "spans": [],
                 "text": "Each party keeps the intellectual property rights that it owned before this Agreement began."
               },
@@ -1441,6 +1541,11 @@
                   "level_reason": "arithmetic",
                   "numbering_run": "sequence",
                   "semantic": {
+                    "kind": "list_item",
+                    "label": "6.2",
+                    "role": "clause",
+                    "role_match": "label",
+                    "role_rule": 8,
                     "spans": 3
                   },
                   "style_reason": "only"
@@ -1452,7 +1557,7 @@
                 "level": 2,
                 "matched_by": "label:decimal",
                 "path": "/section[1]/section[6]/list_item[2]",
-                "role": null,
+                "role": "clause",
                 "spans": [
                   {
                     "end": 12,
@@ -1489,6 +1594,11 @@
                   "level_reason": "arithmetic",
                   "numbering_run": "sequence",
                   "semantic": {
+                    "kind": "list_item",
+                    "label": "6.3",
+                    "role": "clause",
+                    "role_match": "label",
+                    "role_rule": 8,
                     "spans": 3
                   },
                   "style_reason": "only"
@@ -1500,7 +1610,7 @@
                 "level": 2,
                 "matched_by": "label:decimal",
                 "path": "/section[1]/section[6]/list_item[3]",
-                "role": null,
+                "role": "clause",
                 "spans": [
                   {
                     "end": 10,
@@ -1581,6 +1691,13 @@
                   "label_style": "decimal",
                   "level_reason": "arithmetic",
                   "numbering_run": "first_value",
+                  "semantic": {
+                    "kind": "list_item",
+                    "label": "7.1",
+                    "role": "clause",
+                    "role_match": "label",
+                    "role_rule": 8
+                  },
                   "style_reason": "only"
                 },
                 "children": [],
@@ -1590,7 +1707,7 @@
                 "level": 2,
                 "matched_by": "label:decimal",
                 "path": "/section[1]/section[7]/list_item[1]",
-                "role": null,
+                "role": "clause",
                 "spans": [],
                 "text": "Each party shall keep the other party's Confidential Information secret and shall use it only for the purposes of this Agreement."
               },
@@ -1608,6 +1725,11 @@
                   "level_reason": "arithmetic",
                   "numbering_run": "sequence",
                   "semantic": {
+                    "kind": "list_item",
+                    "label": "7.2",
+                    "role": "clause",
+                    "role_match": "label",
+                    "role_rule": 8,
                     "spans": 1
                   },
                   "style_reason": "only"
@@ -1619,7 +1741,7 @@
                 "level": 2,
                 "matched_by": "label:decimal",
                 "path": "/section[1]/section[7]/list_item[2]",
-                "role": null,
+                "role": "clause",
                 "spans": [
                   {
                     "end": 201,
@@ -1644,6 +1766,11 @@
                   "level_reason": "arithmetic",
                   "numbering_run": "sequence",
                   "semantic": {
+                    "kind": "list_item",
+                    "label": "7.3",
+                    "role": "clause",
+                    "role_match": "label",
+                    "role_rule": 8,
                     "spans": 1
                   },
                   "style_reason": "only"
@@ -1655,7 +1782,7 @@
                 "level": 2,
                 "matched_by": "label:decimal",
                 "path": "/section[1]/section[7]/list_item[3]",
-                "role": null,
+                "role": "clause",
                 "spans": [
                   {
                     "end": 10,
@@ -1679,6 +1806,13 @@
                   "label_style": "decimal",
                   "level_reason": "arithmetic",
                   "numbering_run": "sequence",
+                  "semantic": {
+                    "kind": "list_item",
+                    "label": "7.4",
+                    "role": "clause",
+                    "role_match": "label",
+                    "role_rule": 8
+                  },
                   "style_reason": "only"
                 },
                 "children": [],
@@ -1688,7 +1822,7 @@
                 "level": 2,
                 "matched_by": "label:decimal",
                 "path": "/section[1]/section[7]/list_item[4]",
-                "role": null,
+                "role": "clause",
                 "spans": [],
                 "text": "Neither party shall make a public announcement about this Agreement without the written consent of the other party."
               }
@@ -1750,6 +1884,13 @@
                   "label_style": "decimal",
                   "level_reason": "arithmetic",
                   "numbering_run": "first_value",
+                  "semantic": {
+                    "kind": "list_item",
+                    "label": "8.1",
+                    "role": "clause",
+                    "role_match": "label",
+                    "role_rule": 8
+                  },
                   "style_reason": "only"
                 },
                 "children": [],
@@ -1759,7 +1900,7 @@
                 "level": 2,
                 "matched_by": "label:decimal",
                 "path": "/section[1]/section[8]/list_item[1]",
-                "role": null,
+                "role": "clause",
                 "spans": [],
                 "text": "Each party shall comply with the data protection obligations that apply to it in respect of personal data processed under this Agreement."
               },
@@ -1777,6 +1918,11 @@
                   "level_reason": "arithmetic",
                   "numbering_run": "sequence",
                   "semantic": {
+                    "kind": "list_item",
+                    "label": "8.2",
+                    "role": "clause",
+                    "role_match": "label",
+                    "role_rule": 8,
                     "spans": 3
                   },
                   "style_reason": "only"
@@ -1788,7 +1934,7 @@
                 "level": 2,
                 "matched_by": "label:decimal",
                 "path": "/section[1]/section[8]/list_item[2]",
-                "role": null,
+                "role": "clause",
                 "spans": [
                   {
                     "end": 12,
@@ -1870,6 +2016,11 @@
                   "level_reason": "arithmetic",
                   "numbering_run": "first_value",
                   "semantic": {
+                    "kind": "list_item",
+                    "label": "9.1",
+                    "role": "clause",
+                    "role_match": "label",
+                    "role_rule": 8,
                     "spans": 1
                   },
                   "style_reason": "only"
@@ -1881,7 +2032,7 @@
                 "level": 2,
                 "matched_by": "label:decimal",
                 "path": "/section[1]/section[9]/list_item[1]",
-                "role": null,
+                "role": "clause",
                 "spans": [
                   {
                     "end": 37,
@@ -1906,6 +2057,11 @@
                   "level_reason": "arithmetic",
                   "numbering_run": "sequence",
                   "semantic": {
+                    "kind": "list_item",
+                    "label": "9.2",
+                    "role": "clause",
+                    "role_match": "label",
+                    "role_rule": 8,
                     "spans": 3
                   },
                   "style_reason": "only"
@@ -1917,7 +2073,7 @@
                 "level": 2,
                 "matched_by": "label:decimal",
                 "path": "/section[1]/section[9]/list_item[2]",
-                "role": null,
+                "role": "clause",
                 "spans": [
                   {
                     "end": 10,
@@ -1953,6 +2109,13 @@
                   "label_style": "decimal",
                   "level_reason": "arithmetic",
                   "numbering_run": "sequence",
+                  "semantic": {
+                    "kind": "list_item",
+                    "label": "9.3",
+                    "role": "clause",
+                    "role_match": "label",
+                    "role_rule": 8
+                  },
                   "style_reason": "only"
                 },
                 "children": [],
@@ -1962,7 +2125,7 @@
                 "level": 2,
                 "matched_by": "label:decimal",
                 "path": "/section[1]/section[9]/list_item[3]",
-                "role": null,
+                "role": "clause",
                 "spans": [],
                 "text": "Either party may terminate this Agreement by giving the other no less than ninety days' written notice, expiring at the end of the Term or at any time after it."
               },
@@ -1979,6 +2142,13 @@
                   "label_style": "decimal",
                   "level_reason": "arithmetic",
                   "numbering_run": "sequence",
+                  "semantic": {
+                    "kind": "list_item",
+                    "label": "9.4",
+                    "role": "clause",
+                    "role_match": "label",
+                    "role_rule": 8
+                  },
                   "style_reason": "only"
                 },
                 "children": [],
@@ -1988,7 +2158,7 @@
                 "level": 2,
                 "matched_by": "label:decimal",
                 "path": "/section[1]/section[9]/list_item[4]",
-                "role": null,
+                "role": "clause",
                 "spans": [],
                 "text": "Either party may terminate this Agreement immediately by written notice if the other party commits a material breach that it does not remedy within thirty days of being asked in writing to do so."
               },
@@ -2005,6 +2175,13 @@
                   "label_style": "decimal",
                   "level_reason": "arithmetic",
                   "numbering_run": "sequence",
+                  "semantic": {
+                    "kind": "list_item",
+                    "label": "9.5",
+                    "role": "clause",
+                    "role_match": "label",
+                    "role_rule": 8
+                  },
                   "style_reason": "only"
                 },
                 "children": [],
@@ -2014,7 +2191,7 @@
                 "level": 2,
                 "matched_by": "label:decimal",
                 "path": "/section[1]/section[9]/list_item[5]",
-                "role": null,
+                "role": "clause",
                 "spans": [],
                 "text": "Termination does not affect any right or obligation that has accrued before it takes effect."
               },
@@ -2031,6 +2208,13 @@
                   "label_style": "decimal",
                   "level_reason": "arithmetic",
                   "numbering_run": "sequence",
+                  "semantic": {
+                    "kind": "list_item",
+                    "label": "9.6",
+                    "role": "clause",
+                    "role_match": "label",
+                    "role_rule": 8
+                  },
                   "style_reason": "only"
                 },
                 "children": [
@@ -2063,7 +2247,7 @@
                 "level": 2,
                 "matched_by": "label:decimal",
                 "path": "/section[1]/section[9]/list_item[6]",
-                "role": null,
+                "role": "clause",
                 "spans": [],
                 "text": "Each party shall return or destroy the other party's Confidential Information within ten Business Days of a written request."
               }
@@ -2125,6 +2309,13 @@
                   "label_style": "decimal",
                   "level_reason": "arithmetic",
                   "numbering_run": "first_value",
+                  "semantic": {
+                    "kind": "list_item",
+                    "label": "10.1",
+                    "role": "clause",
+                    "role_match": "label",
+                    "role_rule": 8
+                  },
                   "style_reason": "only"
                 },
                 "children": [],
@@ -2134,7 +2325,7 @@
                 "level": 2,
                 "matched_by": "label:decimal",
                 "path": "/section[1]/section[10]/list_item[1]",
-                "role": null,
+                "role": "clause",
                 "spans": [],
                 "text": "Neither party excludes or limits its liability for fraud, or for anything else that cannot be limited under the law that applies to this Agreement."
               },
@@ -2151,6 +2342,13 @@
                   "label_style": "decimal",
                   "level_reason": "arithmetic",
                   "numbering_run": "sequence",
+                  "semantic": {
+                    "kind": "list_item",
+                    "label": "10.2",
+                    "role": "clause",
+                    "role_match": "label",
+                    "role_rule": 8
+                  },
                   "style_reason": "only"
                 },
                 "children": [],
@@ -2160,7 +2358,7 @@
                 "level": 2,
                 "matched_by": "label:decimal",
                 "path": "/section[1]/section[10]/list_item[2]",
-                "role": null,
+                "role": "clause",
                 "spans": [],
                 "text": "Neither party is liable to the other for loss of profit, loss of business or any indirect loss."
               },
@@ -2177,6 +2375,13 @@
                   "label_style": "decimal",
                   "level_reason": "arithmetic",
                   "numbering_run": "sequence",
+                  "semantic": {
+                    "kind": "list_item",
+                    "label": "10.3",
+                    "role": "clause",
+                    "role_match": "label",
+                    "role_rule": 8
+                  },
                   "style_reason": "only"
                 },
                 "children": [],
@@ -2186,7 +2391,7 @@
                 "level": 2,
                 "matched_by": "label:decimal",
                 "path": "/section[1]/section[10]/list_item[3]",
-                "role": null,
+                "role": "clause",
                 "spans": [],
                 "text": "The total liability of each party under this Agreement is limited to the Charges paid and payable in the twelve months before the event giving rise to the claim."
               },
@@ -2203,6 +2408,13 @@
                   "label_style": "decimal",
                   "level_reason": "arithmetic",
                   "numbering_run": "sequence",
+                  "semantic": {
+                    "kind": "list_item",
+                    "label": "10.4",
+                    "role": "clause",
+                    "role_match": "label",
+                    "role_rule": 8
+                  },
                   "style_reason": "only"
                 },
                 "children": [],
@@ -2212,7 +2424,7 @@
                 "level": 2,
                 "matched_by": "label:decimal",
                 "path": "/section[1]/section[10]/list_item[4]",
-                "role": null,
+                "role": "clause",
                 "spans": [],
                 "text": "Each party shall take reasonable steps to reduce any loss that it suffers."
               }
@@ -2274,6 +2486,13 @@
                   "label_style": "decimal",
                   "level_reason": "arithmetic",
                   "numbering_run": "first_value",
+                  "semantic": {
+                    "kind": "list_item",
+                    "label": "11.1",
+                    "role": "clause",
+                    "role_match": "label",
+                    "role_rule": 8
+                  },
                   "style_reason": "only"
                 },
                 "children": [],
@@ -2283,7 +2502,7 @@
                 "level": 2,
                 "matched_by": "label:decimal",
                 "path": "/section[1]/section[11]/list_item[1]",
-                "role": null,
+                "role": "clause",
                 "spans": [],
                 "text": "This Agreement is the entire agreement between the parties about its subject matter, and replaces any earlier agreement or understanding about that subject matter."
               },
@@ -2300,6 +2519,13 @@
                   "label_style": "decimal",
                   "level_reason": "arithmetic",
                   "numbering_run": "sequence",
+                  "semantic": {
+                    "kind": "list_item",
+                    "label": "11.2",
+                    "role": "clause",
+                    "role_match": "label",
+                    "role_rule": 8
+                  },
                   "style_reason": "only"
                 },
                 "children": [],
@@ -2309,7 +2535,7 @@
                 "level": 2,
                 "matched_by": "label:decimal",
                 "path": "/section[1]/section[11]/list_item[2]",
-                "role": null,
+                "role": "clause",
                 "spans": [],
                 "text": "A variation of this Agreement takes effect only if it is in writing and signed by both parties."
               },
@@ -2326,6 +2552,13 @@
                   "label_style": "decimal",
                   "level_reason": "arithmetic",
                   "numbering_run": "sequence",
+                  "semantic": {
+                    "kind": "list_item",
+                    "label": "11.3",
+                    "role": "clause",
+                    "role_match": "label",
+                    "role_rule": 8
+                  },
                   "style_reason": "only"
                 },
                 "children": [],
@@ -2335,7 +2568,7 @@
                 "level": 2,
                 "matched_by": "label:decimal",
                 "path": "/section[1]/section[11]/list_item[3]",
-                "role": null,
+                "role": "clause",
                 "spans": [],
                 "text": "Neither party may assign or transfer any of its rights or obligations under this Agreement without the written consent of the other party, which is not to be unreasonably withheld."
               },
@@ -2352,6 +2585,13 @@
                   "label_style": "decimal",
                   "level_reason": "arithmetic",
                   "numbering_run": "sequence",
+                  "semantic": {
+                    "kind": "list_item",
+                    "label": "11.4",
+                    "role": "clause",
+                    "role_match": "label",
+                    "role_rule": 8
+                  },
                   "style_reason": "only"
                 },
                 "children": [],
@@ -2361,7 +2601,7 @@
                 "level": 2,
                 "matched_by": "label:decimal",
                 "path": "/section[1]/section[11]/list_item[4]",
-                "role": null,
+                "role": "clause",
                 "spans": [],
                 "text": "If any provision of this Agreement is unenforceable, the rest of it continues in force."
               },
@@ -2379,6 +2619,13 @@
                   "level_reason": "arithmetic",
                   "numbering_run": "sequence",
                   "rejoined_lines": 3,
+                  "semantic": {
+                    "kind": "list_item",
+                    "label": "11.5",
+                    "role": "clause",
+                    "role_match": "label",
+                    "role_rule": 8
+                  },
                   "style_reason": "only"
                 },
                 "children": [],
@@ -2388,7 +2635,7 @@
                 "level": 2,
                 "matched_by": "label:decimal",
                 "path": "/section[1]/section[11]/list_item[5]",
-                "role": null,
+                "role": "clause",
                 "spans": [],
                 "text": "A notice given under this Agreement must be in writing and sent to the address of the receiving party set out above, or to any other address that the party notifies to the other in writing."
               },
@@ -2405,6 +2652,13 @@
                   "label_style": "decimal",
                   "level_reason": "arithmetic",
                   "numbering_run": "sequence",
+                  "semantic": {
+                    "kind": "list_item",
+                    "label": "11.6",
+                    "role": "clause",
+                    "role_match": "label",
+                    "role_rule": 8
+                  },
                   "style_reason": "only"
                 },
                 "children": [],
@@ -2414,7 +2668,7 @@
                 "level": 2,
                 "matched_by": "label:decimal",
                 "path": "/section[1]/section[11]/list_item[6]",
-                "role": null,
+                "role": "clause",
                 "spans": [],
                 "text": "A person who is not a party to this Agreement has no right to enforce it."
               }
@@ -2459,7 +2713,7 @@
                 "matched": "text",
                 "role": "signature",
                 "role_match": "heading",
-                "role_rule": 5
+                "role_rule": 6
               }
             },
             "children": [],
@@ -2482,7 +2736,13 @@
                 "too_many_words"
               ],
               "heading_threshold": 0.5,
-              "indent": 0
+              "indent": 0,
+              "semantic": {
+                "ancestor": "Signatures",
+                "role": "signature",
+                "role_match": "ancestor_heading",
+                "role_rule": 7
+              }
             },
             "children": [],
             "confidence": 0.0,
@@ -2491,7 +2751,7 @@
             "level": 0,
             "matched_by": "fallback",
             "path": "/section[2]/paragraph[1]",
-            "role": null,
+            "role": "signature",
             "spans": [],
             "text": "Signed for and on behalf of Northwind Systems Limited by A. Patel, Director."
           },
@@ -2504,7 +2764,13 @@
                 "too_many_words"
               ],
               "heading_threshold": 0.5,
-              "indent": 0
+              "indent": 0,
+              "semantic": {
+                "ancestor": "Signatures",
+                "role": "signature",
+                "role_match": "ancestor_heading",
+                "role_rule": 7
+              }
             },
             "children": [],
             "confidence": 0.0,
@@ -2513,7 +2779,7 @@
             "level": 0,
             "matched_by": "fallback",
             "path": "/section[2]/paragraph[2]",
-            "role": null,
+            "role": "signature",
             "spans": [],
             "text": "Signed for and on behalf of Harbour Foods Group Limited by R. Okonjo, Director."
           }
@@ -2554,7 +2820,7 @@
                 "matched": "heading_line",
                 "role": "schedule",
                 "role_match": "heading",
-                "role_rule": 3
+                "role_rule": 4
               },
               "style_reason": "only"
             },
@@ -2586,7 +2852,7 @@
                 "ancestor": "Schedule 1 The Services",
                 "role": "schedule",
                 "role_match": "ancestor_heading",
-                "role_rule": 4,
+                "role_rule": 5,
                 "spans": 3
               },
               "style_reason": "only"
@@ -2638,7 +2904,7 @@
                 "ancestor": "Schedule 1 The Services",
                 "role": "schedule",
                 "role_match": "ancestor_heading",
-                "role_rule": 4,
+                "role_rule": 5,
                 "spans": 2
               },
               "style_reason": "only"
@@ -2684,7 +2950,7 @@
                 "ancestor": "Schedule 1 The Services",
                 "role": "schedule",
                 "role_match": "ancestor_heading",
-                "role_rule": 4,
+                "role_rule": 5,
                 "spans": 1
               },
               "style_reason": "only"
@@ -2704,7 +2970,7 @@
                     "ancestor": "Schedule 1 The Services",
                     "role": "schedule",
                     "role_match": "ancestor_heading",
-                    "role_rule": 4,
+                    "role_rule": 5,
                     "spans": 1
                   }
                 },
@@ -2740,7 +3006,7 @@
                     "ancestor": "Schedule 1 The Services",
                     "role": "schedule",
                     "role_match": "ancestor_heading",
-                    "role_rule": 4,
+                    "role_rule": 5,
                     "spans": 1
                   }
                 },
@@ -2776,7 +3042,7 @@
                     "ancestor": "Schedule 1 The Services",
                     "role": "schedule",
                     "role_match": "ancestor_heading",
-                    "role_rule": 4,
+                    "role_rule": 5,
                     "spans": 1
                   }
                 },
@@ -2812,7 +3078,7 @@
                     "ancestor": "Schedule 1 The Services",
                     "role": "schedule",
                     "role_match": "ancestor_heading",
-                    "role_rule": 4,
+                    "role_rule": 5,
                     "spans": 1
                   }
                 },
@@ -2848,7 +3114,7 @@
                     "ancestor": "Schedule 1 The Services",
                     "role": "schedule",
                     "role_match": "ancestor_heading",
-                    "role_rule": 4,
+                    "role_rule": 5,
                     "spans": 1
                   }
                 },
@@ -2884,7 +3150,7 @@
                     "ancestor": "Schedule 1 The Services",
                     "role": "schedule",
                     "role_match": "ancestor_heading",
-                    "role_rule": 4,
+                    "role_rule": 5,
                     "spans": 1
                   }
                 },
@@ -2961,7 +3227,7 @@
                 "matched": "heading_line",
                 "role": "schedule",
                 "role_match": "heading",
-                "role_rule": 3
+                "role_rule": 4
               },
               "style_reason": "only"
             },
@@ -2993,7 +3259,7 @@
                 "ancestor": "Schedule 2 Service Levels",
                 "role": "schedule",
                 "role_match": "ancestor_heading",
-                "role_rule": 4,
+                "role_rule": 5,
                 "spans": 1
               },
               "style_reason": "only"
@@ -3033,7 +3299,7 @@
                 "ancestor": "Schedule 2 Service Levels",
                 "role": "schedule",
                 "role_match": "ancestor_heading",
-                "role_rule": 4,
+                "role_rule": 5,
                 "spans": 1
               },
               "style_reason": "only"
@@ -3073,7 +3339,7 @@
                 "ancestor": "Schedule 2 Service Levels",
                 "role": "schedule",
                 "role_match": "ancestor_heading",
-                "role_rule": 4,
+                "role_rule": 5,
                 "spans": 1
               },
               "style_reason": "only"
@@ -3113,7 +3379,7 @@
                 "ancestor": "Schedule 2 Service Levels",
                 "role": "schedule",
                 "role_match": "ancestor_heading",
-                "role_rule": 4,
+                "role_rule": 5,
                 "spans": 1
               },
               "style_reason": "only"
@@ -3153,7 +3419,7 @@
                 "ancestor": "Schedule 2 Service Levels",
                 "role": "schedule",
                 "role_match": "ancestor_heading",
-                "role_rule": 4,
+                "role_rule": 5,
                 "spans": 1
               },
               "style_reason": "only"
@@ -3193,7 +3459,7 @@
                 "ancestor": "Schedule 2 Service Levels",
                 "role": "schedule",
                 "role_match": "ancestor_heading",
-                "role_rule": 4,
+                "role_rule": 5,
                 "spans": 1
               },
               "style_reason": "only"
@@ -3233,7 +3499,7 @@
                 "ancestor": "Schedule 2 Service Levels",
                 "role": "schedule",
                 "role_match": "ancestor_heading",
-                "role_rule": 4,
+                "role_rule": 5,
                 "spans": 1
               },
               "style_reason": "only"
@@ -3273,7 +3539,7 @@
                 "ancestor": "Schedule 2 Service Levels",
                 "role": "schedule",
                 "role_match": "ancestor_heading",
-                "role_rule": 4,
+                "role_rule": 5,
                 "spans": 2
               },
               "style_reason": "only"

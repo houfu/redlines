@@ -115,15 +115,16 @@ Day". Every other item is byte-identical.
 
 - **Roles.** Section 2 is a `definitions` section and each of its eight
   clauses is a `definition`; everything under Schedule 1 and Schedule 2 —
-  headings, clauses and bodies alike — is `schedule`. The Background heading
-  is `recital` and the Signatures heading is `signature`, but only the
-  headings: the `contract` profile matches those two on the heading alone, so
-  the clauses underneath them carry no role, where the schedule rules use
-  `ancestor_heading` and reach the whole subtree. That asymmetry is the
-  profile's, not the pair's, and it is a question for the owner rather than
-  something to paper over here. The operative clauses (3.1, 7.2 and the rest)
-  carry no role at all: the built-in `contract` profile assigns no `clause`
-  role, though ADR-0005's recommended vocabulary has one.
+  headings, clauses and bodies alike — is `schedule`; the Background heading
+  and the three recitals under it are `recital`; the Signatures heading and
+  the two signature lines are `signature`. Every operative clause (3.1, 7.2
+  and the rest) is a `clause` and every lettered sub-clause a `sub_clause`,
+  from the `label` match kind ADR-0031 added (#130): the rule reads the
+  block's own label, gated on `list_item`, which is why the numbered section
+  headings ("3. Supply of the Services") carry no role. What is left at
+  `None` is the title, the parties paragraph, those nine headings and the one
+  continuation paragraph under clause 7.5, and `tests/test_sample_pair.py`
+  names them so a change there is a decision rather than drift.
 - **Spans.** `party` spans over "Supplier" and "Client" where the recital
   introduces them, a `date` span over "1 March 2026" and "1 April 2026", an
   `amount` span over "USD 12,000", `defined_term` spans across the definitions

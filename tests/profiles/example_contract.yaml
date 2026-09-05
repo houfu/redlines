@@ -42,7 +42,10 @@ heading_rule:
 
 # Role rules: a "Definitions" section's children are definitions; anything
 # under a Schedule heading gets the schedule role; recitals and the
-# signature block are recognised by their own headings.
+# signature block are recognised by their own headings; and, last so the
+# rules above win, a list item carrying a decimal label is a clause -- a
+# `label` rule looks at the block's own label, `kind` at its structural
+# kind, and neither at the heading above it.
 role_rules:
   - role: definitions
     match: heading
@@ -59,6 +62,10 @@ role_rules:
   - role: signature
     match: heading
     pattern: '(?i)^(signatures?|execution)\b'
+  - role: clause
+    match: label
+    kind: list_item
+    pattern: '^\d+(?:\.\d+)*$'
 
 # Span extractors pull semantic sub-strings out of block text.
 span_extractors:

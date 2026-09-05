@@ -246,6 +246,62 @@ def test_the_schedules_restart_their_numbering(input_name: str) -> None:
     assert first_schedule_item.role == "schedule"
 
 
+# The roles ADR-0031 put on the body of the agreement, at the addresses
+# CHANGES.md uses for the changes. A numbered section heading is not a clause.
+RECITAL_SECTION = "/section[1]/section[1]"
+SIGNATURE_SECTION = "/section[2]"
+NUMBERED_SECTION_HEADING = "/section[1]/section[3]/heading[1]"
+
+
+@pytest.mark.parametrize("input_name", [name for name, _, _ in PAIRINGS])
+def test_the_body_clauses_carry_clause_and_sub_clause(input_name: str) -> None:
+    """ADR-0031: the operative clauses are `clause`, their lettered children
+    `sub_clause`, the recitals under Background `recital`, the signature lines
+    `signature` -- and the numbered heading above a section carries nothing."""
+    tree = tree_for(input_name)
+
+    moved = tree.block_at(
+        MOVED_CLAUSE_SOURCE
+        if "source" in input_name
+        else "/section[1]/section[9]/list_item[6]"
+    )
+    assert moved.role == "clause"
+    assert moved.attrs["semantic"]["role_match"] == "label"
+    assert moved.attrs["semantic"]["kind"] == "list_item"
+    assert {block.role for block in tree.block_at(DELETED_SUB_CLAUSE).children} == {
+        "sub_clause"
+    }
+    assert tree.block_at(NUMBERED_SECTION_HEADING).role is None
+
+    recitals = tree.block_at(RECITAL_SECTION).children[1:]
+    assert [block.label for block in recitals] == ["1.1", "1.2", "1.3"]
+    assert {block.role for block in recitals} == {"recital"}
+    signatures = tree.block_at(SIGNATURE_SECTION).children[1:]
+    assert len(signatures) == 2
+    assert {block.role for block in signatures} == {"signature"}
+
+
+@pytest.mark.parametrize("input_name", [name for name, _, _ in PAIRINGS])
+def test_what_still_carries_no_role(input_name: str) -> None:
+    """The blocks the built-ins leave at `None`, named so a change here is a
+    decision: the title, the parties paragraph, the numbered section headings,
+    and the one continuation paragraph under the moved clause."""
+    tree = tree_for(input_name)
+    unroled = [
+        block.path
+        for block in tree.walk()
+        if block.role is None and (block.text or block.label)
+    ]
+
+    moved = MOVED_CLAUSE_SOURCE if "source" in input_name else MOVED_CLAUSE_TEST
+    expected = ["/section[1]/heading[1]", "/section[1]/paragraph[1]"]
+    for number in range(3, 12):
+        expected.append(f"/section[1]/section[{number}]/heading[1]")
+        if moved.startswith(f"/section[1]/section[{number}]/"):
+            expected.append(moved + "/paragraph[1]")
+    assert unroled == expected
+
+
 # --- the eight changes ------------------------------------------------------
 
 

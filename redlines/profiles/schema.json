@@ -89,7 +89,17 @@
         {
           "if": {
             "required": ["match"],
-            "properties": { "match": { "enum": ["heading", "ancestor_heading"] } }
+            "properties": { "match": { "const": "heading" } }
+          },
+          "then": {
+            "required": ["pattern"],
+            "not": { "anyOf": [{ "required": ["parent_role"] }, { "required": ["kind"] }] }
+          }
+        },
+        {
+          "if": {
+            "required": ["match"],
+            "properties": { "match": { "enum": ["ancestor_heading", "text", "label"] } }
           },
           "then": {
             "required": ["pattern"],
@@ -111,11 +121,12 @@
         "role": { "type": "string", "minLength": 1, "description": "The semantic role to assign. The vocabulary is open (ADR-0005): any string is accepted and nothing in the library enforces a list, so a document family can name a role of its own. The recommended set -- title, recital, definition, clause, sub_clause, schedule, signature, note, quote, code, boilerplate -- is what renderers, filters and the change tree already understand, so prefer it where one fits and invent a name only where none does." },
         "match": {
           "type": "string",
-          "enum": ["heading", "ancestor_heading", "parent_role"],
-          "description": "'heading': the block is itself a heading whose text matches pattern. 'ancestor_heading': the block sits somewhere under a heading matching pattern, at any depth. 'parent_role': the block's immediate parent in the block tree -- the block that contains it, which for a block directly under a heading is that heading's block -- already carries the role named in parent_role. Use 'ancestor_heading' to match on a heading's text and 'parent_role' to build on a role another rule already assigned; 'parent_role' is the only one of the three that looks at depth 1 exactly. Choose between 'heading' and 'ancestor_heading' by what you want the role to land on: 'heading' labels the heading block itself, so filters and renderers see the heading; 'ancestor_heading' labels the content underneath it and not the heading. A profile that wants both writes both rules. All three match kinds are structural -- none of them looks at the block's own text."
+          "enum": ["heading", "ancestor_heading", "parent_role", "text", "label"],
+          "description": "Three kinds look around the block and two look at it. 'heading': the block is itself a heading whose text matches pattern. 'ancestor_heading': the block sits somewhere under a heading matching pattern, at any depth. 'parent_role': the block's immediate parent in the block tree -- the block that contains it, which for a block directly under a heading is that heading's block -- already carries the role named in parent_role. 'text': the block's own text matches pattern, with any label already stripped, so a clause's text starts at its first word and not its number. 'label': the block's own label matches pattern, spelled as the reader records it ('1.1', '(a)', '(i)', 'A', 'IV', 'Article 5'); a block with no label never matches. Use 'ancestor_heading' to match on a heading's text, 'parent_role' to build on a role another rule already assigned, and 'label' with kind to name what a document's numbering already says -- a list_item with a decimal label is a clause, one with a lettered label a sub_clause. 'parent_role' is the only kind that looks at depth 1 exactly. Choose between 'heading' and 'ancestor_heading' by what you want the role to land on: 'heading' labels the heading block itself, so filters and renderers see the heading; 'ancestor_heading' labels the content underneath it and not the heading. A profile that wants both writes both rules. 'text' and 'label' are the block's own evidence, so they follow list order like every other kind and have no proximity exception (ADR-0031)."
         },
-        "pattern": { "type": "string", "minLength": 1, "description": "Required when match is 'heading' or 'ancestor_heading'; must not be set otherwise. Matched against the heading's text with any label already stripped, so '^Background' matches the heading '3. Background'." },
-        "parent_role": { "type": "string", "minLength": 1, "description": "Required when match is 'parent_role'; must not be set otherwise." }
+        "pattern": { "type": "string", "minLength": 1, "description": "Required when match is 'heading', 'ancestor_heading', 'text' or 'label'; must not be set for 'parent_role'. Searched, not anchored, so write '^' when you mean the start. For the two heading kinds it is matched against the heading's text with any label already stripped, so '^Background' matches the heading '3. Background'; for 'text' against the block's own text, likewise stripped; for 'label' against the block's label alone, so '^\\d+(?:\\.\\d+)*$' is a decimal label and '^\\(?[A-Za-z]+\\)?$' a lettered or roman one." },
+        "parent_role": { "type": "string", "minLength": 1, "description": "Required when match is 'parent_role'; must not be set otherwise." },
+        "kind": { "type": "string", "enum": ["document", "section", "heading", "paragraph", "list_item", "table", "row", "cell", "unknown"], "description": "Optional on every match kind but 'heading', where it must not be set because a heading rule already names its kind. The rule then applies only to blocks of this structural kind (ADR-0005's closed vocabulary), which is what lets a rule say 'a list_item whose label is decimal' rather than 'anything whose label is decimal'." }
       }
     },
     "spanExtractor": {

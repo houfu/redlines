@@ -107,9 +107,11 @@ heading_rule:
 
 # --- roles -----------------------------------------------------------------
 #
-# Tried in order, first match wins; matched against heading text with the
-# `#`s and any label already stripped, so '^Background' matches
-# "## 3. Background".
+# Tried in order, first match wins; heading patterns are matched against
+# heading text with the `#`s and any label already stripped, so
+# '^Background' matches "## 3. Background". The `clause`/`sub_clause` rules
+# are last, as in `contract`, so that every numbered item above keeps the
+# role its section gives it.
 role_rules:
   - role: definitions
     match: heading
@@ -117,18 +119,27 @@ role_rules:
   - role: definition
     match: parent_role
     parent_role: definitions
+  # As in `contract`, in pairs: `heading` labels the heading itself,
+  # `ancestor_heading` labels everything underneath it.
   - role: recital
     match: heading
     pattern: '(?i)^(recitals?|background|whereas|preamble)\b'
-  # `note` is the one role rule `contract` does not carry. Markdown is the
+  - role: recital
+    match: ancestor_heading
+    pattern: '(?i)^(recitals?|background|whereas|preamble)\b'
+  # `note` is the one role `contract` does not carry. Markdown is the
   # drafting format, where a "Notes" or "Drafting note" section is a working
   # aside rather than part of the agreement -- worth tagging so a summary or
-  # a filter can leave it out.
+  # a filter can leave it out. The second rule is the same aside written
+  # inline, "Note: ..." or "[Drafting note: ...]" at the start of a
+  # paragraph, which is a `text` match (ADR-0031): the block's own words,
+  # not a heading above it.
   - role: note
     match: heading
     pattern: '(?i)^(notes?|drafting note|to do|todo)\b'
-  # As in `contract`: `heading` labels the "Schedule 2" heading itself,
-  # `ancestor_heading` labels everything underneath it.
+  - role: note
+    match: text
+    pattern: '(?i)^\[?(?:drafting\s+)?note\b'
   - role: schedule
     match: heading
     pattern: '(?i)^(schedule|annex(?:ure)?|appendix|exhibit|attachment)\b'
@@ -138,6 +149,33 @@ role_rules:
   - role: signature
     match: heading
     pattern: '(?i)^(signatures?|signed|execution|executed|in witness whereof)\b'
+  - role: signature
+    match: ancestor_heading
+    pattern: '(?i)^(signatures?|signed|execution|executed|in witness whereof)\b'
+  # --- the body of the agreement (ADR-0031) ---
+  #
+  # The two kinds that look at the block itself. A clause is what a
+  # contract's own numbering already says it is: a list item carrying a
+  # decimal label ("1", "7.2", "1.2.3"), and a sub-clause one carrying a
+  # lettered or roman label ("(a)", "(iv)", "A", "IV"). The pattern runs
+  # against the *label* as the reader spells it, not the text, because the
+  # text of clause 7.2 is "A party may disclose..." and says nothing about
+  # being a clause. `kind: list_item` keeps a decimal label on a heading
+  # ("1. DEFINITIONS") from turning the heading into a clause.
+  #
+  # Last, so that every rule above keeps precedence: a definition, a
+  # recital and a schedule item are all numbered list items too, and are
+  # still what the rules above say they are. A house profile that
+  # distinguishes depth writes it into the pattern -- '^\d+\.\d+\.\d+' for a
+  # third-level decimal -- rather than expecting the format to count.
+  - role: clause
+    match: label
+    kind: list_item
+    pattern: '^\d+(?:\.\d+)*$'
+  - role: sub_clause
+    match: label
+    kind: list_item
+    pattern: '^\(?[A-Za-z]+\)?$'
 
 # --- spans -----------------------------------------------------------------
 #

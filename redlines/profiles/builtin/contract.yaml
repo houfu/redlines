@@ -144,9 +144,11 @@ heading_rule:
 # --- roles -----------------------------------------------------------------
 #
 # Tried in order, first match wins, and a block sees its ancestors' roles
-# already assigned. Order matters twice here: `definition` must follow the
-# `definitions` rule it builds on, and both must precede the schedule rules
-# so that a definitions section *inside* a schedule still yields definitions.
+# already assigned. Order matters three times here: `definition` must follow
+# the `definitions` rule it builds on; both must precede the schedule rules
+# so that a definitions section *inside* a schedule still yields definitions;
+# and the `clause`/`sub_clause` rules come last, because everything above
+# them is a numbered list item too and would otherwise be claimed as a clause.
 role_rules:
   - role: definitions
     match: heading
@@ -155,13 +157,19 @@ role_rules:
   - role: definition
     match: parent_role
     parent_role: definitions
+  # Two rules each for recitals, schedules and signatures, because the match
+  # kinds land on different blocks: `heading` labels the "Schedule 1" heading
+  # itself so a filter or renderer can find it, `ancestor_heading` labels
+  # everything underneath it. Recitals and signatures got the second rule
+  # with ADR-0031: once numbered items carry `clause`, a recital numbered
+  # 1.1 under "Background" has to be told apart from the clauses it looks
+  # like, and a signature line under "Signatures" is a signature.
   - role: recital
     match: heading
     pattern: '(?i)^(recitals?|background|whereas|preamble)\b'
-  # Two rules for schedules, because the schema's three match kinds land on
-  # different blocks: `heading` labels the "Schedule 1" heading itself so a
-  # filter or renderer can find it, `ancestor_heading` labels everything
-  # underneath it.
+  - role: recital
+    match: ancestor_heading
+    pattern: '(?i)^(recitals?|background|whereas|preamble)\b'
   - role: schedule
     match: heading
     pattern: '(?i)^(schedule|annex(?:ure)?|appendix|exhibit|attachment)\b'
@@ -171,6 +179,33 @@ role_rules:
   - role: signature
     match: heading
     pattern: '(?i)^(signatures?|signed|execution|executed|in witness whereof)\b'
+  - role: signature
+    match: ancestor_heading
+    pattern: '(?i)^(signatures?|signed|execution|executed|in witness whereof)\b'
+  # --- the body of the agreement (ADR-0031) ---
+  #
+  # The two kinds that look at the block itself. A clause is what a
+  # contract's own numbering already says it is: a list item carrying a
+  # decimal label ("1", "7.2", "1.2.3"), and a sub-clause one carrying a
+  # lettered or roman label ("(a)", "(iv)", "A", "IV"). The pattern runs
+  # against the *label* as the reader spells it, not the text, because the
+  # text of clause 7.2 is "A party may disclose..." and says nothing about
+  # being a clause. `kind: list_item` keeps a decimal label on a heading
+  # ("1. DEFINITIONS") from turning the heading into a clause.
+  #
+  # Last, so that every rule above keeps precedence: a definition, a
+  # recital and a schedule item are all numbered list items too, and are
+  # still what the rules above say they are. A house profile that
+  # distinguishes depth writes it into the pattern -- '^\d+\.\d+\.\d+' for a
+  # third-level decimal -- rather than expecting the format to count.
+  - role: clause
+    match: label
+    kind: list_item
+    pattern: '^\d+(?:\.\d+)*$'
+  - role: sub_clause
+    match: label
+    kind: list_item
+    pattern: '^\(?[A-Za-z]+\)?$'
 
 # --- spans -----------------------------------------------------------------
 #

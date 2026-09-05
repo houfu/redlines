@@ -47,6 +47,7 @@ This directory records the decisions behind redlines 1.0 — the reasoning, the 
 | [0028](0028-profile-file-format.md) | YAML as the structure profile file format, hand-validated against a published JSON Schema | Accepted |
 | [0029](0029-address-syntax.md) | Spell block addresses as XPath-style kind paths, with the label and breadcrumb alongside | Accepted |
 | [0030](0030-matched-by-and-confidence.md) | Report how every block was recognised, with a reserved fallback and a bounded confidence | Accepted |
+| [0031](0031-role-rules-on-the-block-itself.md) | Let a role rule look at the block itself: `text` and `label` match kinds, with a `kind` filter | Proposed |
 
 ## Evidence base
 
