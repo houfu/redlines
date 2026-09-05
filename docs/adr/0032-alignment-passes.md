@@ -1,0 +1,121 @@
+# ADR-0032: How alignment passes are scoped, ordered and configured
+
+**Status:** Accepted
+**Date:** 2026-09-05
+**Deciders:** houfu
+
+## Context
+
+[ADR-0008](0008-multi-pass-block-alignment.md) settled the shape of alignment — ordered passes, each pair recording which pass matched it — and named four of them: exact content, label, fuzzy above a threshold, positional fill-in. It left three things to the implementation, and M2 is where all three come due at once.
+
+**What the passes run over.** ADR-0008 describes passes, not scope. Run globally over a flattened tree, they misbehave in ways that are measurable rather than theoretical. 22 of the 119 source blocks in the section 3a sample pair carry no text at all — `section` ×15, `row` ×5, `table` ×1, `document` ×1 — because container blocks are empty by design. A content pass that does not exclude them matches every container to every other container: a prototype run did exactly that, failed to pair the `table`, and emitted 13 table cells as moves. And the eight items in Schedule 2 of the same pair have pairwise similarity 0.70–0.80, so a global fuzzy pass is choosing between near-ties across a whole document; their labels disambiguate them perfectly, but a label only means something inside a scope.
+
+**What the four names cannot express.** Two real pieces of work have no name in ADR-0008's set. Pairing a keyless container — a `table`, a headingless `section` — is not a content match, a label match, a fuzzy match or a positional fill-in among leaves, but without it the descent stops at the container and its rows are never compared. And a move is a cross-scope search, which is the one thing the scoped descent structurally cannot see.
+
+**What it costs.** ADR-0008 permits a quadratic worst case "with early exit on exact matches", and N2 wants 2,000 blocks compared in under five seconds. Measured: the sample pair (119 vs 123 blocks) aligns in 2 ms; a 2,000-block pair with 10% edited, 2% moved and 50 inserts aligns in 24 ms with exact plus gap-scoped fuzzy; the same pair with an unbounded quadratic fuzzy pass over leftovers takes about 39 seconds. The permitted worst case does not fit the budget on its own, so something has to bound it, and the bound is a decision rather than an implementation detail because it can silently cost recall.
+
+Two smaller questions arrived with these. ADR-0008 says passes "can be individually disabled or reordered per profile", and no profile field exists to do it. And ADR-0004 puts rapidfuzz behind an extra without saying which extra, or what it means for two installs of the same version to disagree.
+
+## Decision
+
+**Six named passes, run over an anchored sibling-scoped descent.**
+
+`redlines.alignment.PASS_NAMES` is the closed tuple `("exact", "label", "structural", "fuzzy", "move", "positional")`, and `RESERVED_PASS_NAMES` is `("root", "unmatched")`. Every `AlignedPair.matched_by` is one of the six or `"root"`; `"unmatched"` is what an insert or delete change node carries in the same field. Unlike ADR-0030's reader vocabulary, which is open because it names rules in profiles users write, this vocabulary is **closed**: it names our own passes, there is no user-supplied rule behind it, and a consumer switching on it should be able to switch exhaustively.
+
+The walk is a FIFO queue of matched parent pairs, starting from the root pair, aligning one sibling group at a time and pushing every new pair back onto the queue. Within a sibling group the order is fixed:
+
+| # | Pass | Decides on | Note |
+|---|---|---|---|
+| 0 | cell rule | sibling index | inside a `row`, cell *i* ↔ cell *i*. Total, short-circuits the rest, recorded as `positional` |
+| 1 | `exact` | the match key, within a kind class | O(k) through `defaultdict` buckets consumed in document order |
+| 2 | `label` | `Block.label` equality, within a kind class | guarded by `label_min_similarity` |
+| 3 | `structural` | nothing | unmatched keyless containers pair positionally, so the descent can continue into them |
+| 4 | `fuzzy` | token similarity ≥ `fuzzy_min_similarity` | gap-scoped and window-capped |
+| 5 | `positional` | nothing (a score is still recorded) | leftovers in the same gap, same kind class, in order, above `positional_min_similarity` |
+
+Blocks match only within a **kind class**: `{heading}`, `{paragraph, list_item}`, `{section, document}`, `{table}`, `{row}`, `{cell}`. Grouping `paragraph` with `list_item` is deliberate — a clause that lost its number is still the same clause — and keeping `cell` and `row` apart is what stops a cell matching a paragraph.
+
+The **match key** the exact pass buckets on is, for a text-bearing block, its text with whitespace runs collapsed to a single space and the ends stripped. Case is not folded: a case change is a real change. A container's key is its `heading` child's `label + "\x1f" + normalised text` where it has one, and a `row`'s is its cells' texts joined with `\x1f`; a container with no key falls through to `structural`. This is what makes section 7 pair with section 7 in one step, explainably, before any similarity is computed.
+
+**Similarity is measured over token sequences, never characters**, using the same normalised tokens `WholeDocumentProcessor` builds for the leaf diff — so the ratio alignment measures is the ratio the leaf diff will go on to report. Measured on ~45-token blocks, token-level comparison runs at about 68,000 pairs per second and character-level at about 1,000. `SequenceMatcher.real_quick_ratio()` and `quick_ratio()` are upper bounds on `ratio()`, so they prefilter for free — measured at 141,000 pairs per second — and they prune identically under either backend, which is a requirement rather than a convenience.
+
+**Where a maximum is taken, the tie-break is stated and total**: highest score, then the candidate whose `role` equals the other side's, then earliest source document-order index, then earliest test index. Role never *creates* a match; it only orders equals, which is the bounded use R2 permits. Nothing in alignment reads `Block.matched_by` or `Block.confidence` — [ADR-0030](0030-matched-by-and-confidence.md) forbids it, and the prohibition ships as a test that rewrites both fields on every block of the sample pair and asserts the change tree is byte-identical.
+
+**`move` runs globally, after the descent and before `positional`.** It is the only global work. It pairs still-unmatched blocks on both sides: first by exact normalised text where that text is unique among leftovers on *both* sides, then by best fuzzy score, accepted only if it clears `move_min_similarity` and beats the runner-up by `move_tie_margin`. Every pair it makes is pushed back onto the descent queue, so a moved block's children align in their new scope — which is what makes "a clause moved, and edited" come out as one `move` node plus one `modify` node on its body rather than as one indivisible event. Within a sibling group, anchors outside the longest increasing subsequence of `(source order, test order)` have genuinely crossed and are also reported as moves.
+
+**A pair is a move iff its source and test parents do not correspond, or it is a crossing pair in its own scope. A pair is a renumber iff its parents correspond and its labels differ.** Both are read off the alignment record rather than searched for separately, and both are recorded on `AlignedPair` as `moved` and `renumbered` so the change tree does not have to recompute them.
+
+The order matters and is not a preference. Running the positional fill-in before moves are known consumes a moved block into a wrong same-parent slot whenever a section both loses and gains a clause; recovering from that needs the move search anyway. And `exact` must precede `label`, because renumbering detection depends on it: in the sample pair, source clause 3.3 and test clause 3.4 have byte-identical text, so `exact` pairs them and the label difference is read straight off. If `label` ran first it would match source `3.3` to test `3.3` — which in that document is the *newly inserted* clause, scoring 0.20 against it.
+
+A stdlib prototype of exactly this walk, reading the frozen M1 goldens, produces on the markdown side of the sample pair: 119 against 123 blocks in 2 ms, `{root: 1, exact: 111, label: 3, structural: 1, move: 2}`, one insert, one delete, the 7.5 → 9.6 move at confidence 1.0, both renumbers matched by `exact`, and nothing at all on the whitespace-only clause. The plain-text twin gives the same eight changes with the one documented divergence at the table. That is the evidence behind the shape above; it is not a substitute for the benchmark, and none of it is a tuned result.
+
+Three of the prototype's early failures become regression tests, because each was a silent wrong answer rather than a crash: the `table` must be paired structurally or its rows are never compared; the move pass must exclude `cell`, `row` and `section` kinds; and the move pass must enforce a minimum token length. Without all three, the markdown side produced 13 cell "moves".
+
+**The guards, and their default values.** ADR-0008 mentions a fuzzy threshold and nothing else. Three more guards ship, because without them the passes are confidently wrong rather than silent:
+
+| Knob | Default | Why this number |
+|---|---|---|
+| `fuzzy_min_similarity` | 0.60 | |
+| `label_min_similarity` | 0.35 | adeu's fallback ratio for "this is really a different block". Measured: it is what rejects the old 3.3 ↔ inserted 3.3 match at 0.20. Two blocks with empty text bypass it, since a floor over no text is meaningless |
+| `positional_min_similarity` | 0.35 | same number, same reason, at the other end of the order |
+| `move_min_similarity` | 0.80 | Docxodus uses 0.8 Jaccard for the same job. Distinct sibling clauses in the sample pair score 0.16–0.44 against each other, so the threshold does not need to be low to work |
+| `move_tie_margin` | 0.10 | Measured worst case in the sample pair: test Schedule 2 item 3 scores 0.85 against its true partner and 0.732 against the best wrong sibling — a margin of 0.118. That is the empirical floor for how close a wrong candidate gets in a genuinely repetitive document |
+| `move_min_tokens` | 8 | Docxodus requires three words. A one-word cell reading "Supplier" appearing in another row is not a move |
+| `move_kinds` | `("paragraph", "list_item", "heading")` | container moves are not reported in 1.0; they surface as their children moving, which is honest and cannot be wrong |
+| `table_fuzzy` | `False` | rows match by exact key then by position, per the table decision below |
+| `fuzzy_window` | 25 | see the budget below |
+| `max_comparisons` | 2,000,000 | |
+
+Every knob defaults toward silence, because [ADR-0009](0009-moves-before-splits.md)'s gate is asymmetric: telling a lawyer a clause moved when it did not costs more trust than saying nothing. **The numbers are provisional; the knobs are not.** They are measured justifications, not tuned values, and [ADR-0021](0021-alignment-benchmark.md) exists precisely so they can be set from evidence. The benchmark report ([#143](https://github.com/houfu/redlines/issues/143)) is where they get their first real reading, and changing a default in response to it is expected and is not a new decision.
+
+**Complexity is bounded three ways, all deterministic.** After `exact`, `label` and `structural`, the anchors partition each sibling group; `fuzzy` compares only source-gap against test-gap, and anchors are dense in any document with labels or headings. Inside a large gap, a test block is compared only against source blocks within ±`fuzzy_window` rank positions among the unmatched in that gap, making the cost O(k·2W) — 2,000 × 50 ≈ 100k ratios ≈ 1.5 s worst case, inside N2's budget. Ordinary documents never reach the window at all, because k ≤ 25 makes it the whole gap.
+
+Behind both sits **one run-wide `max_comparisons` counter**, checked at every candidate-generation site: the fuzzy gap-window, the move pass's exact stage and its fuzzy stage. It is a single budget for the whole run, not a per-pass or per-gap allowance. When it is exhausted, the site that hit it stops generating candidates, the blocks it was working on fall through to positional fill-in or to unmatched, and `Alignment.budget_exhausted` becomes `True`. That flag is reported on the wire, on both `Alignment` and `ComparisonConfig`. Silence is the safe failure, but silent silence is not: a consumer must be able to tell "nothing more was found" from "we stopped looking".
+
+**Tables.** Once the `table` pair exists (pass 3), the descent does the rest. Rows match by an exact key — the cells' texts joined with `\x1f` — then positionally; `table_fuzzy` is off by default. Cells match strictly by sibling index, never by an `attrs["column"]` value, because the markdown reader pads ragged rows to full width, so the index *is* the column, and keying on the index keeps `alignment.py` free of any reader's `attrs` vocabulary. Where two rows have different cell counts, cells pair by sibling index up to `min(len(source_cells), len(test_cells))` and the surplus cells on either side are reported as individual cell inserts or deletes. **A row never fails to match because of its cell count alone.** No column operations and no merged cells in 1.0.
+
+**Configuration lives in `AlignmentConfig`, and only there.** It is a frozen dataclass carrying the pass list, every threshold above, the requested similarity backend and the budget, with `to_dict()`/`from_dict()` in the `blocks.py` style. `AlignmentConfig.passes` **controls inclusion only; the order is fixed** as the table above. Reordering was ADR-0008's word, but the order is load-bearing in two places already shown (`exact` before `label`, `move` before `positional`), and a reordered run would report pass names that no longer mean what the record says they mean. `exact`, `structural` and `positional` cannot be dropped — they are the descent's anchors and its fill-in — while `label`, `fuzzy` and `move` can. An unrecognised name, or the absence of a mandatory one, raises `ValueError` from `from_dict` and `__post_init__`, matching the strictness the block model's `_reject_unknown_keys` already applies elsewhere.
+
+**A profile `alignment:` block is deferred to 1.1, and this revisits ADR-0008.** ADR-0008 says passes can be disabled or reordered "per profile"; in 1.0 they cannot. There is no evidence yet of a document family that needs different thresholds from another — that is exactly what the benchmark is for — and a knob in two places is a knob that drifts. Because `AlignmentConfig.to_dict()` is already the output shape, adding a profile block later is additive under [ADR-0011](0011-json-canonical-annotated-renderer.md)'s policy. Saying so here is better than leaving a sentence of ADR-0008 quietly unimplemented.
+
+**The root pair is given, not found.** It is `AlignedPair(source_path="/", test_path="/", matched_by="root", confidence=1.0, moved=False, renumbered=False)`. It is excluded from the benchmark's correspondence set and from statistics counts, because scoring the engine for knowing that a document is itself would flatter every number.
+
+**The fuzzy backend is selected, not detected.** `AlignmentConfig.similarity` is `"auto" | "difflib" | "rapidfuzz"`, default `"auto"`; `redlines.similarity.resolve_backend()` turns that into a concrete name, and the **resolved** name goes on the wire in `ComparisonConfig.similarity` while the **requested** value stays in `config.alignment.similarity`. Both, because "auto picked difflib" and "difflib was demanded" are different facts and #143's with-and-without report needs to tell them apart. Selection rather than detection also means the gap can be measured by choosing a backend rather than by hiding an import.
+
+rapidfuzz ships under a **new `[fuzzy]` extra**, `rapidfuzz>=3.0`. The existing `[levenshtein]` extra is untouched and is not reused: it exists for v1's own surface, the function alignment needs is `rapidfuzz.distance.Indel.normalized_similarity` over **token sequences** rather than a string-only ratio, and folding a new 1.0 dependency into an extra v1 users already install would change what an existing install pulls in. `redlines/similarity.py` is the only module that imports it, guarded in the `NUPUNKT_AVAILABLE` style, so the plain wheel the blocking Pyodide job builds keeps importing with the extra absent.
+
+The two backends are not identical, and the difference is stated rather than smoothed over. Measured across 20,000 random token-pair comparisons against rapidfuzz 3.14.6: they agree on 19,914 pairs to 1e-12; on the 86 that differ **rapidfuzz is always higher**, by +0.027 to +0.333, concentrated on short sequences of 3–12 tokens with several edits — difflib's `get_matching_blocks` is a greedy recursive longest-block search while `Indel` is a true LCS. So a backend can flip a near-threshold decision. **Determinism is therefore promised per configuration**: identical inputs, identical config and identical resolved backend give byte-identical output, and the resolved backend is part of the output so that promise is checkable. What the backend must never change is the *search space* — same candidates, same caps, same tie-breaks either way, or #143 measures the wrong thing.
+
+## Alternatives considered
+
+**A global flatten with the four ADR-0008 passes and no scoping.** The literal reading, and the simplest to describe. Rejected on the measured failures above: containers match containers, the table is never paired, 13 cells come out as moves, and an unbounded global fuzzy pass over 400×400 leftovers takes 1.56 s, extrapolating to about 39 s at 2,000×2,000 — eight times over the budget.
+
+**A rare-token inverted index as the primary candidate generator.** Near-linear on varied prose and the obvious way to avoid the quadratic. Rejected outright: measured, it found **zero** candidates on repetitive text, because no token is rare there. That is a silent recall failure on precisely the repetitive-schedule pathology [ADR-0010](0010-keep-difflib-for-leaf-diffs.md) names, and its failure mode is invisible.
+
+**GumTree-shaped bottom-up container inference** — match leaves globally, then pair containers by shared matched children. Robust to whole sections relocating. Rejected: it reintroduces the global-fuzzy cost and the repetitive-content ambiguity at the leaf level, where this project's worst inputs live, and it makes "why did these two match?" much harder to answer in one sentence, which is what ADR-0008 exists to protect.
+
+**Four passes, with move as post-hoc classification of leftover insert/delete pairs.** Faithful to ADR-0008's letter and one fewer name. Rejected: the positional fill-in runs before moves are known and eats the moved block, so the simplicity is nominal.
+
+**Five passes, folding container pairing into `positional`.** One fewer name on the wire. Rejected because `positional` would then mean two different things at two different points in the order — exactly the ambiguity the pass record exists to remove.
+
+**A per-pass or per-gap comparison budget instead of one run-wide counter.** Fairer, in that a pathological early gap could not starve the move pass of budget. Rejected because the guarantee people want is about the whole run — "this comparison finishes in five seconds" — and a per-site allowance makes the total the product of two numbers nobody set. One counter also gives one flag: `budget_exhausted` means "we stopped looking somewhere", which is the only thing a consumer can act on.
+
+**Auto-detecting the backend at import, as a module-level constant.** Simplest, and what ADR-0008's "rapidfuzz when installed" reads like. Rejected: the benchmark cannot then run both legs of the comparison in one process, and a user cannot pin a backend to keep goldens stable.
+
+**Reusing the `[levenshtein]` extra for the fuzzy backend.** No new extra name, and `Levenshtein` is already an accepted optional dependency. Rejected: it is a character-level, string-taking API for a token-sequence job, and quietly changing what an existing extra installs is a worse outcome than one more extra.
+
+**Reordering as well as inclusion in `AlignmentConfig.passes`.** ADR-0008's own phrasing. Rejected as described: two orderings are load-bearing, and honouring an arbitrary one would produce a pass record that lies.
+
+## Consequences
+
+Positive: the scope of every match is stated, so "matched by label, among its siblings, in section 7" is an answer a user can argue with — one better than "matched by label" alone. Containers pair explicitly rather than by accident, which is what makes table rows comparable at all. Moves are the only global work, so the expensive part of alignment is the part with the most guards on it. The cost of the permitted quadratic is bounded by two named, deterministic mechanisms and a reported budget flag, rather than by hoping documents stay small. And the ADR-0008 review gate has its evidence source: `Alignment.pass_counts` reports what each pass actually contributed.
+
+Negative: six pass names plus two reserved values is more vocabulary than ADR-0008 promised, and every one of them is on the wire and therefore hard to remove. Ten configuration knobs are ten things to get wrong, and eight of them are defended by measurements from a single sample pair — a corpus of one, until the benchmark lands. The window cap is a real recall risk in a document with a large unanchored gap, and it will fail silently there; only the benchmark will show it. The gap between backends means two users on the same version can get different output from the same documents, which is mitigated by putting the resolved backend in the output and by promising determinism per configuration rather than absolutely. Deferring the profile block leaves ADR-0008's "per profile" unimplemented in 1.0, which is stated here rather than discovered later.
+
+## Revisit when
+
+The [#143](https://github.com/houfu/redlines/issues/143) report is the first real reading of every default in the table above; expect to move at least one, and treat that as evidence arriving rather than as a decision reopening. If the per-pass table shows a pass with low unique contribution and high wrong-match count, cut it — that is ADR-0008's review gate, and this is the ADR that gets amended when it fires. If the report shows a document family that genuinely needs different thresholds from another, that is the signal for the profile `alignment:` block, and not before. If `budget_exhausted` turns out to be set on real documents rather than on constructed worst cases, the window and the budget need revisiting together, and the honest first move is to raise the budget rather than to widen the window. If the measured backend gap changes a headline benchmark number by more than the noise between corpus revisions, the site's difflib-only floor ([ADR-0019](0019-client-side-demo-site.md), PRD § 12) stops being a footnote and becomes a decision of its own. And if splits and merges arrive in 1.1 per ADR-0009, they will want a seventh pass; whether that fits the descent or forces a different shape is the question that would reopen this whole ADR rather than amend it.
+
+## Related
+
+ADR-0004, ADR-0008, ADR-0009, ADR-0010, ADR-0021, ADR-0030. Issues [#131](https://github.com/houfu/redlines/issues/131), [#132](https://github.com/houfu/redlines/issues/132), [#133](https://github.com/houfu/redlines/issues/133), [#134](https://github.com/houfu/redlines/issues/134), [#135](https://github.com/houfu/redlines/issues/135), [#143](https://github.com/houfu/redlines/issues/143).
