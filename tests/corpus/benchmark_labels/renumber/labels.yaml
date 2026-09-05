@@ -1,0 +1,65 @@
+schema: redlines/alignment-labels/1
+pair: renumber-fixture
+source:
+  file: source.txt
+  format: text
+  profile: contract
+  sha256: "7f4add71d0faff0d452161a4954ab3d31b4246de67b3c44ffa2eda46e2b36cbb"
+test:
+  file: test.txt
+  format: text
+  profile: contract
+  sha256: "0ddc3366a64137d4fa4d8b81707b4eb69133b79a7bed9e1d205fee89b8b5b526"
+provenance:
+  kind: hand
+  origin: "tests/test_benchmark_labels.py fixture, hand-written for the format's own tests"
+  prepared_by: "tests/test_benchmark_labels.py"
+  normalisations: []
+correspondences:
+  - source: "/list_item[1]"
+    test: "/list_item[2]"
+    kind: renumber
+    source_label: "1"
+    test_label: "2"
+    source_digest: "996d2b536a572489"
+    test_digest: "b6f6a508ee61a446"
+    status: confirmed
+  - source: "/list_item[2]"
+    test: "/list_item[3]"
+    kind: renumber
+    source_label: "2"
+    test_label: "3"
+    source_digest: "f4577db5583ebfe2"
+    test_digest: "dce6965baafcec60"
+    status: confirmed
+  - source: "/list_item[3]"
+    test: "/list_item[4]"
+    kind: renumber
+    source_label: "3"
+    test_label: "4"
+    source_digest: "f39c013282cc6f5c"
+    test_digest: "15b8e449b9c29408"
+    status: confirmed
+inserted:
+  - test: "/list_item[1]"
+    test_digest: "fed242535ad102c8"
+    status: confirmed
+deleted: []
+splits: []
+merges: []
+unscored: []
+review:
+  labelled_by: houfu
+  labelled_at: "2026-09-05"
+  reviewed_by: houfu
+  reviewed_at: "2026-09-05"
+  decision: accepted
+  override_rate: 0.0
+move_verdicts:
+  - source: "/list_item[3]"
+    test: "/list_item[4]"
+    engine: "0000000"
+    verdict: acceptable
+    reason: "fixture only: exercises the move_verdicts shape, not a real engine run"
+    reviewed_by: houfu
+    reviewed_at: "2026-09-05"

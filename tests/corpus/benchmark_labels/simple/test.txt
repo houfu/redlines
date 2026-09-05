@@ -1,0 +1,17 @@
+Agreement
+
+1. Definitions
+
+1.1 "Confidential Information" means any information disclosed by one party to the other.
+
+1.2 "Effective Date" means the date first written above.
+
+1.3 "Term" means the period this Agreement is in force.
+
+2. Term
+
+This Agreement begins on the Effective Date and continues for two years.
+
+3. Confidentiality
+
+3.1 Each party shall keep Confidential Information strictly secret.
