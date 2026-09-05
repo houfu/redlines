@@ -4,7 +4,7 @@
   "title": "Redlines Comparison (JSON v2)",
   "description": "Schema for redlines.comparison.Comparison.to_dict() -- the M2 comparison document: two block trees, what corresponds between them, and what changed (ADR-0032, ADR-0033). Frozen at schema_version 2.0. Policy: an additive change (a new optional field, a new change kind, a new statistic) bumps the minor and widens this same file; a breaking change bumps the major, gets its own ADR, and the previous major stays producible from its own schema file. This one file also carries the block tree, at #/definitions/blockTree -- there is no separate block-tree schema -- because a second file would need a cross-file $ref to a URL that does not exist until this file itself is published (M4), which is a resolution trap offline and in tests. The presence of the schema_version key is itself the v1/v2 discriminator: v1's Redlines.output_json has no such key at all.",
   "type": "object",
-  "required": ["schema_version", "config", "source", "test", "changes"],
+  "required": ["schema_version", "config", "source", "test", "changes", "statistics"],
   "additionalProperties": false,
   "properties": {
     "schema_version": {
@@ -28,6 +28,10 @@
     "alignment": {
       "$ref": "#/definitions/alignment",
       "description": "OPTIONAL. Present only when the document was written with to_dict(include_alignment=True)/to_json(include_alignment=True). Every correspondence between the two trees, unchanged pairs included -- the whole set the change tree cannot express, because an unchanged pair produces no change node."
+    },
+    "statistics": {
+      "$ref": "#/definitions/comparisonStatistics",
+      "description": "redlines.statistics.ComparisonStatistics.to_dict() (#139) -- always present, computed fresh from changes and both block trees rather than stored. Added after the initial JSON v2 freeze (#137); an additive, minor-version change (ADR-0011)."
     }
   },
   "definitions": {
@@ -41,7 +45,8 @@
         "alignment",
         "similarity",
         "processor",
-        "budget_exhausted"
+        "budget_exhausted",
+        "filter"
       ],
       "additionalProperties": false,
       "properties": {
@@ -73,6 +78,10 @@
         "budget_exhausted": {
           "type": "boolean",
           "description": "Whether alignment's max_comparisons ran out. True means 'we stopped looking', not 'nothing more was there'."
+        },
+        "filter": {
+          "anyOf": [{ "$ref": "#/definitions/changeFilter" }, { "type": "null" }],
+          "description": "The redlines.filters.ChangeFilter that produced this comparison's changes, or null for an unfiltered comparison (#138). Added after the initial JSON v2 freeze (#137); an additive, minor-version change (ADR-0011)."
         }
       }
     },
@@ -436,6 +445,139 @@
           "description": "Whether the parents correspond and the labels differ."
         }
       }
+    },
+    "changeFilter": {
+      "type": "object",
+      "description": "redlines.filters.ChangeFilter.to_dict() -- a declarative scope over a change tree (#138). An empty array field is no constraint; fields AND together, values within one field OR.",
+      "required": [
+        "kinds",
+        "address_prefixes",
+        "labels",
+        "roles",
+        "min_chars",
+        "has_inline"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "kinds": {
+          "type": "array",
+          "description": "Keep only these change kinds. [] is no constraint.",
+          "items": { "$ref": "#/definitions/changeKind" }
+        },
+        "address_prefixes": {
+          "type": "array",
+          "description": "Keep only a change whose source_address or test_address sits at or under one of these, segment-aligned ('/section[1]' does not match '/section[11]'). [] is no constraint.",
+          "items": { "type": "string" }
+        },
+        "labels": {
+          "type": "array",
+          "description": "Keep only a change whose source_label or test_label is one of these. [] is no constraint.",
+          "items": { "type": "string" }
+        },
+        "roles": {
+          "type": "array",
+          "description": "Keep only a change whose role is one of these. [] is no constraint.",
+          "items": { "type": "string" }
+        },
+        "min_chars": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Keep only a change whose max(chars_added, chars_deleted) is at least this many characters. 0 is no constraint."
+        },
+        "has_inline": {
+          "type": ["boolean", "null"],
+          "description": "true keeps only a change with at least one inline op, false keeps only one with none, null is no constraint."
+        }
+      }
+    },
+    "changeCounts": {
+      "type": "object",
+      "description": "redlines.statistics.ChangeCounts.to_dict() -- how many changes there were, and what kind, over one list of change nodes (#139).",
+      "required": [
+        "inserted",
+        "deleted",
+        "modified",
+        "moved",
+        "renumbered",
+        "total",
+        "inline_insertions",
+        "inline_deletions",
+        "inline_replacements",
+        "tokens_changed",
+        "chars_added",
+        "chars_deleted"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "inserted": { "type": "integer", "minimum": 0 },
+        "deleted": { "type": "integer", "minimum": 0 },
+        "modified": { "type": "integer", "minimum": 0 },
+        "moved": { "type": "integer", "minimum": 0 },
+        "renumbered": { "type": "integer", "minimum": 0 },
+        "total": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "The sum of the five change-kind counts -- a count of change nodes, not blocks (a deleted 40-block schedule is one 'deleted')."
+        },
+        "inline_insertions": { "type": "integer", "minimum": 0 },
+        "inline_deletions": { "type": "integer", "minimum": 0 },
+        "inline_replacements": { "type": "integer", "minimum": 0 },
+        "tokens_changed": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Tokens on both sides of every inline op, in the leaf differ's own units."
+        },
+        "chars_added": { "type": "integer", "minimum": 0 },
+        "chars_deleted": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "sectionStatistics": {
+      "type": "object",
+      "description": "redlines.statistics.SectionStatistics.to_dict() -- counts and density for one section-with-heading unit: every block of kind 'section' that has a 'heading' child, wherever it sits in the tree. This is a deliberate reinterpretation of #139's 'top-level section' (see redlines/statistics.py's module docstring and the #138/#139/#140 PR body).",
+      "required": ["address", "heading", "breadcrumb", "blocks", "counts", "density"],
+      "additionalProperties": false,
+      "properties": {
+        "address": {
+          "type": "string",
+          "description": "The section block's test address, or its source address when the whole section was deleted."
+        },
+        "heading": { "type": "string" },
+        "breadcrumb": {
+          "type": "array",
+          "description": "The ADR-0029 heading breadcrumb leading to the section itself, outermost first.",
+          "items": { "type": "string" }
+        },
+        "blocks": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "How many blocks of the TEST tree have this section as their nearest enclosing one -- change-independent, from the unfiltered tree. 0 for a section deleted whole."
+        },
+        "counts": { "$ref": "#/definitions/changeCounts" },
+        "density": {
+          "type": "number",
+          "minimum": 0.0,
+          "description": "counts.total / blocks, rounded to 4 decimal places; 0.0 when blocks is 0."
+        }
+      }
+    },
+    "comparisonStatistics": {
+      "type": "object",
+      "description": "redlines.statistics.ComparisonStatistics.to_dict() (#139).",
+      "required": ["counts", "source_blocks", "test_blocks", "sections"],
+      "additionalProperties": false,
+      "properties": {
+        "counts": {
+          "$ref": "#/definitions/changeCounts",
+          "description": "Every change in the comparison, tallied. Reflects a filtered change list when this comparison came from Comparison.filter()."
+        },
+        "source_blocks": { "type": "integer", "minimum": 0 },
+        "test_blocks": { "type": "integer", "minimum": 0 },
+        "sections": {
+          "type": "array",
+          "description": "One row per section-with-heading unit that exists on either side, in document order.",
+          "items": { "$ref": "#/definitions/sectionStatistics" }
+        }
+      }
     }
   },
   "examples": [
@@ -461,7 +603,8 @@
         },
         "similarity": "difflib",
         "processor": "WholeDocumentProcessor",
-        "budget_exhausted": false
+        "budget_exhausted": false,
+        "filter": null
       },
       "source": {
         "root": {
@@ -552,7 +695,26 @@
           ],
           "breadcrumb": []
         }
-      ]
+      ],
+      "statistics": {
+        "counts": {
+          "inserted": 0,
+          "deleted": 0,
+          "modified": 1,
+          "moved": 0,
+          "renumbered": 0,
+          "total": 1,
+          "inline_insertions": 0,
+          "inline_deletions": 0,
+          "inline_replacements": 1,
+          "tokens_changed": 2,
+          "chars_added": 8,
+          "chars_deleted": 5
+        },
+        "source_blocks": 2,
+        "test_blocks": 2,
+        "sections": []
+      }
     }
   ]
 }
