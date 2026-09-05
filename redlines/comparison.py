@@ -51,20 +51,22 @@ from __future__ import annotations
 import json
 import os
 from collections.abc import Mapping
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from importlib.resources import files
 from pathlib import Path
 from typing import Any, Final
 
 from .alignment import DEFAULT_ALIGNMENT, Alignment, AlignmentConfig, align
 from .blocks import BlockTree, _reject_unknown_keys
-from .changes import ChangeTree, build_change_tree
+from .changes import ChangeKind, ChangeTree, build_change_tree
 from .document import Document
+from .filters import ChangeFilter, filter_changes
 from .pipeline import _resolve_profile, read_document
 from .processor import RedlinesProcessor, WholeDocumentProcessor
 from .profiles import Profile
 from .readers import DEFAULT_MAX_CHARS
 from .readers.detect import detect_format
+from .statistics import ComparisonStatistics, statistics as _statistics
 
 __all__: tuple[str, ...] = (
     "SCHEMA_VERSION",
@@ -124,6 +126,7 @@ _CONFIG_KEYS: Final[set[str]] = {
     "similarity",
     "processor",
     "budget_exhausted",
+    "filter",
 }
 
 _COMPARISON_KEYS: Final[set[str]] = {
@@ -133,6 +136,7 @@ _COMPARISON_KEYS: Final[set[str]] = {
     "test",
     "changes",
     "alignment",
+    "statistics",
 }
 
 
@@ -166,6 +170,11 @@ class ComparisonConfig:
     :param budget_exhausted: whether alignment's ``max_comparisons`` ran out.
         When it is true, "nothing more was found" and "we stopped looking" are
         different answers, and this is what tells them apart.
+    :param filter: the `redlines.filters.ChangeFilter` that produced this
+        comparison's ``changes``, or ``None`` for an unfiltered comparison.
+        Recording it is the honesty requirement (#138, ADR-0033): a filtered
+        payload that looked like a full one would be a trap for an agent
+        reading it.
     """
 
     source_format: str
@@ -175,6 +184,7 @@ class ComparisonConfig:
     similarity: str
     processor: str
     budget_exhausted: bool = False
+    filter: ChangeFilter | None = None
 
     def to_dict(self) -> dict[str, Any]:
         """Return the configuration as a JSON-serialisable dict.
@@ -183,8 +193,8 @@ class ComparisonConfig:
         equal configurations serialise to identical bytes (N1, #135).
 
         :return: a dict with the keys ``source_format``, ``test_format``,
-            ``profile``, ``alignment``, ``similarity``, ``processor`` and
-            ``budget_exhausted``.
+            ``profile``, ``alignment``, ``similarity``, ``processor``,
+            ``budget_exhausted`` and ``filter``.
         """
         return {
             "source_format": self.source_format,
@@ -194,6 +204,7 @@ class ComparisonConfig:
             "similarity": self.similarity,
             "processor": self.processor,
             "budget_exhausted": self.budget_exhausted,
+            "filter": None if self.filter is None else self.filter.to_dict(),
         }
 
     @classmethod
@@ -208,6 +219,7 @@ class ComparisonConfig:
         for required in ("source_format", "test_format", "similarity", "processor"):
             if required not in data:
                 raise ValueError(f"comparison config is missing the key {required!r}")
+        filter_data = data.get("filter")
         return cls(
             source_format=str(data["source_format"]),
             test_format=str(data["test_format"]),
@@ -216,6 +228,7 @@ class ComparisonConfig:
             similarity=str(data["similarity"]),
             processor=str(data["processor"]),
             budget_exhausted=bool(data.get("budget_exhausted", False)),
+            filter=None if filter_data is None else ChangeFilter.from_dict(filter_data),
         )
 
 
@@ -249,6 +262,66 @@ class Comparison:
     changes: ChangeTree
     config: ComparisonConfig
 
+    def statistics(self) -> ComparisonStatistics:
+        """Count the changes in this comparison, overall and per section (#139).
+
+        Computed fresh on every call from ``changes`` and both block trees --
+        see `redlines.statistics` for what a "section" means here and why
+        denominators always come from the unfiltered trees.
+
+        :return: the `redlines.statistics.ComparisonStatistics`.
+        """
+        return _statistics(self)
+
+    def filter(
+        self,
+        *,
+        kinds: tuple[ChangeKind | str, ...] = (),
+        address_prefixes: tuple[str, ...] = (),
+        labels: tuple[str, ...] = (),
+        roles: tuple[str, ...] = (),
+        min_chars: int = 0,
+        has_inline: bool | None = None,
+    ) -> Comparison:
+        """Return a `Comparison` scoped to a `redlines.filters.ChangeFilter` (#138).
+
+        A convenience over building the `redlines.filters.ChangeFilter`
+        yourself: ``comparison.filter(kinds=("modify",))`` is
+        ``redlines.filters.filter_changes(comparison.changes,
+        ChangeFilter(kinds=("modify",)))`` wrapped back into a `Comparison`.
+
+        The result keeps the **same two block trees, unpruned** -- pruning
+        them would invalidate every address a filtered node still names --
+        the same ``alignment``, a filtered ``changes``, and ``config`` with
+        ``filter`` set to the spec that produced it, so ``to_dict()``
+        validates against the same schema with no conditional branches and
+        ``statistics()`` recomputes from the filtered list.
+
+        :param kinds: see `redlines.filters.ChangeFilter.kinds`.
+        :param address_prefixes: see
+            `redlines.filters.ChangeFilter.address_prefixes`.
+        :param labels: see `redlines.filters.ChangeFilter.labels`.
+        :param roles: see `redlines.filters.ChangeFilter.roles`.
+        :param min_chars: see `redlines.filters.ChangeFilter.min_chars`.
+        :param has_inline: see `redlines.filters.ChangeFilter.has_inline`.
+        :return: a new `Comparison` with the scoped ``changes``.
+        """
+        spec = ChangeFilter(
+            kinds=tuple(ChangeKind(kind) for kind in kinds),
+            address_prefixes=address_prefixes,
+            labels=labels,
+            roles=roles,
+            min_chars=min_chars,
+            has_inline=has_inline,
+        )
+        return Comparison(
+            source=self.source,
+            test=self.test,
+            alignment=self.alignment,
+            changes=filter_changes(self.changes, spec),
+            config=replace(self.config, filter=spec),
+        )
+
     def to_dict(self, *, include_alignment: bool = False) -> dict[str, Any]:
         """Return the whole comparison as a JSON-serialisable dict (v2).
 
@@ -264,8 +337,8 @@ class Comparison:
             data only the benchmark reads today, and the key is optional in
             the schema, so turning it on later is not even a minor bump.
         :return: a dict with the keys ``schema_version``, ``config``,
-            ``source``, ``test``, ``changes``, and ``alignment`` when it was
-            asked for.
+            ``source``, ``test``, ``changes``, ``statistics``, and
+            ``alignment`` when it was asked for.
         """
         document: dict[str, Any] = {
             "schema_version": SCHEMA_VERSION,
@@ -273,6 +346,7 @@ class Comparison:
             "source": self.source.to_dict(),
             "test": self.test.to_dict(),
             "changes": [change.to_dict() for change in self.changes],
+            "statistics": self.statistics().to_dict(),
         }
         if include_alignment:
             document["alignment"] = self.alignment.to_dict()
