@@ -1,6 +1,6 @@
 # ADR-0031: Let a role rule look at the block itself: `text` and `label` match kinds, with a `kind` filter
 
-**Status:** Proposed
+**Status:** Accepted
 **Date:** 2026-09-05
 **Deciders:** houfu
 
