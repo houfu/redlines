@@ -9,15 +9,21 @@ on:
   push:
     branches: [ main ]
     paths-ignore:
-      - '**.md'
+      # '*.md' and not '**.md': the latter matches test fixtures, so editing
+      # tests/corpus/**/*.md alone would not run the suite.
+      - '*.md'
       - 'docs/**'
+      - 'site/**'
       - 'LICENSE.txt'
       - '*.png'
       - '.github/workflows/docs.yml'
   pull_request:
     paths-ignore:
-      - '**.md'
+      # '*.md' and not '**.md': the latter matches test fixtures, so editing
+      # tests/corpus/**/*.md alone would not run the suite.
+      - '*.md'
       - 'docs/**'
+      - 'site/**'
       - 'LICENSE.txt'
       - '*.png'
       - '.github/workflows/docs.yml'
@@ -58,6 +64,8 @@ jobs:
         if: ${{ matrix.python-version == '3.10' }}
         run: uv sync --dev
       - name: Type check with mypy
+        # `benchmark` joins this line in the PR that creates the benchmark/
+        # directory (ADR-0034); it does not exist yet.
         run: |
           uv run mypy redlines tests
       - name: Test with pytest
