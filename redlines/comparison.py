@@ -52,6 +52,7 @@ import json
 import os
 from collections.abc import Mapping
 from dataclasses import dataclass
+from importlib.resources import files
 from pathlib import Path
 from typing import Any, Final
 
@@ -71,6 +72,7 @@ __all__: tuple[str, ...] = (
     "ComparisonConfig",
     "Comparison",
     "compare",
+    "comparison_schema_text",
 )
 
 SCHEMA_VERSION: Final[str] = "2.0"
@@ -80,7 +82,31 @@ SCHEMA_VERSION: Final[str] = "2.0"
 change and an integer ``2`` could not tell a 2.1 payload from a 2.0 one. Its
 presence is also the v1/v2 discriminator: v1's
 `redlines.redlines.Redlines.output_json` has no such key at all.
+
+Drift-tested in ``tests/test_json_v2.py`` against the schema file's own
+``schema_version`` ``const``, the way ADR-0028 drift-tests the profile schema
+against its loader.
 """
+
+
+def comparison_schema_text() -> str:
+    """Return the published JSON Schema for comparison v2, as text.
+
+    Mirrors `redlines.profiles.profile_schema_text`: read from the installed
+    package rather than the source tree, so the separate MCP server package
+    (ADR-0017) can serve it as a resource (ADR-0018) without reaching into
+    redlines' own directory layout.
+
+    The block tree is a section of this same file, at
+    ``#/definitions/blockTree`` -- not a second schema -- so there is one
+    ``$id``, one version number, and one freeze (#137).
+
+    :return: the schema, draft-07, as UTF-8 text.
+    """
+    return (files("redlines.schemas") / "comparison-v2.json").read_text(
+        encoding="utf-8"
+    )
+
 
 BLOCKS_FORMAT: Final[str] = "blocks"
 """What `ComparisonConfig` records for a side that arrived already read.
@@ -252,21 +278,33 @@ class Comparison:
             document["alignment"] = self.alignment.to_dict()
         return document
 
-    def to_json(self, *, pretty: bool = False, include_alignment: bool = False) -> str:
+    def to_json(
+        self, *, indent: int | None = None, include_alignment: bool = False
+    ) -> str:
         """Return `to_dict` as JSON text.
 
-        ``ensure_ascii`` is off and the keys are never sorted, so the bytes
-        follow the authored key order and a document keeps the characters it
-        was written with.
+        ``ensure_ascii`` is off, ``sort_keys`` is never set, and floats are
+        never re-formatted here: the bytes follow the authored key order --
+        `to_dict`'s, not the alphabet's -- a document keeps the characters it
+        was written with, and every ratio was already rounded to four places
+        at the dataclass boundary (`AlignedPair.to_dict`, `Change.to_dict`),
+        so this call does not touch a number a second time (N1, #135). The
+        corpus goldens are the one place that asks for ``sort_keys=True``,
+        and they call `json.dumps` on `to_dict()`'s own output to get it,
+        rather than asking this method to sort.
 
-        :param pretty: indent by two spaces instead of emitting one line.
+        :param indent: passed straight to `json.dumps`: ``None`` (the
+            default) emits one compact line with ``", "``/``": "``
+            separators; an integer pretty-prints with that many spaces of
+            indent. Matches `json.dumps`'s own parameter rather than a
+            boolean, so any indent width is available, not just two spaces.
         :param include_alignment: passed through to `to_dict`.
         :return: the JSON text, without a trailing newline.
         """
         return json.dumps(
             self.to_dict(include_alignment=include_alignment),
             ensure_ascii=False,
-            indent=2 if pretty else None,
+            indent=indent,
         )
 
     @classmethod
