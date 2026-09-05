@@ -182,6 +182,18 @@ def test_the_outer_wrapper_section_reports_only_its_own_title_and_parties(
     assert wrapper.counts.total == 0
 
 
+def test_the_outer_wrapper_blocks_excludes_its_own_container(
+) -> None:
+    """ADR-0033: `/section[1]` "reports only its own title and parties
+    paragraph" -- 2 blocks, not 3. A section's own container block must not
+    be tallied against itself when counting "its" blocks."""
+    result = comparison()
+    stats = result.statistics()
+    wrapper = next(s for s in stats.sections if s.address == "/section[1]")
+
+    assert wrapper.blocks == 2
+
+
 def test_the_renumbered_section_reports_its_own_insert_and_renumbers() -> None:
     result = comparison()
     stats = result.statistics()
@@ -192,6 +204,20 @@ def test_the_renumbered_section_reports_its_own_insert_and_renumbers() -> None:
     assert renumbered.counts.inserted == 1
     assert renumbered.counts.renumbered == 2
     assert renumbered.counts.total == 3
+
+
+def test_the_renumbered_section_blocks_and_density_match_the_worked_example(
+) -> None:
+    """ADR-0033's own worked example: "1 insert plus 2 renumbers over 6
+    blocks, density 0.5"."""
+    result = comparison()
+    stats = result.statistics()
+    renumbered = next(
+        s for s in stats.sections if s.address == "/section[1]/section[3]"
+    )
+
+    assert renumbered.blocks == 6
+    assert renumbered.density == 0.5
 
 
 def test_density_is_total_over_blocks_rounded_to_four_places() -> None:
