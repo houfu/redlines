@@ -1,0 +1,67 @@
+schema: redlines/alignment-labels/1
+pair: cross-references-renumber-storm
+source:
+  file: source.txt
+  format: text
+  profile: contract
+  sha256: 3e544dbb7b9476b817744ecd788906f47392e0155ad764fbcfd00811fa21151b
+test:
+  file: test.txt
+  format: text
+  profile: contract
+  sha256: 4aeabb7219b7dd9974fbc586516cdb75ba0a9750d5294c7d812e50de79aaee05
+provenance:
+  kind: synthetic
+  origin: tests/corpus/hard_cases/cross_references_in_prose.txt + plan:renumber-storm
+  generator: benchmark/generate.py
+  generator_version: 1
+  seed: 11707104121234959839
+  plan: renumber-storm
+correspondences:
+- source: /section[1]/heading[1]
+  test: /section[1]/heading[1]
+  kind: same
+  source_label: '4'
+  test_label: '4'
+  source_digest: f21be82dbecea003
+  test_digest: f21be82dbecea003
+  status: confirmed
+- source: /section[1]/list_item[1]
+  test: /section[1]/list_item[1]
+  kind: renumber
+  source_label: '4.1'
+  test_label: '4.2'
+  source_digest: 5511137b03df8ef3
+  test_digest: af81002716f8a97a
+  status: confirmed
+- source: /section[1]/list_item[2]
+  test: /section[1]/list_item[2]
+  kind: renumber
+  source_label: '4.2'
+  test_label: '4.3'
+  source_digest: 17238a1a07c70e57
+  test_digest: ff33a15bcea992da
+  status: confirmed
+- source: /section[1]/list_item[4]
+  test: /section[1]/list_item[5]
+  kind: renumber
+  source_label: '4.4'
+  test_label: '4.6'
+  source_digest: ecc7fe43954c4792
+  test_digest: 834ac88a02c2f4aa
+  status: confirmed
+inserted:
+- test: /section[1]/list_item[3]
+  test_digest: 375b9b10cfb4a579
+  status: confirmed
+- test: /section[1]/list_item[4]
+  test_digest: 0ddf27a3ac2d91d5
+  status: confirmed
+deleted:
+- source: /section[1]/list_item[3]
+  source_digest: 425bd00fb9339938
+  status: confirmed
+splits: []
+merges: []
+unscored: []
+move_verdicts: []

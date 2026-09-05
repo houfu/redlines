@@ -1,0 +1,140 @@
+schema: redlines/alignment-labels/1
+pair: alpha-roman-structure
+source:
+  file: source.txt
+  format: text
+  profile: contract
+  sha256: 5a15c8d05ec879331d829ce5745445b2ce1764adfb538fe9439ad963fdb2b62d
+test:
+  file: test.txt
+  format: text
+  profile: contract
+  sha256: aca1436dd4c1de3b98f2cf8cab85ac7f9145987d3c56b2b29d9129212d8f375f
+provenance:
+  kind: synthetic
+  origin: tests/corpus/hard_cases/alpha_roman_ambiguity.txt + plan:structure
+  generator: benchmark/generate.py
+  generator_version: 1
+  seed: 4573798991556704532
+  plan: structure
+correspondences:
+- source: /section[1]/heading[1]
+  test: /section[1]/heading[1]
+  kind: same
+  source_label: '7'
+  test_label: '7'
+  source_digest: 90cc74f98038264f
+  test_digest: 90cc74f98038264f
+  status: confirmed
+- source: /section[1]/list_item[1]
+  test: /section[1]/list_item[1]
+  kind: same
+  source_label: '7.1'
+  test_label: '7.1'
+  source_digest: 80e1865c57f8923f
+  test_digest: 80e1865c57f8923f
+  status: confirmed
+- source: /section[1]/list_item[1]/list_item[1]
+  test: /section[1]/list_item[1]/list_item[1]
+  kind: same
+  source_label: (a)
+  test_label: (a)
+  source_digest: de8f8edf3d7349b3
+  test_digest: de8f8edf3d7349b3
+  status: confirmed
+- source: /section[1]/list_item[1]/list_item[2]
+  test: /section[1]/list_item[1]/list_item[2]
+  kind: same
+  source_label: (b)
+  test_label: (b)
+  source_digest: 476d81da715b5fd5
+  test_digest: 476d81da715b5fd5
+  status: confirmed
+- source: /section[1]/list_item[1]/list_item[3]
+  test: /section[1]/list_item[1]/list_item[3]
+  kind: same
+  source_label: (c)
+  test_label: (c)
+  source_digest: 59ad0209cb94d8ac
+  test_digest: 59ad0209cb94d8ac
+  status: confirmed
+- source: /section[1]/list_item[1]/list_item[6]
+  test: /section[1]/list_item[1]/list_item[5]
+  kind: renumber
+  source_label: (f)
+  test_label: (e)
+  source_digest: 6c541f763787304a
+  test_digest: 93ccda49b2162fae
+  status: confirmed
+- source: /section[1]/list_item[1]/list_item[7]
+  test: /section[1]/list_item[1]/list_item[6]
+  kind: renumber
+  source_label: (g)
+  test_label: (f)
+  source_digest: 57e76c7c85c1d689
+  test_digest: fd530725f91bcba3
+  status: confirmed
+- source: /section[1]/list_item[1]/list_item[10]
+  test: /section[1]/list_item[1]/list_item[8]
+  kind: renumber
+  source_label: (j)
+  test_label: (h)
+  source_digest: 7f85336e9aef6fe3
+  test_digest: ec8217a3a3090542
+  status: confirmed
+- source: /section[1]/list_item[2]
+  test: /section[1]/list_item[2]
+  kind: same
+  source_label: '7.2'
+  test_label: '7.2'
+  source_digest: 93ca336a81ca51ca
+  test_digest: 93ca336a81ca51ca
+  status: confirmed
+- source: /section[1]/list_item[2]/list_item[1]
+  test: /section[1]/list_item[2]/list_item[1]
+  kind: same
+  source_label: (i)
+  test_label: (i)
+  source_digest: 8d6432a611d4ccab
+  test_digest: 8d6432a611d4ccab
+  status: confirmed
+- source: /section[1]/list_item[2]/list_item[2]
+  test: /section[1]/list_item[2]/list_item[2]
+  kind: same
+  source_label: (ii)
+  test_label: (ii)
+  source_digest: 6ee8579d550c9629
+  test_digest: 6ee8579d550c9629
+  status: confirmed
+- source: /section[1]/list_item[2]/list_item[3]
+  test: /section[1]/list_item[2]/list_item[3]
+  kind: same
+  source_label: (iii)
+  test_label: (iii)
+  source_digest: 296378f08ae4f398
+  test_digest: 296378f08ae4f398
+  status: confirmed
+inserted: []
+deleted: []
+splits: []
+merges:
+- sources:
+  - /section[1]/list_item[1]/list_item[4]
+  - /section[1]/list_item[1]/list_item[5]
+  test: /section[1]/list_item[1]/list_item[4]
+  source_digests:
+  - 60de6ef51b917dbb
+  - c91939284d9e5fef
+  test_digest: 959ffbe39a540756
+  status: confirmed
+- sources:
+  - /section[1]/list_item[1]/list_item[8]
+  - /section[1]/list_item[1]/list_item[9]
+  test: /section[1]/list_item[1]/list_item[7]
+  source_digests:
+  - 13c03ce34f252353
+  - 900906c76519b6c0
+  test_digest: 8a42507fca0d63e3
+  status: confirmed
+unscored: []
+move_verdicts: []
