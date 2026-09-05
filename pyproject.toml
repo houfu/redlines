@@ -39,6 +39,7 @@ nupunkt = [
     "nupunkt>=0.6.0; python_version>='3.11'",
 ]
 levenshtein = ["Levenshtein>=0.27.1"]
+fuzzy = ["rapidfuzz>=3.0"]
 pdf = ["pdfplumber>=0.10.0"]
 
 [project.scripts]
@@ -46,6 +47,7 @@ redlines = 'redlines.cli:cli'
 
 [dependency-groups]
 dev = [
+    "jsonschema>=4.0",
     "mypy>=1.14.1",
     "pdoc>=14.1.0",
     "pytest>=7.4.2",
@@ -57,6 +59,12 @@ dev = [
 [build-system]
 requires = ["hatchling>=1.18.0"]
 build-backend = "hatchling.build"
+
+[tool.pytest.ini_options]
+# The benchmark (ADR-0034) is a top-level, unpackaged `benchmark/` directory, so
+# `import benchmark...` from a test needs the repository root on the path. `tests/`
+# has no `__init__.py`, so pytest prepends `tests/` rather than the root.
+pythonpath = ["."]
 
 
 [tool.mypy]
