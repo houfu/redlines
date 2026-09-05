@@ -55,7 +55,12 @@ Within one sibling group the order is fixed (`PASS_NAMES` is the order):
 ===  ==============  ====================================================
 
 ``move`` is the sixth name and the only global work: it runs after the descent
-and before the positional fill-in, over what is still unmatched on both sides.
+and before the positional fill-in, over what is still unmatched on both sides,
+pairing first by a normalised text that is unique among the leftovers on
+*both* sides and then by a best score that beats its runner-up by a margin.
+Every pair it makes is descended into at once, so a moved subtree's children
+align inside it and "a clause moved, and was edited" is one move plus one
+edit rather than one indivisible event.
 
 **The order is load-bearing, twice.** ``exact`` must precede ``label``, or
 renumbering detection inverts: in the sample pair source clause 3.3 and test
@@ -93,11 +98,22 @@ anywhere in this module, because ``str.__hash__`` is seeded.
 Moves and renumbers
 -------------------
 
-Neither is a separate search. A pair is a **move** when its source and test
-parents do not correspond (or, once the move pass lands, when it crosses its
-own siblings); a pair is a **renumber** when its parents correspond and its
-labels differ. Both are read off the record and recorded on `AlignedPair` as
-``moved`` and ``renumbered``, so the change tree does not recompute them.
+Neither is a separate classification search. A pair is a **move** when its
+source and test parents do not correspond, or when it crosses its own
+siblings -- the anchors of a sibling group that lie outside the longest
+increasing subsequence of ``(source order, test order)`` have genuinely
+crossed, and that is the reordering the cross-scope search structurally
+cannot see. A pair is a **renumber** when its parents correspond and its
+labels differ. Both are read off the finished record and recorded on
+`AlignedPair` as ``moved`` and ``renumbered``, so the change tree does not
+recompute them.
+
+Every move knob defaults toward silence, because ADR-0009's gate is
+asymmetric: telling a lawyer a clause moved when it did not costs more trust
+than saying nothing. An ambiguous text, a near-tie, a block too short to
+identify, a kind that is really a container, an exhausted budget -- each of
+them produces a delete and an insert, which is honest, rather than a move,
+which might not be.
 """
 
 from __future__ import annotations
@@ -1126,33 +1142,250 @@ class _Aligner:
                     made = True
         return made
 
-    # -- the move pass, which task A2 fills in ------------------------------
+    # -- the move pass (#132) ----------------------------------------------
 
     def _move_pass(self) -> None:
-        """The global move pass (#132). **A hook: it matches nothing yet.**
+        """Search across scopes for the blocks the descent could not place.
 
-        ``move`` is already in `PASS_NAMES` and in `AlignmentConfig.passes`,
-        already counted in `Alignment.pass_counts`, and already positioned
-        here -- after the descent, before the positional fill-in, with every
-        pair it makes pushed back onto the queue so a moved block's children
-        align in their new scope. What it does not yet do is search. Until
-        #132 lands, a block that moved is reported as a delete and an insert,
-        which is honest rather than wrong.
+        The one piece of global work, and the only pass that can pair two
+        blocks whose parents do not correspond. It runs after the descent has
+        placed everything it can and before the positional fill-in, because a
+        fill-in that ran first would eat a moved block into a wrong
+        same-parent slot in any section that both lost and gained a clause.
 
-        What goes here (ADR-0032): over the blocks still unmatched on both
-        sides, restricted to ``move_kinds`` and to blocks of at least
-        ``move_min_tokens`` tokens, pair first by normalised text that is
-        unique among the leftovers on *both* sides, then by best fuzzy score
-        where it clears ``move_min_similarity`` and beats the runner-up by
-        ``move_tie_margin``. Both stages spend `_spend`, and stop generating
-        candidates when it is spent. Separately, anchors outside the spine
-        `_longest_increasing_subsequence` returns for a sibling group have
-        crossed, and are moves too; `_gaps` already computes that spine.
+        Two stages, in this order:
 
-        `_moved` is where the classification lands, and it needs no change:
-        it reads parent correspondence off the finished record, so any pair
-        this hook creates across scopes is a move without being told.
+        1. **exact, unique-only.** A normalised text that appears exactly once
+           among the source leftovers and exactly once among the test
+           leftovers pairs at confidence 1.0. Uniqueness *is* the
+           false-positive story: thirty clauses reading "Intentionally
+           omitted." are ambiguous, and thirty ambiguous candidates produce
+           nothing rather than a guess.
+        2. **fuzzy, unique-best-only.** The leftovers are scored against
+           each other, and a pair is accepted only if it clears
+           ``move_min_similarity`` and is the best by ``move_tie_margin``
+           *from both ends*. A near-tie is silence, whichever document is
+           called source.
+
+        Candidates on both sides are restricted to `AlignmentConfig.move_kinds`
+        and to blocks of at least ``move_min_tokens`` tokens, and pair only
+        within a kind class. Excluding ``cell``, ``row`` and ``section`` is
+        not fussiness: a prototype without the restriction reported thirteen
+        of the sample pair's table cells as moves, because a cell reading
+        "Supplier" appears in every row of every table.
+
+        Both stages spend the run-wide `_spend` budget, and when it is gone
+        they stop generating candidates rather than finishing on partial
+        evidence -- so a block falls through to the fill-in or to unmatched,
+        and `Alignment.budget_exhausted` says why.
+
+        Every pair either stage makes is descended into immediately, so a
+        moved subtree's children align *inside* it, by the ordinary passes, in
+        their new scope. That is what makes "a clause moved, and was edited"
+        come out as one move on the clause plus one edit on its body rather
+        than as one indivisible event -- and it is also what stops the moved
+        clause's own children being reported as further moves of their own.
         """
+        self._move_exact()
+        if self.budget_exhausted:
+            return
+        self._move_fuzzy()
+
+    def _move_candidates(self, side: _Side, taken: Mapping[int, object]) -> list[int]:
+        """The blocks on one side that the move pass is allowed to consider.
+
+        Unmatched, of a kind ``move_kinds`` admits, and long enough to be
+        worth a claim. Returned in document order, because index order is
+        document order and the stages iterate it.
+        """
+        kinds = self.config.move_kinds
+        minimum = self.config.move_min_tokens
+        return [
+            index
+            for index in range(len(side))
+            if index not in taken
+            and side.blocks[index].kind.value in kinds
+            and len(side.tokens(index)) >= minimum
+        ]
+
+    def _move_exact(self) -> None:
+        """Pair leftovers whose normalised text is unique on both sides.
+
+        Uniqueness is over the text alone rather than over ``(kind class,
+        text)``: a heading and a paragraph reading the same words make the
+        text ambiguous, and the quiet answer to an ambiguous text is no pair
+        at all. The kind class still has to agree before the pair is made.
+        """
+        free_source = self._move_candidates(self.source, self.pairs)
+        free_test = self._move_candidates(self.test, self.matched_test)
+        if not free_source or not free_test:
+            return
+        source_keys: dict[str, list[int]] = {}
+        for index in free_source:
+            key = self.source.key(index)
+            if key is not None:
+                source_keys.setdefault(key, []).append(index)
+        test_keys: dict[str, list[int]] = {}
+        for index in free_test:
+            key = self.test.key(index)
+            if key is not None:
+                test_keys.setdefault(key, []).append(index)
+        # Insertion order is test document order, so the outer walk is stable
+        # and a parent is always offered before the children it contains.
+        for key, tests in test_keys.items():
+            sources = source_keys.get(key)
+            if sources is None or len(sources) != 1 or len(tests) != 1:
+                continue
+            source, test = sources[0], tests[0]
+            if source in self.pairs or test in self.matched_test:
+                continue  # already placed, by an earlier move or by a descent
+            if not self._spend():
+                return
+            if self.source.klass(source) != self.test.klass(test):
+                continue
+            self._record(source, test, "move", 1.0)
+            self._descend()
+
+    def _move_fuzzy(self) -> None:
+        """Pair the remaining leftovers where the best candidate stands alone.
+
+        Every test leftover is scored against every source leftover of its
+        kind class -- there are no anchors across scopes, so there is nothing
+        to gap-scope against and the budget is the only bound. Candidates
+        below ``move_min_similarity`` are not candidates at all, which is why
+        the runner-up the margin is measured against is the second-best
+        *admissible* one and not the second-best of all: one weak near-miss
+        per clause would otherwise silence a whole corpus.
+
+        **The margin is checked in both directions.** ADR-0032 states the rule
+        over test blocks -- best source candidate, by a margin -- and read
+        that way alone it is asymmetric: one source clause with two plausible
+        destinations would be paired confidently with whichever came first,
+        while two sources and one destination would go silent. Two blocks that
+        might each be the partner are ambiguous whichever document is called
+        source, so a pair is proposed only when it is the unique best from
+        both ends. This is the reading ADR-0009's gate asks for and it is the
+        quieter one; it is written down here because the ADR does not say it.
+
+        Proposals are applied in the module's one stated total order --
+        highest score, then equal roles, then earliest source position, then
+        earliest test position -- and each is descended into at once, so a
+        moved subtree's children align inside it rather than being proposed
+        again on their own.
+        """
+        free_source = self._move_candidates(self.source, self.pairs)
+        free_test = self._move_candidates(self.test, self.matched_test)
+        if not free_source or not free_test:
+            return
+        floor = self.config.move_min_similarity
+        by_test: dict[int, list[tuple[float, int, int]]] = {}
+        by_source: dict[int, list[tuple[float, int, int]]] = {}
+        for test in free_test:
+            test_tokens = self.test.tokens(test)
+            if not test_tokens:
+                continue
+            klass = self.test.klass(test)
+            scorer = SequenceScorer(test_tokens, backend=self.backend)
+            for source in free_source:
+                if self.source.klass(source) != klass:
+                    continue
+                if not self._spend():
+                    # Half a score matrix cannot answer "is this the unique
+                    # best?" from either end, so the whole stage reports
+                    # nothing rather than guessing from what it has.
+                    return
+                score = scorer.score(self.source.tokens(source), floor=floor)
+                if score < floor:
+                    continue
+                roles = self._roles_differ(source, test)
+                by_test.setdefault(test, []).append((-score, roles, source))
+                by_source.setdefault(source, []).append((-score, roles, test))
+        proposals: list[tuple[float, int, int, int]] = []
+        for test, scored in by_test.items():
+            winner = self._unique_best(scored)
+            if winner is None:
+                continue
+            negated, roles, source = winner
+            mirror = self._unique_best(by_source[source])
+            if mirror is None or mirror[2] != test:
+                continue
+            proposals.append((negated, roles, source, test))
+        proposals.sort()
+        for negated, _, source, test in proposals:
+            if source in self.pairs or test in self.matched_test:
+                continue
+            self._record(source, test, "move", -negated)
+            self._descend()
+
+    def _unique_best(
+        self, scored: list[tuple[float, int, int]]
+    ) -> tuple[float, int, int] | None:
+        """The single best candidate, or ``None`` when the field is a near-tie.
+
+        :param scored: ``(negated score, roles differ, index)`` triples, which
+            sort into the module's stated total order.
+        :return: the winner, or ``None`` if a runner-up comes within
+            ``move_tie_margin`` of it -- a margin that narrow is not evidence
+            about which block moved.
+        """
+        ordered = sorted(scored)
+        best = -ordered[0][0]
+        runner_up = -ordered[1][0] if len(ordered) > 1 else None
+        if runner_up is not None and best - runner_up < self.config.move_tie_margin:
+            return None
+        return ordered[0]
+
+    def _crossings(self) -> dict[int, None]:
+        """The source blocks whose pair crosses its own siblings (ADR-0032).
+
+        The cross-scope search structurally cannot see a reordering that stays
+        inside one sibling group: both blocks matched, in the right scope, by
+        an ordinary pass. What gives it away is the shape of the group's
+        anchors. Take the longest increasing subsequence of ``(source
+        position, test position)`` -- the monotone spine `_gaps` already
+        bounds gaps with -- and every anchor outside it has genuinely crossed
+        the ones on it.
+
+        ``move_kinds`` applies here too, because it says which kinds may be
+        *reported* as moved rather than only which may be searched for. A
+        reordered pair of table rows is therefore an address change and not a
+        move, which is the same silence container moves get.
+
+        ``move_min_tokens`` does not apply: it guards a guess about which of
+        many candidates is the right one, and a crossing pair has already been
+        matched by another pass, so there is no guess left to guard.
+
+        :return: the crossed source indices, as a dict used as an ordered set
+            (no ``set`` is iterated anywhere in this module).
+        """
+        crossed: dict[int, None] = {}
+        if "move" not in self.config.passes:
+            return crossed
+        kinds = self.config.move_kinds
+        for source_parent in sorted(self.pairs):
+            test_parent = self.pairs[source_parent].test
+            source_kids = self.source.children[source_parent]
+            test_kids = self.test.children[test_parent]
+            if len(source_kids) < 2 or len(test_kids) < 2:
+                continue
+            test_position = {
+                index: position for position, index in enumerate(test_kids)
+            }
+            anchors: list[tuple[int, int, int]] = []
+            for position, index in enumerate(source_kids):
+                match = self.pairs.get(index)
+                if match is not None and match.test in test_position:
+                    anchors.append((position, test_position[match.test], index))
+            spine = _longest_increasing_subsequence(
+                [(position, test_pos) for position, test_pos, _ in anchors]
+            )
+            on_spine = dict.fromkeys(spine)
+            for source_position, test_pos, index in anchors:
+                if (source_position, test_pos) in on_spine:
+                    continue
+                if self.source.blocks[index].kind.value in kinds:
+                    crossed[index] = None
+        return crossed
 
     # -- gaps --------------------------------------------------------------
 
@@ -1222,18 +1455,26 @@ class _Aligner:
         free_source.remove(source)
         free_test.remove(test)
 
-    def _moved(self, source: int, test: int) -> bool:
-        """Whether this pair's parents fail to correspond (ADR-0032).
+    def _moved(self, source: int, test: int, crossed: Mapping[int, None]) -> bool:
+        """Whether this pair moved: across scopes, or across its own siblings.
 
         Read off the finished record rather than searched for, so the move
-        pass does not have to announce what it did.
+        pass does not have to announce what it did -- and so a pair the move
+        pass made *inside* an already-moved subtree, whose parents now
+        correspond, is correctly not a second move.
+
+        :param source: the source block's index.
+        :param test: the test block's index.
+        :param crossed: what `_crossings` found, for the intra-scope half.
         """
         source_parent = self.source.parents[source]
         test_parent = self.test.parents[test]
         if source_parent < 0 or test_parent < 0:
             return False
         match = self.pairs.get(source_parent)
-        return match is None or match.test != test_parent
+        if match is None or match.test != test_parent:
+            return True
+        return source in crossed
 
     def _renumbered(self, source: int, test: int, moved: bool) -> bool:
         """Whether the parents correspond and the labels differ (#133).
@@ -1250,10 +1491,11 @@ class _Aligner:
 
     def _result(self) -> Alignment:
         """Build the `Alignment` from the finished record."""
+        crossed = self._crossings()
         pairs: list[AlignedPair] = []
         for source in sorted(self.pairs):
             match = self.pairs[source]
-            moved = self._moved(source, match.test)
+            moved = self._moved(source, match.test, crossed)
             pairs.append(
                 AlignedPair(
                     source_path=self.source.path(source),
