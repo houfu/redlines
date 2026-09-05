@@ -1161,10 +1161,11 @@ class _Aligner:
            false-positive story: thirty clauses reading "Intentionally
            omitted." are ambiguous, and thirty ambiguous candidates produce
            nothing rather than a guess.
-        2. **fuzzy, unique-best-only.** For each test leftover, the source
-           leftovers are scored, and the best is accepted only if it clears
-           ``move_min_similarity`` *and* beats the runner-up by
-           ``move_tie_margin``. A near-tie is silence.
+        2. **fuzzy, unique-best-only.** The leftovers are scored against
+           each other, and a pair is accepted only if it clears
+           ``move_min_similarity`` and is the best by ``move_tie_margin``
+           *from both ends*. A near-tie is silence, whichever document is
+           called source.
 
         Candidates on both sides are restricted to `AlignmentConfig.move_kinds`
         and to blocks of at least ``move_min_tokens`` tokens, and pair only
@@ -1246,61 +1247,93 @@ class _Aligner:
             self._descend()
 
     def _move_fuzzy(self) -> None:
-        """Pair the remaining leftovers by score, where the best stands alone.
+        """Pair the remaining leftovers where the best candidate stands alone.
 
         Every test leftover is scored against every source leftover of its
         kind class -- there are no anchors across scopes, so there is nothing
         to gap-scope against and the budget is the only bound. Candidates
-        below ``move_min_similarity`` are not candidates, which is also why
+        below ``move_min_similarity`` are not candidates at all, which is why
         the runner-up the margin is measured against is the second-best
-        *admissible* one rather than the second-best of all.
+        *admissible* one and not the second-best of all: one weak near-miss
+        per clause would otherwise silence a whole corpus.
 
-        Proposals are collected first and applied afterwards in the module's
-        one stated total order -- highest score, then equal roles, then
-        earliest source position, then earliest test position -- so two test
-        blocks wanting the same source block resolve the same way every run.
-        The loser is dropped rather than handed its own runner-up: a block
-        whose best partner was taken from it is not a block we are confident
-        about.
+        **The margin is checked in both directions.** ADR-0032 states the rule
+        over test blocks -- best source candidate, by a margin -- and read
+        that way alone it is asymmetric: one source clause with two plausible
+        destinations would be paired confidently with whichever came first,
+        while two sources and one destination would go silent. Two blocks that
+        might each be the partner are ambiguous whichever document is called
+        source, so a pair is proposed only when it is the unique best from
+        both ends. This is the reading ADR-0009's gate asks for and it is the
+        quieter one; it is written down here because the ADR does not say it.
+
+        Proposals are applied in the module's one stated total order --
+        highest score, then equal roles, then earliest source position, then
+        earliest test position -- and each is descended into at once, so a
+        moved subtree's children align inside it rather than being proposed
+        again on their own.
         """
         free_source = self._move_candidates(self.source, self.pairs)
         free_test = self._move_candidates(self.test, self.matched_test)
         if not free_source or not free_test:
             return
         floor = self.config.move_min_similarity
-        margin = self.config.move_tie_margin
-        proposals: list[tuple[float, int, int, int]] = []
+        by_test: dict[int, list[tuple[float, int, int]]] = {}
+        by_source: dict[int, list[tuple[float, int, int]]] = {}
         for test in free_test:
             test_tokens = self.test.tokens(test)
             if not test_tokens:
                 continue
             klass = self.test.klass(test)
             scorer = SequenceScorer(test_tokens, backend=self.backend)
-            scored: list[tuple[float, int, int]] = []
             for source in free_source:
                 if self.source.klass(source) != klass:
                     continue
                 if not self._spend():
-                    scored = []
-                    break
+                    # Half a score matrix cannot answer "is this the unique
+                    # best?" from either end, so the whole stage reports
+                    # nothing rather than guessing from what it has.
+                    return
                 score = scorer.score(self.source.tokens(source), floor=floor)
-                if score >= floor:
-                    scored.append((-score, self._roles_differ(source, test), source))
-            if self.budget_exhausted:
-                break
-            if not scored:
+                if score < floor:
+                    continue
+                roles = self._roles_differ(source, test)
+                by_test.setdefault(test, []).append((-score, roles, source))
+                by_source.setdefault(source, []).append((-score, roles, test))
+        proposals: list[tuple[float, int, int, int]] = []
+        for test, scored in by_test.items():
+            winner = self._unique_best(scored)
+            if winner is None:
                 continue
-            scored.sort()
-            best = -scored[0][0]
-            if len(scored) > 1 and best - (-scored[1][0]) < margin:
-                continue  # a near-tie is not a move; silence wins (ADR-0009)
-            proposals.append((scored[0][0], scored[0][1], scored[0][2], test))
+            negated, roles, source = winner
+            mirror = self._unique_best(by_source[source])
+            if mirror is None or mirror[2] != test:
+                continue
+            proposals.append((negated, roles, source, test))
         proposals.sort()
         for negated, _, source, test in proposals:
             if source in self.pairs or test in self.matched_test:
                 continue
             self._record(source, test, "move", -negated)
             self._descend()
+
+    def _unique_best(
+        self, scored: list[tuple[float, int, int]]
+    ) -> tuple[float, int, int] | None:
+        """The single best candidate, or ``None`` when the field is a near-tie.
+
+        :param scored: ``(negated score, roles differ, index)`` triples, which
+            sort into the module's stated total order.
+        :return: the winner, or ``None`` if a runner-up comes within
+            ``move_tie_margin`` of it -- a margin that narrow is not evidence
+            about which block moved.
+        """
+        ordered = sorted(scored)
+        best = -ordered[0][0]
+        runner_up = -ordered[1][0] if len(ordered) > 1 else None
+        if runner_up is not None and best - runner_up < self.config.move_tie_margin:
+            return None
+        return ordered[0]
 
     def _crossings(self) -> dict[int, None]:
         """The source blocks whose pair crosses its own siblings (ADR-0032).
