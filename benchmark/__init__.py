@@ -14,18 +14,24 @@ rather than something buried in the test suite.
 the repository root on the path so ``import benchmark...`` works from a test
 without this package needing an install step of its own.
 
-**What lives here, and what does not yet.** This module and its immediate
-neighbours -- :mod:`benchmark.labels` (the label file: dataclasses, schema
-validation, digest computation, the totality check) and
-:mod:`benchmark.reanchor` (repairing addresses after a reader change) -- are
-the shared foundation the rest of the benchmark is built on. The generator
-(``generate.py``, ``mutate.py``, ``prepare.py``), the metric and report
-(``score.py``, ``report.py``, ``units.py``, ``baselines.py``), the
-labelling tool (``label.py``) and the runner (``run.py``) are separate
-pieces of work, tracked against issues #141-#144, and land as this directory
-fills in. See ``benchmark/README.md`` for the corpus layout and how to run
-what exists today, and ``docs/adr/0034-benchmark-labels-and-metric.md`` for
-the full design and the alternatives it rejected.
+**What lives here.** :mod:`benchmark.labels` (the label file: dataclasses,
+schema validation, digest computation, the totality check) and
+:mod:`benchmark.reanchor` (repairing addresses after a reader change) are the
+shared foundation. On top of them sit the generator (``generate.py``,
+``mutate.py``) and the hand-set tooling (``prepare.py``, ``label.py``), which
+build the two committed corpora, and the metric: :mod:`benchmark.units` (flat
+lines to block addresses), :mod:`benchmark.baselines` (the 0.6 floor),
+:mod:`benchmark.score` (every published number), :mod:`benchmark.report` (the
+markdown) and :mod:`benchmark.run` (the entry point that wires all of it
+together and writes ``REPORT.md`` and ``results/latest.json``).
+
+```
+uv run python -m benchmark.run --tier all
+```
+
+See ``benchmark/README.md`` for the corpus layout, and
+``docs/adr/0034-benchmark-labels-and-metric.md`` for the full design, every
+metric definition and the alternatives each was chosen over.
 
 **Dependency direction.** Everything here may depend on :mod:`redlines`
 (``redlines.blocks``, ``redlines.pipeline``), never the reverse. Nothing in
