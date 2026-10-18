@@ -96,11 +96,13 @@ def test_a_renderer_imports_comparison_only_for_type_checking(path: Path) -> Non
     for node, guarded in _imports(module):
         if isinstance(node, ast.ImportFrom):
             target = node.module or ""
-            names_comparison = (node.level > 0 and target == "comparison") or target == (
-                "redlines.comparison"
-            )
+            names_comparison = (
+                node.level > 0 and target == "comparison"
+            ) or target == ("redlines.comparison")
         else:
-            names_comparison = any(alias.name == "redlines.comparison" for alias in node.names)
+            names_comparison = any(
+                alias.name == "redlines.comparison" for alias in node.names
+            )
         if names_comparison:
             assert guarded, f"{path.name} imports the comparison module at run time"
 
