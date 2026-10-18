@@ -5,7 +5,10 @@ Run this only when a change is intentional, then read the diff::
     uv run python tests/corpus/sample_pair/regenerate.py
 
 Six files are written under ``expected/``: four block trees and, since #144,
-the two change-tree goldens.
+the two change-tree goldens. With ``--rendered``, the script writes the
+renderers' goldens under ``expected/rendered/`` instead, and nothing else::
+
+    uv run python tests/corpus/sample_pair/regenerate.py --rendered
 
 **The four block trees.** The plain-text twins read by
 `redlines.readers.text.PlainTextReader` under the built-in ``contract``
@@ -40,6 +43,15 @@ and the backend benchmark/REPORT.md quotes. The two backends agree on every
 node of this pair -- `tests/test_sample_pair_change_tree.py` asserts exactly
 that -- so naming one costs no coverage.
 
+**The rendered goldens** (ADR-0037, "Fixtures") are one renderer's output
+for one twin, the twin compared exactly as for its change-tree golden, written
+with ``newline=""`` so the bytes are the renderer's own on every platform.
+`RENDERINGS` lists them: ``annotated.markdown.md`` and
+``annotated.contract.txt`` are `redlines.comparison.Comparison.output_annotated`
+for the markdown and the plain-text twin, and ``annotated.markdown.md`` is the
+golden houfu reads and approves. ``tests/test_sample_pair_annotated.py``
+byte-checks them.
+
 These are *not* the M0 golden outputs of `tests/corpus/regenerate_goldens.py`,
 which renders a redline for every case directory; ``sample_pair`` is listed in
 that test's ``NOT_GOLDEN_CASES``.
@@ -58,6 +70,8 @@ keeps the same discipline for the change-tree goldens: it calls the public
 from __future__ import annotations
 
 import json
+import sys
+from collections.abc import Callable
 from pathlib import Path
 
 from redlines.alignment import AlignmentConfig
@@ -67,6 +81,7 @@ from redlines.pipeline import read_document
 
 CASE_DIR = Path(__file__).parent
 EXPECTED_DIR = CASE_DIR / "expected"
+RENDERED_DIR = EXPECTED_DIR / "rendered"
 
 # (input file, format, profile name) -> expected/<stem>.<profile>.json
 PAIRINGS: tuple[tuple[str, str, str], ...] = (
@@ -195,5 +210,32 @@ def regenerate() -> None:
         )
 
 
+# expected/rendered/<file> <- (the profile naming the twin in CHANGE_PAIRINGS,
+#                               the renderer applied to its comparison)
+RENDERINGS: tuple[tuple[str, str, Callable[[Comparison], str]], ...] = (
+    ("annotated.markdown.md", "markdown", lambda comparison: comparison.output_annotated()),
+    ("annotated.contract.txt", "contract", lambda comparison: comparison.output_annotated()),
+)
+
+
+def regenerate_rendered() -> None:
+    """Write every golden in `RENDERINGS` under ``expected/rendered/``."""
+    RENDERED_DIR.mkdir(exist_ok=True)
+    twins = {
+        profile_name: build_comparison(
+            source_name, test_name, format=format, profile_name=profile_name
+        )
+        for source_name, test_name, format, profile_name in CHANGE_PAIRINGS
+    }
+    for name, profile_name, render in RENDERINGS:
+        target = RENDERED_DIR / name
+        with open(target, "w", encoding="utf-8", newline="") as handle:
+            handle.write(render(twins[profile_name]))
+        print(f"wrote {target.relative_to(CASE_DIR.parent.parent)}")
+
+
 if __name__ == "__main__":
-    regenerate()
+    if "--rendered" in sys.argv[1:]:
+        regenerate_rendered()
+    else:
+        regenerate()
