@@ -52,7 +52,13 @@ from tests.helpers.hash_seed import assert_byte_identical_across_hash_seeds
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 CASES = Path(__file__).parent / "renderer_cases"
-CASE_NAMES = ["four_kinds", "moved_neighbour", "nested_move", "trailing_insert", "hostile"]
+CASE_NAMES = [
+    "four_kinds",
+    "moved_neighbour",
+    "nested_move",
+    "trailing_insert",
+    "hostile",
+]
 DIFFLIB = AlignmentConfig(similarity="difflib")
 NONE = LEGACY["none"]
 
@@ -82,11 +88,15 @@ def none(comparison: Comparison, syntax: str = "markdown") -> str:
     return render_inplace(comparison, NONE, syntax=syntax, roles=False)  # type: ignore[arg-type]
 
 
-def round_trips(source: str, test: str, *, syntax: str = "markdown", roles: bool = True) -> None:
+def round_trips(
+    source: str, test: str, *, syntax: str = "markdown", roles: bool = True
+) -> None:
     """The annotated text accepts to the test rendering and rejects to the source one."""
     annotated = critic(md(source, test), syntax, roles)
     expected_test = cm.accept_all(critic(md(test, test), syntax, roles), roles=roles)
-    expected_source = cm.reject_all(critic(md(source, source), syntax, roles), roles=roles)
+    expected_source = cm.reject_all(
+        critic(md(source, source), syntax, roles), roles=roles
+    )
     assert cm.accept_all(annotated, roles=roles) == expected_test
     assert cm.multiset(cm.reject_all(annotated, roles=roles), expected_source)
 
@@ -127,7 +137,9 @@ def test_an_equal_run_carries_both_sides_and_ops_that_overlap_are_clamped() -> N
         "a  b c",
         "a b x",
         InlineOp(InlineKind.REPLACE, 5, 6, 4, 5, "c", "x"),
-        InlineOp(InlineKind.INSERT, 3, 3, 2, 2, "", ""),  # starts before the last one ended
+        InlineOp(
+            InlineKind.INSERT, 3, 3, 2, 2, "", ""
+        ),  # starts before the last one ended
     )
     segments = inline_segments(change)
     assert segments[0] == Segment("equal", "a  b ", "a b ")
@@ -136,10 +148,14 @@ def test_an_equal_run_carries_both_sides_and_ops_that_overlap_are_clamped() -> N
 
 
 def test_a_change_with_no_ops_is_one_equal_run() -> None:
-    assert inline_segments(_change("same", "same")) == (Segment("equal", "same", "same"),)
+    assert inline_segments(_change("same", "same")) == (
+        Segment("equal", "same", "same"),
+    )
 
 
-def test_a_critic_substitution_writes_the_whitespace_both_sides_end_with_after_it() -> None:
+def test_a_critic_substitution_writes_the_whitespace_both_sides_end_with_after_it() -> (
+    None
+):
     comparison = md("Restore within four hours.", "Restore within two hours.")
     assert critic(comparison) == "Restore within {~~four~>two~~} hours."
     assert none(comparison) == "Restore within <del>four </del><ins>two </ins>hours."
@@ -169,16 +185,26 @@ def test_the_legacy_sets_spell_the_readme_pair_exactly_as_0_6_does(style: str) -
         syntax="text",
         roles=False,
     )
-    assert rendered == Redlines(README_SOURCE, README_TEST, markdown_style=style).output_markdown
+    assert (
+        rendered
+        == Redlines(README_SOURCE, README_TEST, markdown_style=style).output_markdown
+    )
 
 
 def test_custom_css_takes_its_classes_as_0_6_does() -> None:
     marks: MarkSet = custom_css("added", "removed")
     rendered = render_inplace(
-        compare(README_SOURCE, README_TEST, format="text"), marks, syntax="text", roles=False
+        compare(README_SOURCE, README_TEST, format="text"),
+        marks,
+        syntax="text",
+        roles=False,
     )
     expected = Redlines(
-        README_SOURCE, README_TEST, markdown_style="custom_css", ins_class="added", del_class="removed"
+        README_SOURCE,
+        README_TEST,
+        markdown_style="custom_css",
+        ins_class="added",
+        del_class="removed",
     ).output_markdown
     assert rendered == expected
 
@@ -221,24 +247,40 @@ def test_a_heading_without_an_atx_level_gets_level_plus_one_hashes() -> None:
 
 
 def test_a_quote_puts_its_marker_before_every_physical_line() -> None:
-    source = "> A quoted paragraph that changes slightly.\n\n> ```\n> code here\n> ```\n"
-    test = "> A quoted paragraph that changes a little.\n\n> ```\n> code here too\n> ```\n"
+    source = (
+        "> A quoted paragraph that changes slightly.\n\n> ```\n> code here\n> ```\n"
+    )
+    test = (
+        "> A quoted paragraph that changes a little.\n\n> ```\n> code here too\n> ```\n"
+    )
     assert critic(md(source, test)).split("\n\n") == [
         "> A quoted paragraph that changes {~~slightly.~>a little.~~}",
         "> ```\n> code here {++too++}\n> ```",
     ]
     round_trips(source, test)
     paragraph = tree(
-        Block(kind=BlockKind.PARAGRAPH, text="line one\nline two", attrs={"quote": True}, role="quote")
+        Block(
+            kind=BlockKind.PARAGRAPH,
+            text="line one\nline two",
+            attrs={"quote": True},
+            role="quote",
+        )
     )
     assert critic(compare(paragraph, paragraph)) == "> [quote] line one\n> line two"
 
 
-def test_a_fence_is_one_backtick_longer_than_its_longest_run_with_marks_inside() -> None:
+def test_a_fence_is_one_backtick_longer_than_its_longest_run_with_marks_inside() -> (
+    None
+):
     source = "````js\ncode with ``` inside\n````\n"
     test = "````js\ncode with ``` inside and more\n````\n"
-    assert critic(md(source, test)) == "````js\ncode with ``` inside {++and more++}\n````"
-    assert none(md("Intro.\n", "Intro.\n\n```\nx = 1\n```\n")) == "Intro.\n\n```\n<ins>x = 1</ins>\n```"
+    assert (
+        critic(md(source, test)) == "````js\ncode with ``` inside {++and more++}\n````"
+    )
+    assert (
+        none(md("Intro.\n", "Intro.\n\n```\nx = 1\n```\n"))
+        == "Intro.\n\n```\n<ins>x = 1</ins>\n```"
+    )
     round_trips(source, test)
 
 
@@ -275,7 +317,10 @@ def _labelled(label: str, raw: str, text: str, **attrs: object) -> Block:
 
 def test_labels_are_written_as_the_document_wrote_them() -> None:
     labelled = tree(_labelled("2", "2.", "The Supplier shall supply the Services."))
-    assert critic(compare(labelled, labelled)) == "[clause] 2. The Supplier shall supply the Services."
+    assert (
+        critic(compare(labelled, labelled))
+        == "[clause] 2. The Supplier shall supply the Services."
+    )
     marker = Block(
         kind=BlockKind.LIST_ITEM,
         label="3",
@@ -290,14 +335,28 @@ def test_labels_are_written_as_the_document_wrote_them() -> None:
         text="Access and Use.",
         attrs={"list_marker": "1.", "label_raw": "1.1", "list_depth": 1},
     )
-    assert critic(compare(tree(both), tree(both)), roles=False) == "1. 1.1 Access and Use."
-    assert critic(compare(tree(both), tree(both)), syntax="text", roles=False) == "1.1 Access and Use."
-    bullet = Block(kind=BlockKind.LIST_ITEM, text="A bullet.", attrs={"list_marker": "-"})
+    assert (
+        critic(compare(tree(both), tree(both)), roles=False) == "1. 1.1 Access and Use."
+    )
+    assert (
+        critic(compare(tree(both), tree(both)), syntax="text", roles=False)
+        == "1.1 Access and Use."
+    )
+    bullet = Block(
+        kind=BlockKind.LIST_ITEM, text="A bullet.", attrs={"list_marker": "-"}
+    )
     assert label_text(bullet, "text") == ""
 
 
 def test_a_label_only_block_ends_at_its_label() -> None:
-    schedule = tree(Block(kind=BlockKind.HEADING, label="1", text="", attrs={"label_raw": "Schedule 1.", "atx_level": 2}))
+    schedule = tree(
+        Block(
+            kind=BlockKind.HEADING,
+            label="1",
+            text="",
+            attrs={"label_raw": "Schedule 1.", "atx_level": 2},
+        )
+    )
     assert critic(compare(schedule, schedule)) == "## Schedule 1."
     inserted = compare(tree(), schedule)
     assert critic(inserted) == "## {++Schedule 1.++}"
@@ -309,10 +368,20 @@ def test_a_renumber_substitutes_the_labels_as_written() -> None:
     test = tree(_labelled("3", "3.", "The Supplier shall supply the Services."))
     comparison = compare(source, test)
     assert [change.kind for change in comparison.changes] == [ChangeKind.RENUMBER]
-    assert critic(comparison) == "[clause] {~~2.~>3.~~} The Supplier shall supply the Services."
-    assert none(comparison) == "<del>2. </del><ins>3. </ins>The Supplier shall supply the Services."
-    assert cm.accept_all(critic(comparison)) == ["3. The Supplier shall supply the Services."]
-    assert cm.reject_all(critic(comparison)) == ["2. The Supplier shall supply the Services."]
+    assert (
+        critic(comparison)
+        == "[clause] {~~2.~>3.~~} The Supplier shall supply the Services."
+    )
+    assert (
+        none(comparison)
+        == "<del>2. </del><ins>3. </ins>The Supplier shall supply the Services."
+    )
+    assert cm.accept_all(critic(comparison)) == [
+        "3. The Supplier shall supply the Services."
+    ]
+    assert cm.reject_all(critic(comparison)) == [
+        "2. The Supplier shall supply the Services."
+    ]
 
 
 def test_a_label_that_changed_only_as_written_is_marked_on_a_node() -> None:
@@ -323,15 +392,21 @@ def test_a_label_that_changed_only_as_written_is_marked_on_a_node() -> None:
     assert [change.kind for change in comparison.changes] == [ChangeKind.MODIFY]
     annotated = critic(comparison)
     assert annotated.startswith("[clause] {~~1.1~>1.1.~~} Target Uptime.")
-    assert cm.accept_all(annotated) == ["1.1. Target Uptime. The Provider shall try hard."]
+    assert cm.accept_all(annotated) == [
+        "1.1. Target Uptime. The Provider shall try hard."
+    ]
     assert cm.reject_all(annotated) == ["1.1 Target Uptime. The Provider shall try."]
     assert none(comparison).startswith("<del>1.1 </del><ins>1.1. </ins>Target Uptime.")
-    unchanged = compare(source, tree(_labelled("1.1", "1.1.", "Target Uptime. The Provider shall try.")))
+    unchanged = compare(
+        source, tree(_labelled("1.1", "1.1.", "Target Uptime. The Provider shall try."))
+    )
     assert list(unchanged.changes) == []
     assert critic(unchanged) == "[clause] 1.1. Target Uptime. The Provider shall try."
 
 
-def test_a_list_marker_renumber_is_a_note_in_markdown_and_a_substitution_in_text() -> None:
+def test_a_list_marker_renumber_is_a_note_in_markdown_and_a_substitution_in_text() -> (
+    None
+):
     source = "1. Alpha item text\n2. Beta item text\n"
     test = "1. New first item\n2. Alpha item text\n3. Beta item text\n"
     comparison = md(source, test)
@@ -364,7 +439,9 @@ def test_a_role_goes_after_the_syntax_head_and_never_on_a_table_or_fence() -> No
             roled += 1
             assert kinds.index("role") == (1 if kinds[0] == "syntax" else 0)
     assert roled > 0
-    assert critic(md(source, test)).split("\n\n")[1].startswith("[clause] 1.1 The report")
+    assert (
+        critic(md(source, test)).split("\n\n")[1].startswith("[clause] 1.1 The report")
+    )
 
 
 # --- moves ------------------------------------------------------------------------
@@ -373,7 +450,14 @@ def test_a_role_goes_after_the_syntax_head_and_never_on_a_table_or_fence() -> No
 def test_a_move_is_drawn_in_place_with_a_note_and_a_tombstone_at_its_origin() -> None:
     lines = critic(md(*case_texts("four_kinds"))).split("\n\n")
     assert [line.startswith("## ") for line in lines] == [
-        True, False, False, False, True, False, False, False
+        True,
+        False,
+        False,
+        False,
+        True,
+        False,
+        False,
+        False,
     ]
     assert lines[1:4] == [
         "[clause] 1.1 The Supplier shall deliver the goods within {~~thirty (30~>sixty (60~~}) days of each order.",
@@ -463,7 +547,9 @@ def test_an_inserted_row_marks_each_cell_and_an_empty_one_marks_its_first() -> N
 
 
 def test_a_row_that_lost_a_cell_is_drawn_as_its_test_row_and_its_source_row() -> None:
-    source = "| Item | Price | Owner |\n| --- | :---: | ---: |\n| Setup | 100 | Supplier |\n"
+    source = (
+        "| Item | Price | Owner |\n| --- | :---: | ---: |\n| Setup | 100 | Supplier |\n"
+    )
     test = "| Item | Price |\n| --- | :---: |\n| Setup | 100 |\n"
     annotated = critic(md(source, test))
     assert annotated == (
@@ -497,7 +583,9 @@ def test_blocks_are_joined_by_a_blank_line_with_no_trailing_newline() -> None:
 
 
 def test_a_whitespace_only_difference_is_not_a_change() -> None:
-    comparison = compare("One  line here.\n\nNext.", "One line here.\n\nNext.", format="text")
+    comparison = compare(
+        "One  line here.\n\nNext.", "One line here.\n\nNext.", format="text"
+    )
     assert critic(comparison, syntax="text", roles=False) == "One line here.\n\nNext."
 
 
@@ -512,7 +600,9 @@ def test_the_header_notes_appear_only_when_true_and_in_order() -> None:
         for d in tree_.dropped
     ]
     assert critic(comparison).split("\n\n")[: len(dropped)] == dropped
-    filtered = comparison.filter(kinds=("modify", "insert"), min_chars=1, has_inline=True)
+    filtered = comparison.filter(
+        kinds=("modify", "insert"), min_chars=1, has_inline=True
+    )
     stopped = dataclasses.replace(
         filtered, config=dataclasses.replace(filtered.config, budget_exhausted=True)
     )
@@ -525,7 +615,9 @@ def test_the_header_notes_appear_only_when_true_and_in_order() -> None:
 
 
 def test_filter_values_in_a_note_are_escaped() -> None:
-    comparison = md("1.1 Text.\n", "1.1 Text, edited.\n").filter(labels=("{++x", "a~>b"))
+    comparison = md("1.1 Text.\n", "1.1 Text, edited.\n").filter(
+        labels=("{++x", "a~>b")
+    )
     assert critic(comparison).split("\n\n")[0] == "{>>filtered: labels=\\{++x,a~\\>b<<}"
 
 
@@ -534,7 +626,9 @@ def test_filter_values_in_a_note_are_escaped() -> None:
 
 @pytest.mark.parametrize("name", CASE_NAMES)
 @pytest.mark.parametrize("roles", [True, False])
-def test_every_renderer_case_round_trips_through_the_reader(name: str, roles: bool) -> None:
+def test_every_renderer_case_round_trips_through_the_reader(
+    name: str, roles: bool
+) -> None:
     round_trips(*case_texts(name), roles=roles)
     source, test = case_texts(name)
     accepted = cm.tag_lines(none(md(source, test)), "accept")
@@ -554,12 +648,21 @@ def test_no_live_delimiter_leaks_from_document_text(name: str) -> None:
     assert parsed == emitted
 
 
-@pytest.mark.skipif(importlib.util.find_spec("rapidfuzz") is None, reason="needs the [fuzzy] extra")
+@pytest.mark.skipif(
+    importlib.util.find_spec("rapidfuzz") is None, reason="needs the [fuzzy] extra"
+)
 @pytest.mark.parametrize("name", CASE_NAMES)
-def test_difflib_and_rapidfuzz_build_the_same_change_tree_on_each_case(name: str) -> None:
+def test_difflib_and_rapidfuzz_build_the_same_change_tree_on_each_case(
+    name: str,
+) -> None:
     source, test = case_texts(name)
     trees = [
-        compare(source, test, format="markdown", alignment=AlignmentConfig(similarity=backend))
+        compare(
+            source,
+            test,
+            format="markdown",
+            alignment=AlignmentConfig(similarity=backend),
+        )
         for backend in ("difflib", "rapidfuzz")
     ]
     assert trees[0].changes.to_dict() == trees[1].changes.to_dict()
@@ -571,7 +674,14 @@ def test_difflib_and_rapidfuzz_build_the_same_change_tree_on_each_case(name: str
 def _oracle() -> dict[str, list[str]]:
     failures: dict[str, list[str]] = {
         key: []
-        for key in ("accept", "accept_bare", "reject_strict", "reject_loose", "none_accept", "none_order")
+        for key in (
+            "accept",
+            "accept_bare",
+            "reject_strict",
+            "reject_loose",
+            "none_accept",
+            "none_order",
+        )
     }
     removed = {"accept": 0, "reject": 0}
     for run in committed_runs():
@@ -587,21 +697,25 @@ def _oracle() -> dict[str, list[str]]:
         if not cm.exact(accepted, cm.accept_all(test_rendering)):
             failures["accept"].append(run.name)
         bare = [line.strip() for line in cm.lines(annotated, "accept") if line.strip()]
-        bare_test = [line.strip() for line in cm.lines(test_rendering, "accept") if line.strip()]
+        bare_test = [
+            line.strip() for line in cm.lines(test_rendering, "accept") if line.strip()
+        ]
         if bare != bare_test:
             failures["accept_bare"].append(run.name)
         removed["accept"] += len(bare) - len(accepted)
         rejected = cm.reject_all(annotated)
-        removed["reject"] += (
-            len([line for line in cm.lines(annotated, "reject") if line.strip()]) - len(rejected)
-        )
+        removed["reject"] += len(
+            [line for line in cm.lines(annotated, "reject") if line.strip()]
+        ) - len(rejected)
         source_rendering = cm.reject_all(critic(on_source, syntax))
         if not cm.multiset(rejected, source_rendering):
             failures["reject_strict"].append(run.name)
         if not cm.loose_multiset(rejected, source_rendering):
             failures["reject_loose"].append(run.name)
         legacy = none(comparison, syntax)
-        if cm.tag_lines(legacy, "accept") != cm.tag_lines(none(on_test, syntax), "accept"):
+        if cm.tag_lines(legacy, "accept") != cm.tag_lines(
+            none(on_test, syntax), "accept"
+        ):
             failures["none_accept"].append(run.name)
         if cm.loose(cm.tag_lines(legacy, "reject")) != cm.loose(
             cm.tag_lines(none(on_source, syntax), "reject")

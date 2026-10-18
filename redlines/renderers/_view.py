@@ -1,4 +1,6 @@
-"""The view every in-place renderer walks: the test document, with deletions and move origins placed (ADR-0037).
+"""The view every in-place renderer walks (ADR-0037).
+
+The test document, with its deletions and move origins placed where they stood.
 
 The change tree is flat and document-ordered, and a deletion or a move origin
 has no position in the test document. `build_view` gives every renderer the
@@ -171,7 +173,9 @@ class _ViewBuilder:
             anchor = anchors.place(path)
             # None only inside a deleted ancestor, whose ghost draws this one.
             if anchor is not None:
-                origin = ViewNode(BlockStatus.ORIGIN, self.source_blocks[path], None, change)
+                origin = ViewNode(
+                    BlockStatus.ORIGIN, self.source_blocks[path], None, change
+                )
                 self._place(anchor, path, origin)
         return self._test(self.comparison.test.root, inside_insert=False)
 
@@ -195,7 +199,9 @@ class _ViewBuilder:
         """One test block, its children, and whatever is anchored among them."""
         change = self.by_test.get(block.path)
         source_path = self.alignment.source_for(block.path)
-        counterpart = None if source_path is None else self.source_blocks.get(source_path)
+        counterpart = (
+            None if source_path is None else self.source_blocks.get(source_path)
+        )
         if change is not None:
             status = _STATUS[change.kind]
         elif inside_insert and source_path is None:

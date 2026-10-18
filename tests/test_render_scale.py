@@ -40,7 +40,9 @@ def _flat(count: int, *, keep_every: int = 1) -> BlockTree:
 @pytest.fixture(scope="module")
 def half_deleted() -> Comparison:
     comparison = compare(_flat(BLOCKS), _flat(BLOCKS, keep_every=2))
-    deletes = sum(1 for change in comparison.changes if change.kind is ChangeKind.DELETE)
+    deletes = sum(
+        1 for change in comparison.changes if change.kind is ChangeKind.DELETE
+    )
     assert deletes == BLOCKS // 2
     return comparison
 
@@ -62,20 +64,29 @@ def test_the_anchors_the_view_and_a_render_each_take_under_a_second(
     _timed(
         seconds,
         lambda: Anchors(
-            source=comparison.source, test=comparison.test, alignment=comparison.alignment
+            source=comparison.source,
+            test=comparison.test,
+            alignment=comparison.alignment,
         ),
     )
     view = _timed(seconds, lambda: build_view(comparison))
     _timed(
         seconds,
-        lambda: render_inplace(comparison, LEGACY["none"], syntax="markdown", roles=False),
+        lambda: render_inplace(
+            comparison, LEGACY["none"], syntax="markdown", roles=False
+        ),
     )
-    _timed(seconds, lambda: render_inplace(comparison, CRITIC, syntax="markdown", roles=True))
+    _timed(
+        seconds,
+        lambda: render_inplace(comparison, CRITIC, syntax="markdown", roles=True),
+    )
     assert all(elapsed < 1.0 for elapsed in seconds), seconds
     assert hasattr(view, "walk")
 
 
-def test_the_view_of_the_scale_pair_has_every_ghost_in_place(half_deleted: Comparison) -> None:
+def test_the_view_of_the_scale_pair_has_every_ghost_in_place(
+    half_deleted: Comparison,
+) -> None:
     view = build_view(half_deleted)
     statuses = [node.status for node in view.children]
     assert statuses.count(BlockStatus.DELETE) == BLOCKS // 2

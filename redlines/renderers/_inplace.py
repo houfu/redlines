@@ -1,4 +1,6 @@
-r"""The in-place traversal: the inline splice, the line syntax, and the walk every in-place output shares (ADR-0037).
+r"""The in-place traversal every in-place output shares (ADR-0037).
+
+The inline splice, the line syntax, the walk, and the spelling of its chunks.
 
 `render_inplace` walks `redlines.renderers._view.build_view`'s view of the test
 document once and writes it with a `redlines.renderers._marks.MarkSet`: the
@@ -114,7 +116,9 @@ Syntax = Literal["text", "markdown"]
 
 SegmentKind = Literal["equal", "insert", "delete", "replace"]
 
-PieceKind = Literal["syntax", "role", "text", "insert", "delete", "substitution", "note"]
+PieceKind = Literal[
+    "syntax", "role", "text", "insert", "delete", "substitution", "note"
+]
 
 # A cell is only ever drawn by its table; it is text-bearing here for a tree
 # that puts one somewhere else, so its text is not lost.
@@ -183,7 +187,9 @@ def inline_segments(change: Change) -> tuple[Segment, ...]:
         test_end = min(max(op.test_end, test_start), len(test))
         if source_start > source_at or test_start > test_at:
             segments.append(
-                Segment("equal", source[source_at:source_start], test[test_at:test_start])
+                Segment(
+                    "equal", source[source_at:source_start], test[test_at:test_start]
+                )
             )
         segments.append(
             Segment(
@@ -397,13 +403,20 @@ class _Layout:
             + (test_label + " " if test_label else "")
             + change.test_address
         )
-        self._add((Piece("note", note),), quote=False, block=node.block, status=node.status)
+        self._add(
+            (Piece("note", note),), quote=False, block=node.block, status=node.status
+        )
 
     def _strike(self, block: Block) -> None:
         """Strike a whole source subtree, in pre-order, every descendant included."""
         if block.kind is BlockKind.TABLE:
             rows = [self._marked_row(row, "delete") for row in block.children]
-            self._add_table(block, rows, quote=_is_quoted(block, self.syntax), status=BlockStatus.ORIGIN)
+            self._add_table(
+                block,
+                rows,
+                quote=_is_quoted(block, self.syntax),
+                status=BlockStatus.ORIGIN,
+            )
             return
         if block.kind in _TEXT_BEARING:
             self._whole_block(block, "delete", BlockStatus.ORIGIN)
@@ -435,14 +448,19 @@ class _Layout:
         return opening + encode_role(role) + closing
 
     def _whole_block(self, block: Block, mark: _Mark, status: BlockStatus) -> None:
-        """An inserted or deleted text-bearing block: one mark, head and role outside."""
+        """An inserted or deleted text-bearing block: one mark, head and role out."""
         if _is_fence(block, self.syntax):
             self._fence(block, [Piece(mark, block.text)], status)
             return
         body = _labelled(label_text(block, self.syntax), block.text)
         pieces = self._head(block)
         pieces.append(Piece(mark, body))
-        self._add(tuple(pieces), quote=_is_quoted(block, self.syntax), block=block, status=status)
+        self._add(
+            tuple(pieces),
+            quote=_is_quoted(block, self.syntax),
+            block=block,
+            status=status,
+        )
 
     def _line(self, node: ViewNode) -> None:
         """A block that is in both documents, or unchanged, drawn in place."""
@@ -465,7 +483,12 @@ class _Layout:
         if node.status is BlockStatus.MOVE and self.marks.notes and change is not None:
             pieces.append(Piece("text", " "))
             pieces.append(Piece("note", self._moved_from(node, change)))
-        self._add(tuple(pieces), quote=_is_quoted(block, self.syntax), block=block, status=node.status)
+        self._add(
+            tuple(pieces),
+            quote=_is_quoted(block, self.syntax),
+            block=block,
+            status=node.status,
+        )
 
     def _label_part(self, node: ViewNode) -> list[Piece]:
         """The label part of a line: the label, its renumbering, or nothing.
@@ -517,9 +540,13 @@ class _Layout:
         return "moved from " + (label + " " if label else "") + address
 
     def _move_note_line(self, node: ViewNode) -> None:
-        """A moved block with no line of its own (a section, a table, a fence) says so on one."""
+        """A moved block with no line of its own (section, table, fence) gets one."""
         change = node.change
-        if node.status is not BlockStatus.MOVE or change is None or not self.marks.notes:
+        if (
+            node.status is not BlockStatus.MOVE
+            or change is None
+            or not self.marks.notes
+        ):
             return
         if self.marks.whole_moves:
             return
@@ -531,7 +558,7 @@ class _Layout:
         )
 
     def _splice(self, change: Change, *, pipes: bool) -> list[Piece]:
-        """The block's text with its inline ops marked, equal runs from the test side."""
+        """The block's text with its inline ops marked; equal runs from the test."""
         escape = _pipes if pipes else _same
         pieces: list[Piece] = []
         for segment in inline_segments(change):
@@ -585,7 +612,12 @@ class _Layout:
         pieces.append(Piece("syntax", "\n"))
         pieces.extend(body)
         pieces.append(Piece("syntax", "\n" + ticks))
-        self._add(tuple(pieces), quote=_is_quoted(block, self.syntax), block=block, status=status)
+        self._add(
+            tuple(pieces),
+            quote=_is_quoted(block, self.syntax),
+            block=block,
+            status=status,
+        )
 
     # -- tables -----------------------------------------------------------
 
@@ -598,10 +630,17 @@ class _Layout:
                 continue  # 0.6's picture draws no ghost inside a moved block
             lines.extend(self._row_lines(row, whole))
         if node.status is not BlockStatus.DELETE:
-            first = next((index for index, line in enumerate(lines) if not line.deleted), None)
+            first = next(
+                (index for index, line in enumerate(lines) if not line.deleted), None
+            )
             if first is not None:
                 lines = [lines[first], *lines[:first], *lines[first + 1 :]]
-        self._add_table(node.block, lines, quote=_is_quoted(node.block, self.syntax), status=node.status)
+        self._add_table(
+            node.block,
+            lines,
+            quote=_is_quoted(node.block, self.syntax),
+            status=node.status,
+        )
 
     def _row_lines(self, row: ViewNode, whole: _Mark | None) -> list[_RowLine]:
         if whole is not None:
@@ -635,14 +674,22 @@ class _Layout:
     def _marked_row(self, row: Block, mark: _Mark) -> _RowLine:
         """A row inserted or deleted whole: each non-empty cell marked on its own."""
         cells: list[list[Piece]] = [
-            [Piece(mark, _pipes(cell.text))] if cell.text else [] for cell in row.children
+            [Piece(mark, _pipes(cell.text))] if cell.text else []
+            for cell in row.children
         ]
         if cells and not any(cells):
             cells[0] = [Piece(mark, "")]  # an all-empty row stays visible
-        return _RowLine(_assemble_row(cells), deleted=mark == "delete", cells=len(cells))
+        return _RowLine(
+            _assemble_row(cells), deleted=mark == "delete", cells=len(cells)
+        )
 
     def _add_table(
-        self, table: Block, lines: Sequence[_RowLine], *, quote: bool, status: BlockStatus
+        self,
+        table: Block,
+        lines: Sequence[_RowLine],
+        *,
+        quote: bool,
+        status: BlockStatus,
     ) -> None:
         if not lines:
             return
@@ -667,15 +714,26 @@ class _Layout:
                 if rendered is not None:
                     fields.append(f"{name}={rendered}")
             if fields:
-                self._add((Piece("note", "filtered: " + "; ".join(fields)),), quote=False)
+                self._add(
+                    (Piece("note", "filtered: " + "; ".join(fields)),), quote=False
+                )
         if config.budget_exhausted:
             self._add(
-                (Piece("note", "alignment stopped early: the comparison budget ran out"),),
+                (
+                    Piece(
+                        "note", "alignment stopped early: the comparison budget ran out"
+                    ),
+                ),
                 quote=False,
             )
-        for side, tree in (("source", self.comparison.source), ("test", self.comparison.test)):
+        for side, tree in (
+            ("source", self.comparison.source),
+            ("test", self.comparison.test),
+        ):
             for dropped in tree.dropped:
-                note = f"{side} dropped {dropped.count} {dropped.kind}: {dropped.reason}"
+                note = (
+                    f"{side} dropped {dropped.count} {dropped.kind}: {dropped.reason}"
+                )
                 self._add((Piece("note", note),), quote=False)
 
     def _add(
@@ -694,14 +752,16 @@ def _same(text: str) -> str:
 
 
 def _labelled(label: str, text: str) -> str:
-    """A label and its text, one space between them, and none after a label-only block."""
+    """A label and its text, one space apart; nothing after a label-only block."""
     if label and text:
         return label + " " + text
     return label or text
 
 
 def _filter_value(value: object) -> str | None:
-    """A `redlines.filters.ChangeFilter` field as the filtered note writes it, or ``None`` if empty."""
+    """One `redlines.filters.ChangeFilter` field as the filtered note writes it.
+
+    ``None`` for an empty field, which the note leaves out."""
     if isinstance(value, bool):
         return "true" if value else "false"
     if value is None:
@@ -774,13 +834,15 @@ def layout(
 
 
 _Side = Literal["accept", "reject"]
-_Origin = tuple[int, int, int]  # (piece index, part: 0 text or old side / 1 new side, offset)
+_Origin = tuple[
+    int, int, int
+]  # (piece index, part: 0 text or old side / 1 new side, offset)
 
 
 def _side_text(
     pieces: Sequence[Piece], side: _Side, quote: bool
 ) -> tuple[str, list[_Origin | None], list[int]]:
-    """What a reader recovers of one chunk on one side, with where each character came from.
+    """What a reader recovers of one chunk on one side, and where each part came from.
 
     Mirrors the reader: marks resolved, notes stripped with one adjacent space,
     a quote marker after every newline.
@@ -819,7 +881,11 @@ def _side_text(
         if piece.kind in ("syntax", "role"):
             if piece.kind == "role":
                 role_starts.append(len(characters))
-            text = piece.text[1:] if skip_space and piece.text.startswith(" ") else piece.text
+            text = (
+                piece.text[1:]
+                if skip_space and piece.text.startswith(" ")
+                else piece.text
+            )
             put(text, None)
         elif piece.kind == "text":
             if skip_space and piece.text.startswith(" "):
