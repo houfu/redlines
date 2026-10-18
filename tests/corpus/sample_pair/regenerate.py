@@ -53,16 +53,34 @@ than a silently regenerated golden. `tests/test_sample_pair_change_tree.py`
 keeps the same discipline for the change-tree goldens: it calls the public
 `redlines.comparison.compare` itself rather than this script's
 `build_comparison`.
+
+**The rendered goldens** (#179, then each renderer after it). With
+``--rendered`` the script writes these instead, under ``expected/rendered/``::
+
+    uv run python tests/corpus/sample_pair/regenerate.py --rendered
+
+They are what the renderers of `redlines.comparison.Comparison` draw for the
+two comparisons above, under the same `GOLDEN_BACKEND`. Each renderer appends
+its own rows to `RENDERINGS` and reorders none, because the renderers are
+developed in parallel. Every file is written with ``newline=""``, so the bytes
+on disk are the bytes the renderer returned, and no trailing newline is added
+to a rendering that has none. What freezes them is not this script but houfu's
+reading of them against ``CHANGES.md``, once, so regenerate them only for a
+change he has agreed to. The tests render the pair themselves rather than
+calling `RENDERINGS`, as the tests above do.
 """
 
 from __future__ import annotations
 
 import json
+import sys
+from collections.abc import Callable
 from pathlib import Path
 
 from redlines.alignment import AlignmentConfig
 from redlines.blocks import BlockTree
 from redlines.comparison import Comparison, compare
+from redlines.enums import MarkdownStyle
 from redlines.pipeline import read_document
 
 CASE_DIR = Path(__file__).parent
@@ -195,5 +213,80 @@ def regenerate() -> None:
         )
 
 
+RENDERED_DIR: Path = EXPECTED_DIR / "rendered"
+"""Where the rendered goldens go, apart from the trees they are drawn from."""
+
+MARKDOWN_STYLES: tuple[str, ...] = (
+    *(style.value for style in MarkdownStyle),
+    "custom_css",
+)
+"""Every style `redlines.comparison.Comparison.output_markdown` draws, in
+`redlines.enums.MarkdownStyle` order, then ``custom_css`` with its default
+classes."""
+
+
+def _markdown(style: str) -> Callable[[Comparison], str]:
+    """The ``output_markdown`` rendering in one style, as a `RENDERINGS` callable."""
+
+    def render(comparison: Comparison) -> str:
+        return comparison.output_markdown(style)
+
+    return render
+
+
+def dump_rich(comparison: Comparison) -> str:
+    """The ``output_rich`` golden: ``{"plain": …, "spans": [[start, end, style], …]}``.
+
+    ``(plain, spans)`` rather than ``Text.markup``, which churns on rich
+    upgrades (ADR-0037). JSON with one span to a line, so a diff shows which
+    run changed, and a trailing newline.
+
+    :param comparison: the comparison to render.
+    :return: the JSON text.
+    """
+    text = comparison.output_rich()
+    spans = [[span.start, span.end, str(span.style)] for span in text.spans]
+    rows = "".join(
+        f"    {json.dumps(span, ensure_ascii=False)}{',' if index < len(spans) - 1 else ''}\n"
+        for index, span in enumerate(spans)
+    )
+    plain = json.dumps(text.plain, ensure_ascii=False)
+    return f'{{\n  "plain": {plain},\n  "spans": [\n{rows}  ]\n}}\n'
+
+
+RENDERINGS: tuple[tuple[str, str, Callable[[Comparison], str]], ...] = (
+    # Comparison.output_markdown (#179): every style, on the markdown twin as
+    # markdown and on the text twin as text.
+    *(
+        (f"markdown.{style}.{extension}", profile_name, _markdown(style))
+        for style in MARKDOWN_STYLES
+        for extension, profile_name in (("md", "markdown"), ("txt", "contract"))
+    ),
+    # Comparison.output_rich (#180): the markdown twin.
+    ("rich.markdown.json", "markdown", dump_rich),
+)
+"""Every rendered golden: its file under `RENDERED_DIR`, the profile naming its
+twin in `CHANGE_PAIRINGS`, and what draws it. Each renderer appends its own
+rows; none reorders another's."""
+
+
+def regenerate_rendered() -> None:
+    """Write every row of `RENDERINGS` under `RENDERED_DIR`, byte for byte."""
+    RENDERED_DIR.mkdir(parents=True, exist_ok=True)
+    twins = {
+        profile_name: build_comparison(
+            source_name, test_name, format=format, profile_name=profile_name
+        )
+        for source_name, test_name, format, profile_name in CHANGE_PAIRINGS
+    }
+    for name, profile_name, render in RENDERINGS:
+        target = RENDERED_DIR / name
+        target.write_text(render(twins[profile_name]), encoding="utf-8", newline="")
+        print(f"wrote {target.relative_to(CASE_DIR.parent.parent)}")
+
+
 if __name__ == "__main__":
-    regenerate()
+    if "--rendered" in sys.argv[1:]:
+        regenerate_rendered()
+    else:
+        regenerate()

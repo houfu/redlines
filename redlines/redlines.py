@@ -97,6 +97,10 @@ class Redlines:
     """
     For a structural comparison of the same inputs call `redlines.compare(self.source, self.test)`; it is a
     different, block-aligned diff.
+
+    `Comparison.output_markdown(...)` is a method, while `Redlines.output_markdown` stays a property. The two
+    can give different bytes for the same inputs: the method draws that block-aligned diff, and the property
+    keeps 0.6's output byte for byte (ADR-0036).
     """
 
     _source: str | None = None
