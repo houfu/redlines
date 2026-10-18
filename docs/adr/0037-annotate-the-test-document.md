@@ -143,7 +143,7 @@ deleted block         SYNTAX-HEAD ROLE-PREFIX? "{--" [LABEL " "] TEXT "--}"
 list-marker renumber  markdown variant, test block with label_source == "list_marker":
                       SYNTAX-HEAD ROLE-PREFIX? "{>>renumbered from " OLD "<<} " TEXT
                       (OLD = the source block's label text: label_raw, else list_marker, else label)
-fence                 OPEN [INFO] "\n" BODY-WITH-MARKS "\n" CLOSE; OPEN = CLOSE = max(3, longest backtick run in the body + 1) backticks
+fence                 OPEN [INFO] "\n" BODY-WITH-MARKS "\n" CLOSE; OPEN = CLOSE = max(3, longest backtick run in the accepted body + 1) backticks
 table                 header row, alignment row (markdown variant only), data rows, joined by "\n"; marks per cell
 header notes          own lines before the first block, only when true, in this order:
                       "{>>filtered: " FIELD "=" V{","V} {"; " FIELD "=" V{","V}} "<<}"   (non-empty ChangeFilter fields, declared order)
@@ -151,6 +151,8 @@ header notes          own lines before the first block, only when true, in this 
                       "{>>" ("source"|"test") " dropped " COUNT " " KIND ": " REASON "<<}"  (each Dropped, source first)
 document              lines joined by "\n\n", no trailing newline
 ```
+
+The fence length is measured over the accepted body, the test text with its inserts, and not over deleted or old text, so that accept-all reproduces the test rendering exactly. A deleted run of backticks longer than the fence can therefore close the fence early in a markdown viewer; the annotated text is still parsed correctly by the reference reader, and the case does not occur in the 60 committed runs.
 
 - An inserted or deleted subtree writes every text-bearing block on its own line, wrapped separately, with the syntax head and role prefix outside the mark.
 - An address contains no spaces, so it is always the last token of a note. On the origin line, the words "moved to" split the two labels, which may themselves contain spaces: `{>>Schedule 2 moved to Schedule 3 /…<<}`.
