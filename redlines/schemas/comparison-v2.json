@@ -22,7 +22,7 @@
     },
     "changes": {
       "type": "array",
-      "description": "The change tree: a flat, document-ordered list of Change objects. The only nesting is a change's own inline ops; there are no child change nodes (ADR-0033).",
+      "description": "The change tree: a flat, document-ordered list of Change objects. The only nesting is a change's own inline ops; there are no child change nodes (ADR-0033). A delete sits in its own parent, after its nearest preceding sibling that stayed in place (ADR-0033, amendment).",
       "items": { "$ref": "#/definitions/change" }
     },
     "alignment": {
