@@ -278,6 +278,7 @@ def test_the_document_has_the_v2_top_level_keys() -> None:
         "source",
         "test",
         "changes",
+        "statistics",
     ]
     assert payload["schema_version"] == SCHEMA_VERSION == "2.0"
     assert payload["source"] == result.source.to_dict()

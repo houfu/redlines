@@ -11,16 +11,13 @@ comparison with no changes at all, and a comparison written with
 ``include_alignment=True`` -- rather than asserting the schema's shape by
 hand and hoping it matches.
 
-Two things freeze here that are *not* transcriptions of the research
-document's own JSON example, because that example was drafted before
-#138 (filters) and #139 (statistics) existed and sketches fields those
-modules will add later: this schema's top level is exactly
-``schema_version, config, source, test, changes`` plus the optional
-``alignment`` -- no ``statistics`` key, because `Comparison.to_dict()` does
-not have one -- and ``config`` carries no ``filter`` key, because
-`ComparisonConfig` does not have one either. Adding either later is an
-additive, minor-version change (ADR-0011) that widens this same file; this
-test module is what will need updating alongside it.
+**#138 and #139 landed after this module was first written**, each an
+additive, minor-version change (ADR-0011) that widened this same file rather
+than replacing it: the top level now also carries an always-present
+``statistics`` key (`redlines.statistics.ComparisonStatistics`, #139), and
+``config`` now also carries a ``filter`` key, ``null`` unless the comparison
+came from `redlines.comparison.Comparison.filter` (#138). Both are asserted
+below alongside the shape this module froze first.
 """
 
 from __future__ import annotations
@@ -107,6 +104,16 @@ def test_the_block_tree_is_a_section_of_this_file_not_a_second_schema(
     assert schema["properties"]["test"]["$ref"] == "#/definitions/blockTree"
 
 
+def test_statistics_is_required_and_filter_is_nullable(schema: dict[str, Any]) -> None:
+    """#139's addition is required (always present); #138's is nullable (#137)."""
+    assert "statistics" in schema["required"]
+    assert schema["properties"]["statistics"]["$ref"] == "#/definitions/comparisonStatistics"
+    config = schema["definitions"]["comparisonConfig"]
+    assert "filter" in config["required"]
+    assert {"$ref": "#/definitions/changeFilter"} in config["properties"]["filter"]["anyOf"]
+    assert {"type": "null"} in config["properties"]["filter"]["anyOf"]
+
+
 def test_comparison_schema_text_matches_the_file_on_disk() -> None:
     """`comparison_schema_text` reads the installed package, not a copy."""
     on_disk = (
@@ -184,6 +191,25 @@ def test_a_single_block_comparison_validates(
     assert len(payload["test"]["root"]["children"]) == 1
     assert payload["changes"]
     assert payload["alignment"]
+    validator.validate(payload)
+
+
+def test_a_filtered_comparison_carries_its_filter_and_validates(
+    validator: jsonschema.protocols.Validator,
+) -> None:
+    """#138: `Comparison.filter()`'s spec travels on the wire in ``config.filter``."""
+
+    result = compare("One paragraph.", "One paragraph edited.", format="text")
+    filtered = result.filter(kinds=("modify",))
+    payload = filtered.to_dict()
+    assert payload["config"]["filter"] == {
+        "kinds": ["modify"],
+        "address_prefixes": [],
+        "labels": [],
+        "roles": [],
+        "min_chars": 0,
+        "has_inline": None,
+    }
     validator.validate(payload)
 
 
