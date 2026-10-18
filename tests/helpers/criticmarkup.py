@@ -2,10 +2,15 @@ r"""The reference reader for ADR-0037's CriticMarkup: accept-all and reject-all.
 
 CriticMarkup defines no escape, so a third-party stripper ignores redlines'
 backslashes: it opens a mark at ``\{++`` and mis-pairs ``use \{++ here
-{++new++}``. This module is the reader ADR-0037 names. It is written from the
-ADR's text, independently of ``redlines.renderers``, so that the renderer
-tests have an oracle that is not the code under test. `accept_all` and
-`reject_all` are exactly the ADR's seven steps:
+{++new++}``. This module is the reader ADR-0037 names. Its control flow --
+the tokenising scan, the resolution, note stripping and the residue rule --
+is written from the ADR's text without importing ``redlines.renderers``, so
+the renderer tests have an oracle that does not run the code under test. Its
+regular expressions are the ADR's, written out again here, and a test checks
+that the head and line-start patterns match the renderer's: the two must
+agree for the line-start escape to read back, so a misreading of those two
+patterns shared by both would pass both. `accept_all` and `reject_all` are
+exactly the ADR's seven steps:
 
 1. **Parse** (`parse`): a strict tokenising scan, not a regular expression.
    A live opener (``{++``, ``{--``, ``{~~``, ``{>>``) has an even run of
@@ -84,8 +89,8 @@ _CLOSERS: Final[dict[TokenKind, str]] = {
     "note": "<<}",
 }
 
-# The three sites of ADR-0037's escape, written out again here rather than
-# imported, so that the oracle and the renderer are two readings of the ADR.
+# ADR-0037's patterns, written out again here rather than imported; the
+# head and line-start patterns are checked equal to the renderer's.
 _SITE: Final[re.Pattern[str]] = re.compile(
     r"(?P<o>\\*)\{(?=\+\+|--|~~|==|>>)"
     r"|(?<=\+\+|--|~~|==|<<)(?P<c>\\*)\}"
