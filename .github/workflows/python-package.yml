@@ -9,9 +9,17 @@ on:
   push:
     branches: [ main ]
     paths-ignore:
-      # '*.md' and not '**.md': the latter matches test fixtures, so editing
-      # tests/corpus/**/*.md alone would not run the suite.
-      - '*.md'
+      # The root-level markdown files one by one, and README.md is left out on
+      # purpose: tests/test_readme_strings.py and tests/test_quick_path_is_silent.py
+      # run its python blocks, so a change to the README alone has to run the suite
+      # (a '*.md' here would skip it). Not '**.md' either: that matches test
+      # fixtures, so editing tests/corpus/**/*.md alone would not run the suite. A
+      # new root-level markdown file belongs in this list unless a test depends on it.
+      - 'AGENT_GUIDE.md'
+      - 'CONTRIBUTING.md'
+      - 'Code_of_Conduct.md'
+      - 'README-PT-BR.md'
+      - 'ROADMAP.md'
       - 'docs/**'
       - 'site/**'
       - 'LICENSE.txt'
@@ -19,9 +27,17 @@ on:
       - '.github/workflows/docs.yml'
   pull_request:
     paths-ignore:
-      # '*.md' and not '**.md': the latter matches test fixtures, so editing
-      # tests/corpus/**/*.md alone would not run the suite.
-      - '*.md'
+      # The root-level markdown files one by one, and README.md is left out on
+      # purpose: tests/test_readme_strings.py and tests/test_quick_path_is_silent.py
+      # run its python blocks, so a change to the README alone has to run the suite
+      # (a '*.md' here would skip it). Not '**.md' either: that matches test
+      # fixtures, so editing tests/corpus/**/*.md alone would not run the suite. A
+      # new root-level markdown file belongs in this list unless a test depends on it.
+      - 'AGENT_GUIDE.md'
+      - 'CONTRIBUTING.md'
+      - 'Code_of_Conduct.md'
+      - 'README-PT-BR.md'
+      - 'ROADMAP.md'
       - 'docs/**'
       - 'site/**'
       - 'LICENSE.txt'
@@ -97,7 +113,7 @@ jobs:
 
   # The 0.6.2 compatibility contract (ADR-0003), checked from outside this
   # repository's own tests. The pristine `tests/` and `examples/` trees of the
-  # v0.6.2 tag are extracted from git, not from the working tree, and run
+  # v0.6.2 release are extracted from git, not from the working tree, and run
   # against the code as it stands, with every extra installed. Passing them
   # unmodified is a hard release criterion for 1.0.
   # `tests/test_v062_contract_frozen.py` proves that this repository's copies of
@@ -105,20 +121,26 @@ jobs:
   # describe has not changed.
   #
   # Python 3.12, because nupunkt needs 3.11 or later. The archive is extracted
-  # outside the checkout, so pytest's rootdir lands there and the repository's
-  # own pytest configuration is not loaded: the old tests run as they did in
-  # 0.6.2. It shares this workflow's triggers (and so its `paths-ignore`).
+  # outside the checkout, so pytest finds no configuration above it and the
+  # repository's own pytest configuration is not loaded: the old tests run as
+  # they did in 0.6.2. It shares this workflow's triggers (and so its `paths-ignore`).
   #
   # It only blocks a merge once it is a required status check. That is a
   # repository setting, not workflow code: houfu can make `compat-v062`
-  # required under the branch protection (or ruleset) settings when ready.
+  # required under the branch protection (or ruleset) settings when ready. Not
+  # while this workflow has `paths-ignore`, though: a pull request that touches
+  # only ignored paths never starts the job, GitHub leaves a required check that
+  # never reports pending, and such a docs-only pull request could not be merged.
+  # The `paths-ignore` filters would have to be dropped first (the suite takes
+  # about a minute).
   compat-v062:
     runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v7
         with:
-          # `git archive v0.6.2` needs the tag, and a shallow clone has none.
+          # `git archive` below needs the v0.6.2 commit, and a shallow clone has
+          # none of the history.
           fetch-depth: 0
       - name: Set up Python 3.12
         uses: actions/setup-python@v7
@@ -131,9 +153,23 @@ jobs:
           cache-dependency-glob: "uv.lock"
       - name: Install the project (with nupunkt and the other extras)
         run: uv sync --all-extras --dev
+      - name: Check that the extras are installed
+        # Without them the same tree still exits 0, with the nupunkt and pdf tests
+        # skipped instead of run.
+        run: |
+          uv run python - <<'EOF'
+          from redlines.pdf import PDF_AVAILABLE
+          from redlines.processor import NUPUNKT_AVAILABLE
+
+          assert NUPUNKT_AVAILABLE, "nupunkt is missing: its tests would be skipped"
+          assert PDF_AVAILABLE, "pdfplumber is missing: its tests would be skipped"
+          EOF
       - name: Extract the pristine v0.6.2 tests and examples
         run: |
+          set -euo pipefail
           mkdir -p "$RUNNER_TEMP/v062"
-          git archive v0.6.2 tests examples | tar -x -C "$RUNNER_TEMP/v062"
+          # The commit the v0.6.2 tag points at. The commit and not the tag, so
+          # that a moved tag cannot change what this job tests.
+          git archive 80e69383a90fc48dab0c9cbbafc5103db0b0c9be tests examples | tar -x -C "$RUNNER_TEMP/v062"
       - name: Run them against the current code
         run: uv run pytest "$RUNNER_TEMP/v062/tests" -p no:cacheprovider
