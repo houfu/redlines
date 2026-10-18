@@ -22,6 +22,8 @@ Beyond "does not raise", four things are held on every run:
 - `redlines.changes.Anchors` places every source block the same way from the
   rebuilt comparison as from the original, and every anchor's ``after`` is a
   child of its ``test_parent``;
+- every statistics row says which tree it names, ``side`` is ``"source"``
+  exactly on the sections deleted whole, and ``(side, address)`` is unique;
 - two builds of the same run give identical payloads (N1): the change list,
   its order and the statistics are a function of the input and nothing else.
 
@@ -37,7 +39,8 @@ from typing import Any
 
 import pytest
 
-from redlines.changes import Anchors, build_change_tree
+from redlines.blocks import Block, BlockKind
+from redlines.changes import Anchors, ChangeKind, build_change_tree
 from redlines.comparison import Comparison, compare
 
 from tests.helpers.committed_runs import (
@@ -143,6 +146,43 @@ def test_every_anchor_names_a_child_of_its_test_parent(name: str) -> None:
         anchor = placed.place(block.path)
         if anchor is not None and anchor.after is not None:
             assert test_parent[anchor.after] == anchor.test_parent, block.path
+
+
+def _headed_section(block: Block) -> bool:
+    """A section block with a heading child: what a statistics row is for."""
+    return block.kind is BlockKind.SECTION and any(
+        child.kind is BlockKind.HEADING for child in block.children
+    )
+
+
+@pytest.mark.parametrize("name", NAMES)
+def test_every_section_row_says_which_tree_it_names(name: str) -> None:
+    """``side`` is on every row, and ``"source"`` marks exactly the deleted sections.
+
+    A row is identified by ``(side, address)``: a section deleted whole is
+    addressed in the source tree, and that address can be a test section's
+    too. In the corpus the one such row is ``/section[1]/section[1]`` of
+    ``benchmark/hand/csa-1.1-to-2.0``, which happens not to collide.
+    """
+    comparison = compared(name)
+    rows = comparison.statistics().sections
+    deleted_sections = sorted(
+        change.source_address
+        for change in comparison.changes
+        if change.kind is ChangeKind.DELETE
+        and change.source_address is not None
+        and _headed_section(comparison.source.block_at(change.source_address))
+    )
+
+    assert sorted(row.address for row in rows if row.side == "source") == (
+        deleted_sections
+    )
+    for row in rows:
+        if row.side == "test":
+            assert _headed_section(comparison.test.block_at(row.address)), row.address
+    assert len({(row.side, row.address) for row in rows}) == len(rows)
+    wire = json.loads(payload(name))["statistics"]["sections"]
+    assert [row["side"] for row in wire] == [row.side for row in rows]
 
 
 @pytest.mark.parametrize("name", NAMES)
