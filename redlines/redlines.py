@@ -11,7 +11,10 @@ if sys.version_info >= (3, 11):
 else:
     from typing_extensions import Unpack
 
-from .changes import redlines_from_opcodes
+from .alignment import DEFAULT_ALIGNMENT, AlignedPair, Alignment
+from .blocks import ROOT_PATH, Block, BlockKind, BlockTree
+from .changes import build_change_tree, redlines_from_opcodes
+from .comparison import BLOCKS_FORMAT, Comparison, ComparisonConfig
 from .document import Document
 from .enums import MarkdownStyle, OutputType
 from .processor import (
@@ -91,11 +94,17 @@ class RedlinesOptions(t.TypedDict, total=False):
 
 
 class Redlines:
+    """
+    For a structural comparison of the same inputs call `redlines.compare(self.source, self.test)`; it is a
+    different, block-aligned diff.
+    """
+
     _source: str | None = None
     _test: str | None = None
     _seq1: list[str] | None = None
     _seq2: list[str] | None = None
     _diff_operations: list[DiffOperation] | None = None
+    _comparison_cache: _ComparisonCache | None = None
 
     @property
     def source(self) -> str:
@@ -978,3 +987,158 @@ class Redlines:
         elif output == OutputType.RICH:
             return self.output_rich
         return self.output_markdown
+
+    def _comparison(self) -> Comparison:
+        """
+        Return this comparison as the core's change tree, built from the opcodes the 0.6 outputs render.
+
+        Private, and read by nothing public in 1.0 (ADR-0036). The 0.6 outputs are 0.6's own code over the
+        processor's own opcodes, which the setters compute exactly where 0.6 computed them. This derives the
+        change tree from that same opcode list, on demand, with the core's own builder:
+
+        * each side is a `document` block holding one `paragraph` block whose text is the side's text as
+          given. 0.6 runs one diff over the whole document, and its edits can straddle a paragraph break,
+          which no pair of paragraph blocks could hold;
+        * the alignment is stated rather than computed: the root pair and the one paragraph pair;
+        * `redlines.changes.build_change_tree` runs with `_ReplayProcessor`, which hands back the recorded
+          opcodes, so the processor does not run a second time.
+
+        The change tree is therefore empty when the processor found no edit (identical texts never reach it),
+        and otherwise holds one `modify` node whose inline ops are `redlines.changes.inline_ops_from_opcodes`
+        of the recorded opcodes.
+
+        The result is cached against the identity of the opcode list and the two texts. A setter assigns a new
+        list, so the next call derives again. The texts are compared as well, so that a processor which refills
+        and returns one list object from every call cannot be served the comparison of the texts it diffed
+        before. A list changed in place while both texts stay the same is not noticed; both built-in processors
+        return a new list from every call.
+
+        :return: the derived comparison.
+        :rtype: Comparison
+        :raises ValueError: if nothing has been compared yet, as every output does.
+        """
+        diff_operations = self._diff_ops
+        source, test = self.source, self.test
+        cached = self._comparison_cache
+        if (
+            cached is not None
+            and cached.diff_operations is diff_operations
+            and cached.source == source
+            and cached.test == test
+        ):
+            return cached.comparison
+
+        source_tree = _one_block_tree(source)
+        test_tree = _one_block_tree(test)
+        alignment = Alignment(
+            pairs=(
+                AlignedPair(ROOT_PATH, ROOT_PATH, "root", 1.0),
+                AlignedPair(
+                    source_tree.root.children[0].path,
+                    test_tree.root.children[0].path,
+                    "positional",
+                    1.0,
+                ),
+            ),
+            inserted=(),
+            deleted=(),
+            config=DEFAULT_ALIGNMENT,
+            backend="difflib",
+            pass_counts={"root": 1, "positional": 1},
+        )
+        changes = build_change_tree(
+            alignment,
+            source_tree,
+            test_tree,
+            processor=_ReplayProcessor(source, test, diff_operations),
+        )
+        comparison = Comparison(
+            source=source_tree,
+            test=test_tree,
+            alignment=alignment,
+            changes=changes,
+            config=ComparisonConfig(
+                source_format=BLOCKS_FORMAT,
+                test_format=BLOCKS_FORMAT,
+                profile="",
+                alignment=DEFAULT_ALIGNMENT,
+                similarity="difflib",
+                processor=type(self.processor).__name__,
+            ),
+        )
+        self._comparison_cache = _ComparisonCache(
+            diff_operations, source, test, comparison
+        )
+        return comparison
+
+
+class _ComparisonCache(t.NamedTuple):
+    """
+    What `Redlines._comparison` keeps: the comparison, and the opcode list and texts it was derived from.
+    """
+
+    diff_operations: list[DiffOperation]
+    source: str
+    test: str
+    comparison: Comparison
+
+
+def _one_block_tree(text: str) -> BlockTree:
+    """
+    Return the tree `Redlines._comparison` builds for one side: a document holding one paragraph.
+
+    The paragraph's text is ``text`` exactly. Nothing reads, splits or normalises it, so the block holds what the
+    processor was given.
+
+    :param text: the side's text.
+    :return: the one-block tree.
+    :rtype: BlockTree
+    """
+    return BlockTree.build(
+        Block(
+            kind=BlockKind.DOCUMENT,
+            children=(Block(kind=BlockKind.PARAGRAPH, text=text),),
+        )
+    )
+
+
+class _ReplayProcessor(RedlinesProcessor):
+    """
+    The processor `Redlines._comparison` hands `build_change_tree`: it replays recorded opcodes and diffs nothing.
+
+    The opcodes are the ones the instance's own processor returned in a setter, so the change tree comes from the
+    very list the 0.6 outputs render, and the processor still runs only where 0.6 ran it, once per assignment.
+
+    :param source: the source text the opcodes were computed from.
+    :param test: the test text they were computed against.
+    :param diff_operations: the recorded opcodes, equal runs included.
+    """
+
+    def __init__(
+        self, source: str, test: str, diff_operations: list[DiffOperation]
+    ) -> None:
+        self._source = source
+        self._test = test
+        self._diff_operations = diff_operations
+
+    def process(
+        self, source: Document | str, test: Document | str
+    ) -> list[DiffOperation]:
+        """
+        Return the recorded opcodes, provided these are the texts they were recorded for.
+
+        :param source: the source text, which has to be the recorded one.
+        :param test: the test text, likewise.
+        :return: the recorded opcodes.
+        :rtype: list[DiffOperation]
+        :raises AssertionError: if asked about any other texts. The builder only asks about the one paragraph
+            pair, whose texts are the recorded ones, so that would be a bug rather than an input.
+        """
+        source_text = source.text if isinstance(source, Document) else source
+        test_text = test.text if isinstance(test, Document) else test
+        if source_text != self._source or test_text != self._test:
+            raise AssertionError(
+                "_ReplayProcessor can only replay the opcodes recorded for one pair of "
+                "texts, and was asked to diff a different pair"
+            )
+        return self._diff_operations
