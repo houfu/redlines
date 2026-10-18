@@ -15,9 +15,9 @@ Sizes are rough, for one experienced developer working with an agent: **S** is a
 |---|---|---|
 | **0.6.x** (hygiene) | The flat engine is trustworthy while 1.0 is built, and there is somewhere to publish | autojunk off, cleanup pass, sentence mode keeps paragraphs, regression corpus, benchmark failure investigation, documentation moved from pdoc to Astro Starlight |
 | **1.0** (the slice) | Structural, semantic, format-neutral comparison works end to end on text and markdown | block model + semantic layer + profiles; text and markdown readers; alignment with moves and renumbering; change tree and JSON schema; annotated, summary, markdown, rich and HTML renderers; verify; CLI; compatibility layer; benchmark |
-| **redlines-mcp 0.1** (with 1.0) | Agents can compare, verify and author profiles | tools, prompts, resources, skill, golden tests; stdio transport |
+| **redlines-mcp 0.1** (with 1.0) | Agents can compare, verify and author profiles; a lawyer can do it inside Claude Desktop | tools, prompts, resources, skill, golden tests; stdio and streamable HTTP transports; the intake app view; a public demo instance that stores nothing |
 | **Site 1.0** (after MCP) | A visitor sees the thesis in one click | A demo route added to the docs site: Pyodide, text and markdown inputs, sample pair by default, block-change list, annotated view, summary, JSON |
-| **1.1** | More inputs and more detection, same core | HTML, DOCX and PDF readers; split/merge; applier export; profile auto-selection; `legislation` profile; MCP HTTP transport; side-by-side view |
+| **1.1** | More inputs and more detection, same core | HTML, DOCX and PDF readers; split/merge; applier export; profile auto-selection; `legislation` profile; side-by-side view |
 | **Later** | Only with demand in hand | formatting changes, comments and footnotes, XML renderer, permalinks, batch API, Akoma Ntoso reader |
 
 ## 2. The 1.0 feature list, by milestone
@@ -125,14 +125,14 @@ The Pyodide check earned its place on its first run, which is the argument for h
 | Feature | PRD | Size | Notes |
 |---|---|---|---|
 | Package skeleton depending on a compatible `redlines` range; console entry point; stdio and streamable HTTP transports | R31, D18 | S | HTTP was 1.1; reversed 18 October 2026, see section 5.4 and [ADR-0035](docs/adr/0035-hosted-demo-server.md) |
-| Intake tool with a `ui://` drop-zone resource; app-only `compare` and `verify` variants whose full results go to the iframe, not the model; model-facing tools return the compact form (`include_trees=False`); no state survives a response | R31, ADR-0035 | M | The Claude Desktop journey: documents never pass through the model |
+| Intake tool with a `ui://` drop-zone resource; app-only `compare` and `verify` variants whose full results go to the iframe, not the model; model-facing tools return the compact form (`include_trees=False`); no state survives a response | R31a, ADR-0035 | M | The Claude Desktop journey: documents never pass through the model |
 | Public demo instance: no sign-in, built-in profiles only, size and rate limits, nothing stored or logged; container image and a self-hosting page for everyone else | ADR-0035 | S | Enterprise packaging (MCPB, plugin) is not the project's work |
 | Tools: `compare`, `summary`, `annotate`, `verify`, `read_blocks`, `preview_structure`, `validate_profile` | R32, D26 | M | Thin over the shared argument layer |
 | Prompts: `draft_profile`, `refine_profile` | R32a | M | The profile-authoring loop; `explain_changes` moved to 1.1, see section 5 |
 | Resources: profile schema, built-in profiles, change-tree schema, skill text | R32b | S | |
 | Summary renderer, implemented in core, surfaced here | R21, D15 | M | |
 | Skill text with the canonical loop and a worked transcript against the sample pair | R32c, R33 | M | |
-| Size guards and truncation with continuation hints | R34 | S | |
+| Size guards and truncation with continuation hints; host hygiene: `readOnlyHint` on every tool, a self-contained `instructions` field, result-size hints on the heavy tools | R34, R33a | S | Codex's approval mode and Claude Code's result-size rules, see PRD R33a |
 | Golden tests over stdio for every tool and a replayed profile-authoring loop | R36, R32c | M | |
 | One Agent Plugin folder (skill plus `mcp.json`) installable in Codex and Claude Code from the same files; `codex mcp add` and `claude mcp add` one-liners; registry listings | R35 | S | Marketing, not code; do it on release day |
 
@@ -166,7 +166,6 @@ The Pyodide check earned its place on its first run, which is the argument for h
 | Profile auto-selection with confidence | D30 | M | Trimmed from 1.0, see section 5 |
 | `legislation` built-in profile | D30 | M | Trimmed from 1.0, see section 5 |
 | Verify scope by text anchor | R24 | S | Trimmed from 1.0, see section 5 |
-| MCP streamable HTTP transport | R31, D26 | S | Trimmed from 1.0, see section 5 |
 | MCP `explain_changes` prompt | R32a | S | Trimmed from 1.0, see section 5 |
 | Site side-by-side view with synchronised scrolling | R43 | M | Every competitor has it; the block list is what is different |
 | Site per-section density view | R39 | S | Trimmed from 1.0, see section 5 |
