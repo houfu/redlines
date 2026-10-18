@@ -146,9 +146,9 @@ class Anchors:
 ```
 
 1. `moved = {p.source_path: p.test_path for p in alignment.pairs if p.moved}`.
-2. An *own move* is a source path `s` in `moved` for which `under_a_move(s, moved[s])` is false.
-   - `under_a_move(s, t)` walks `s`'s source ancestors `a`, and is true when `a` is in `moved` and `t` is at or under `moved[a]`.
-   - This is `_Builder._under_a_move`, lifted to a module-level function that both use.
+2. An *own move* is a source path `s` in `moved` for which `_under_a_move(s, moved[s])` is false.
+   - `_under_a_move(s, t)` walks `s`'s source ancestors `a`, and is true when `a` is in `moved` and `t` is at or under `moved[a]`.
+   - This is `_Builder._under_a_move`, lifted to a module-level function of the same name that both use.
    - The own moves are exactly the sources of the change list's `move` nodes: 24 of 24 on the 60 runs.
 3. For each source block `P`, with `TP = alignment.test_for(P.path)`, set `last = None`. Then, for each child `X` of `P`, in order:
    - `anchor[X] = None if TP is None else Anchor(TP, last)`;
@@ -161,7 +161,7 @@ class Anchors:
    - A delete: `(rank, after) = (t_last(Anchor.after), 1)`, or `(t_order(Anchor.test_parent), 1)` when `Anchor.after` is `None`. Here `t_order(b)` is `b`'s own test pre-order index, and `t_last(b)` is the pre-order index of the last block in `b`'s test subtree.
    - `source_rank` is the source pre-order index (−1 for an insert). `kind_rank` is the index in `CHANGE_KINDS`.
    - No two nodes share a key.
-8. `statistics._section_order` orders whole-section deletes with the same anchor. `Anchor`, `Anchors` and the lifted `under_a_move` stay out of `changes.__all__`.
+8. `statistics._section_order` orders whole-section deletes with the same anchor. `Anchor`, `Anchors` and the lifted `_under_a_move` stay out of `changes.__all__`.
 
 Five rules were tried on the 60 runs and on constructed cases. In *trailing insert*, section 3 gains a last clause and section 4 is deleted. In *moved predecessor*, clause 7.3 moves to section 8 and 7.4 is deleted. In *mirrored swap*, siblings A M D Z become A Z M.
 
@@ -177,11 +177,11 @@ A deleted child of a moved clause passes under every rule. It differs from M2's 
 
 **Attribution,** in `redlines/statistics.py`:
 
-- A delete whose own block is a section unit keeps its own row, as before.
+- A delete whose own block is a section unit keeps its own row, and the row says so. Every section row carries `side`: `"test"` for a section of the test document, `"source"` for a deleted section. Before this, a deleted section whose address a later section shifted into (deleting section 2 of 3 with the numbering kept) was merged into the survivor's row, which was charged the deletion while the deleted section never appeared; it happens on none of the 60 committed runs. With `side`, two rows whose `address` strings coincide stay distinguishable. (Added 18 October 2026, after the review of the implementation.)
 - Any other delete counts under `_nearest_enclosing(Anchors.place(d).test_parent, test_parents, test_units)`: the test section that shows it.
 - Every other node keeps its test-address attribution.
 
-**Schema.** The `changes` property's `description` in `comparison-v2.json` gains "a delete sits in its own parent, after its nearest preceding sibling that stayed in place (ADR-0033, amendment)".
+**Schema.** The `changes` property's `description` in `comparison-v2.json` gains "a delete sits in its own parent, after its nearest preceding sibling that stayed in place (ADR-0033, amendment)". The section-row definition under `statistics` gains the required field `side`, an enum of `"source"` and `"test"`, always emitted and defaulting to `"test"` when a payload written before it is read back. `schema_version` stays `"2.0"` for the same reason as the ordering change: 0.6.2 is the latest release and no 2.0 payload has been published; M4 publishes the schema.
 
 **Tests.** `tests/test_delete_anchor.py` covers the moved predecessor, a deleted child of a moved clause, a clause moved out of a moved clause, the trailing insert, a swap and the mirrored swap, first-child and before-first-block deletes, and the node order of `govinfo-hr7385-ih-to-eh`. `tests/test_statistics.py` gains `govinfo-hr4668-ih-to-rh`, which must not raise, and the constructed "1A" pair, whose deletion must count under "Terms". `tests/test_corpus_roundtrip.py` runs `statistics()`, `to_dict(include_alignment=True)` and `from_dict` over all 60 runs. The sample pair's change trees stay byte-unchanged, and `tests/test_benchmark_gates.py` stays green.
 

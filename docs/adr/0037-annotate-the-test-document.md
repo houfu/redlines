@@ -271,7 +271,7 @@ The six styles over the tree get goldens of their own, which houfu reviews once:
 
 - houfu's review of the frozen goldens;
 - a drift test against the facade on the README fox pair: `Redlines(a, b, markdown_style=s, …).output_markdown == compare(a, b).output_markdown(s, …)` for all six styles, and for `custom_css` with classes. For `none`, through the real text reader, the tree rendering, the facade and `readme_quickstart/golden/none.md` are byte-identical;
-- an invariant of the `none` style on the 60 runs: accept-all equals the test rendering on 60 of 60, and reject-all equals the source rendering *in source order* on 60 of 60, ignoring whitespace and syntax heads (49 of 60 strictly). The source order holds because the legacy styles strike a moved block at its origin.
+- an invariant of the `none` style on the 60 runs: accept-all equals the test rendering on 60 of 60, and reject-all equals the source rendering *in source order* on 59 of 60 (the exception is csa-1.1-to-2.0, where clause 2.1's label changed only by its full stop: equal labels produce no change node and so no mark, once the readers keep labels as written), ignoring whitespace and syntax heads (49 of 60 strictly). The source order holds because the legacy styles strike a moved block at its origin.
 
 The sample pair's annotated view, both twins unless a row says otherwise, must pass this checklist, and houfu approves its golden `annotated.markdown.md` in a review. Rows 1 to 8 are the eight changes of PRD § 3a, in its order.
 
@@ -347,7 +347,7 @@ redlines/renderers/_inplace.py   Segment, inline_segments; the in-place traversa
 redlines/renderers/_html.py      change list, document view, STYLESHEET, FRAGMENT_VERSION = "1.0" (ADR-0038)
 redlines/renderers/_rich.py      the rich renderer; the only renderer module importing rich
 (redlines/renderers/_summary.py  M5, ADR-0016)
-redlines/changes.py              Anchor, Anchors, under_a_move (ADR-0033, amendment); none in __all__
+redlines/changes.py              Anchor, Anchors, _under_a_move (ADR-0033, amendment); none in __all__
 ```
 
 - `comparison.py` imports the renderer functions at module top, so `import redlines` reaches every renderer under Pyodide. Renderer modules import `Comparison` only under `TYPE_CHECKING`.
