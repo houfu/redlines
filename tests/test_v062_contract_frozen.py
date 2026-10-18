@@ -20,8 +20,7 @@ output for a repository-relative path.
 Which bytes. For every file except eight of the modules, the pin is the v0.6.2
 tag: ``git show v0.6.2:<path> | shasum -a 256`` prints the same digest. Eight of
 the twelve modules were edited after the tag, and their pins are the bytes at
-the M3 base (``e3b8e01``). No assertion in any of them was weakened, removed or
-changed:
+the M3 base (``e3b8e01``). No assertion in any of them was weakened or removed:
 
 - ``black`` formatting only (``0e6ba7d``, the ASTs are identical):
   ``test_autojunk.py``, ``test_cleanup.py``, ``test_cli.py``,
@@ -43,7 +42,10 @@ their bytes and fails here. CI runs on Linux.
 If a test here fails, revert the edit. Sentences in the pinned files that look
 stale ("regenerate the goldens with ...", "reused by M4") stay stale on purpose:
 following that advice would rewrite the oracle from the code it is meant to
-check, and the failure here is what stops it.
+check, and the failure here is what stops it. A formatter run over ``tests/`` trips
+these tests too (six of the modules differ from the tag only because black was
+run once, and a new black release could do it again): do not commit its changes to
+the pinned files.
 """
 
 from __future__ import annotations
@@ -183,6 +185,29 @@ GOLDEN_CASES = (
 )
 STYLES = ("red_green", "none", "red", "ghfm", "bbcode", "streamlit")
 
+# `git ls-tree -r v0.6.2 --name-only tests/ | grep 'tests/test_.*\.py$'`
+MODULE_PATHS = {
+    "tests/test_autojunk.py",
+    "tests/test_changes_api.py",
+    "tests/test_cleanup.py",
+    "tests/test_cli.py",
+    "tests/test_corpus.py",
+    "tests/test_document.py",
+    "tests/test_error_messages.py",
+    "tests/test_examples.py",
+    "tests/test_json_output.py",
+    "tests/test_nupunkt_processor.py",
+    "tests/test_pdf.py",
+    "tests/test_redline.py",
+}
+# `git ls-tree -r v0.6.2 --name-only tests/documents/`
+DOCUMENT_PATHS = {
+    "tests/documents/PDFFile/source.pdf",
+    "tests/documents/PDFFile/test.pdf",
+    "tests/documents/PlainTextFile/source.txt",
+    "tests/documents/PlainTextFile/test.txt",
+}
+
 
 @pytest.mark.parametrize("path", sorted(PINNED))
 def test_pinned_file_is_unchanged(path: str) -> None:
@@ -217,10 +242,10 @@ def test_the_tables_cover_the_whole_0_6_2_tree() -> None:
         for case in GOLDEN_CASES
         for name in ("source", "test")
     } | {"tests/corpus/sentence_paragraphs/processor.txt"}
-    assert len(MODULES) == 12
-    assert all(path.startswith("tests/test_") for path in MODULES)
-    assert len(DOCUMENTS) == 4
-    assert all(path.startswith("tests/documents/") for path in DOCUMENTS)
+    # Exact sets, not counts: replacing one pin with another file's would keep
+    # the count and drop a module out of the contract.
+    assert set(MODULES) == MODULE_PATHS
+    assert set(DOCUMENTS) == DOCUMENT_PATHS
     assert set(REGENERATE) == {"tests/corpus/regenerate_goldens.py"}
     # 12 modules + 15 case inputs + 42 goldens + 4 documents + 1 script: every
     # file `git ls-tree -r v0.6.2 --name-only tests/` lists.
