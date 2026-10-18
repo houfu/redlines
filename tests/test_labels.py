@@ -7,11 +7,18 @@ the way the markdown reader (#103) will call it -- while
 
 from __future__ import annotations
 
+from dataclasses import fields
 from pathlib import Path
 
 import pytest
 
-from redlines.profiles import HeadingRule, Profile, load_profile, profile_from_mapping
+from redlines.profiles import (
+    HeadingRule,
+    Profile,
+    builtin_profile,
+    load_profile,
+    profile_from_mapping,
+)
 from redlines.readers.labels import (
     CONFIDENCE_ARITHMETIC,
     CONFIDENCE_ARITHMETIC_OUT_OF_SEQUENCE,
@@ -29,6 +36,7 @@ from redlines.readers.labels import (
     RUN_UNVERIFIED,
     HeadingScore,
     HierarchyStack,
+    LabelMatch,
     continuation_for,
     detect_label,
     heading_confidence,
@@ -45,6 +53,12 @@ EXAMPLE_PROFILE = Path(__file__).parent / "profiles" / "example_contract.yaml"
 def profile() -> Profile:
     """The worked example profile: decimal, alpha-paren and roman-paren labels."""
     return load_profile(EXAMPLE_PROFILE)
+
+
+@pytest.fixture
+def contract() -> Profile:
+    """The built-in ``contract`` profile: it knows every spelling tried on ``raw``."""
+    return builtin_profile("contract")
 
 
 @pytest.fixture
@@ -162,6 +176,114 @@ def test_the_same_label_indexes_differently_in_each_style() -> None:
     """``c`` is the third letter and one hundred in roman: the whole problem."""
     assert sequence_index("alpha", "c") == 3
     assert sequence_index("roman", "c") == 100
+
+
+# --- stage 2: the label as written (`LabelMatch.raw`) -----------------------
+
+# (line, raw, label) under the built-in ``contract`` profile. ``raw`` is the
+# label exactly as matched, with surrounding whitespace removed and nothing
+# else; ``label`` is the same minus one trailing full stop.
+RAW_CASES = [
+    ("2. Definitions", "2.", "2"),
+    ("2 Definitions", "2", "2"),
+    ("(a) Invoices are issued monthly.", "(a)", "(a)"),
+    ("(i) Interest accrues daily.", "(i)", "(i)"),
+    ("Schedule 1. The Services", "Schedule 1.", "Schedule 1"),
+    ("Article 5 Fees", "Article 5", "Article 5"),
+    ("§ 4 Notices", "§ 4", "§ 4"),
+    ("4.—(1) A person commits an offence.", "4.—(1)", "4.—(1)"),
+    ("1 Background", "1", "1"),
+    # The full stop `label` drops from the other dotted styles (roman, alpha,
+    # section symbol), a multi-level decimal, and two spaces inside a word label.
+    ("IV. Miscellaneous", "IV.", "IV"),
+    ("A. Heading", "A.", "A"),
+    ("§ 4. Notices", "§ 4.", "§ 4"),
+    ("7.2 Termination", "7.2", "7.2"),
+    ("Section  3 Fees", "Section  3", "Section  3"),
+]
+
+
+@pytest.mark.parametrize(("line", "raw", "label"), RAW_CASES)
+def test_raw_is_the_label_as_written_and_label_is_that_without_a_full_stop(
+    contract: Profile, line: str, raw: str, label: str
+) -> None:
+    candidates = label_candidates(line, profile=contract)
+
+    assert candidates
+    # ``(i)`` is claimed by two patterns, and both read the same characters.
+    assert {candidate.raw for candidate in candidates} == {raw}
+    assert {candidate.label for candidate in candidates} == {label}
+    match = detect_label(line, profile=contract)
+    assert match is not None
+    assert (match.raw, match.label) == (raw, label)
+
+
+@pytest.mark.parametrize("line", [case[0] for case in RAW_CASES])
+def test_raw_is_the_label_or_the_label_and_the_full_stop_it_lost(
+    contract: Profile, line: str
+) -> None:
+    for candidate in label_candidates(line, profile=contract):
+        assert candidate.raw in (candidate.label, candidate.label + ".")
+
+
+def test_a_label_without_a_full_stop_is_not_given_one(contract: Profile) -> None:
+    """``1 Background`` is why the full stop is recorded rather than guessed."""
+    match = detect_label("1 Background", profile=contract)
+
+    assert match is not None
+    assert (match.raw, match.label, match.text) == ("1", "1", "Background")
+
+
+def test_only_the_ends_of_a_label_are_trimmed(contract: Profile) -> None:
+    """Spaces and a full stop *inside* a label are the document's own."""
+    inside = detect_label("4. — (1) A person commits an offence.", profile=contract)
+    around = detect_label("      2.   Definitions", profile=contract)
+
+    assert inside is not None
+    assert (inside.name, inside.raw, inside.label) == (
+        "statute_subsection",
+        "4. — (1)",
+        "4. — (1)",
+    )
+    assert around is not None
+    assert (around.raw, around.label, around.text) == ("2.", "2", "Definitions")
+
+
+def test_a_full_stop_the_pattern_captures_stays_in_label_and_raw() -> None:
+    """``raw`` is read before the strip, not rebuilt from ``label`` after it."""
+    dotted = profile_from_mapping(
+        {
+            "name": "dotted",
+            "label_patterns": [
+                {
+                    "name": "dotted_decimal",
+                    "pattern": r"^(\d+\.)\s+",
+                    "style": "decimal",
+                }
+            ],
+        }
+    )
+
+    match = detect_label("2. Definitions", profile=dotted)
+
+    assert match is not None
+    assert (match.label, match.raw) == ("2.", "2.")
+
+
+def test_raw_is_the_last_field_and_a_match_built_without_it_still_constructs() -> None:
+    assert [field.name for field in fields(LabelMatch)][-1] == "raw"
+
+    match = LabelMatch(
+        name="decimal",
+        style="decimal",
+        depth_mode="arithmetic",
+        label="2",
+        value="2",
+        text="Definitions",
+        end=3,
+    )
+
+    assert match.raw == ""
 
 
 # --- stage 3: the hierarchy stack ------------------------------------------

@@ -20,7 +20,12 @@ from redlines.blocks import (
     Block,
     BlockKind,
 )
-from redlines.profiles import Profile, load_profile, profile_from_mapping
+from redlines.profiles import (
+    Profile,
+    builtin_profile,
+    load_profile,
+    profile_from_mapping,
+)
 from redlines.readers import (
     DEFAULT_MAX_CHARS,
     ParagraphReader,
@@ -453,6 +458,101 @@ def test_every_stage_records_what_it_decided(profile: Profile) -> None:
     assert clause.attrs["heading_score"] == 0.0
     assert clause.attrs["heading_signals"] == ["too_many_words"]
     assert clause.attrs["indent"] == 0
+
+
+def test_a_labelled_block_keeps_its_label_as_written(profile: Profile) -> None:
+    """D5: ``label`` loses one trailing full stop, so ``label_raw`` keeps it.
+
+    Headings and clauses alike carry one, in document order, and nothing
+    without a label does.
+    """
+    root = read("schedule_numbering_restart", profile)
+
+    assert [
+        (block.label, block.attrs["label_raw"])
+        for block in _walk(root)
+        if block.label is not None
+    ] == [
+        ("1", "1."),
+        ("1.1", "1.1"),
+        ("1.2", "1.2"),
+        ("2", "2."),
+        ("2.1", "2.1"),
+        ("1", "1."),
+        ("1.1", "1.1"),
+        ("2", "2."),
+        ("1", "1."),
+    ]
+    unlabelled = [block for block in _walk(root) if block.label is None]
+    assert unlabelled
+    assert not [block.path for block in unlabelled if "label_raw" in block.attrs]
+
+
+def test_label_raw_is_the_label_plus_at_most_a_full_stop_in_every_fixture(
+    profile: Profile, mixed_profile: Profile
+) -> None:
+    """Present exactly when there is a label, and a dotted one is the label's dot."""
+    dotted_seen: set[bool] = set()
+    for fixture in sorted(HARD_CASES.glob("*.txt")):
+        text = fixture.read_text(encoding="utf-8")
+        for active in (profile, mixed_profile, builtin_profile("contract")):
+            for block in _walk(PlainTextReader().read(text, profile=active).root):
+                where = f"{fixture.name} {active.name} {block.path}"
+                if block.label is None:
+                    assert "label_raw" not in block.attrs, where
+                    continue
+                raw = block.attrs["label_raw"]
+                dotted_seen.add(raw.endswith("."))
+                if raw.endswith("."):
+                    assert raw.rstrip(".") == block.label, where
+                else:
+                    assert raw == block.label, where
+    # Both branches above were exercised: the fixtures hold dotted and bare labels.
+    assert dotted_seen == {True, False}
+
+
+def test_label_raw_survives_the_reader_for_every_contract_label_pattern() -> None:
+    """One label for each of the ``contract`` profile's eight patterns.
+
+    Includes the cases ``label`` cannot tell apart: ``5.1.``, ``Schedule 1.``,
+    ``IV.``, ``A.`` and ``1``.
+    """
+    document = (
+        "Article 5 Fees\n\n"
+        "5.1. The Customer shall pay each invoice within thirty days of receipt.\n\n"
+        "Schedule 1. Services\n\n"
+        "1 Background and purpose of the Services.\n\n"
+        "§ 4 Notices\n\n"
+        "4.—(1) A person commits an offence.\n\n"
+        "(a) first limb of the provision\n\n"
+        "(i) a roman sub limb of the provision\n\n"
+        "IV. Miscellaneous\n\n"
+        "A. Heading\n"
+    )
+
+    contract = builtin_profile("contract")
+    root = PlainTextReader().read(document, profile=contract).root
+
+    # Each pattern the profile has read one of the labels below.
+    assert {
+        block.attrs["label_pattern"] for block in _walk(root) if block.label is not None
+    } == {pattern.name for pattern in contract.label_patterns}
+    assert [
+        (block.label, block.attrs["label_raw"])
+        for block in _walk(root)
+        if block.label is not None
+    ] == [
+        ("Article 5", "Article 5"),
+        ("5.1", "5.1."),
+        ("Schedule 1", "Schedule 1."),
+        ("1", "1"),
+        ("§ 4", "§ 4"),
+        ("4.—(1)", "4.—(1)"),
+        ("(a)", "(a)"),
+        ("(i)", "(i)"),
+        ("IV", "IV."),
+        ("A", "A."),
+    ]
 
 
 def test_the_root_reports_the_whole_read(profile: Profile) -> None:
