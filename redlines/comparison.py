@@ -63,7 +63,7 @@ from collections.abc import Mapping
 from dataclasses import dataclass, replace
 from importlib.resources import files
 from pathlib import Path
-from typing import Any, Final
+from typing import Any, Final, Literal
 
 from .alignment import DEFAULT_ALIGNMENT, Alignment, AlignmentConfig, align
 from .blocks import BlockTree, _reject_unknown_keys
@@ -75,6 +75,8 @@ from .processor import RedlinesProcessor, WholeDocumentProcessor
 from .profiles import Profile
 from .readers import DEFAULT_MAX_CHARS
 from .readers.detect import detect_format
+from .renderers._inplace import render_inplace
+from .renderers._marks import CRITIC
 from .statistics import ComparisonStatistics, statistics as _statistics
 
 __all__: tuple[str, ...] = (
@@ -255,6 +257,10 @@ class Comparison:
     have. ``statistics()`` (#139) and ``filter()`` (#138) land the same way,
     on the object rather than as loose functions.
 
+    The renderers that have landed, by signature (ADR-0037):
+
+    - ``output_annotated(*, syntax=None, roles=True) -> str``
+
     :param source: the earlier document's block tree.
     :param test: the later one's.
     :param alignment: every correspondence between them, unchanged pairs
@@ -329,6 +335,73 @@ class Comparison:
             alignment=self.alignment,
             changes=filter_changes(self.changes, spec),
             config=replace(self.config, filter=spec),
+        )
+
+    def output_annotated(
+        self,
+        *,
+        syntax: Literal["text", "markdown", "html"] | None = None,
+        roles: bool = True,
+    ) -> str:
+        """Return the test document with this comparison's changes marked in place (ADR-0037).
+
+        The view walks the *test* document, the one a reader asks about, and
+        marks each change node where it stands, in CriticMarkup:
+        ``{++inserted++}``, ``{--deleted--}``, ``{~~old~>new~~}`` for a
+        replacement and ``{>>note<<}`` for what CriticMarkup has no mark for.
+        A deleted block stands where it stood in the source. A moved block is
+        drawn at its destination with its own edits and ends with
+        ``{>>moved from SRC_LABEL SRC_ADDRESS<<}``; its origin is a line
+        ``{>>SRC_LABEL moved to TEST_LABEL TEST_ADDRESS<<}``. A renumbered
+        label is ``{~~OLD~>NEW~~}``, or ``{>>renumbered from OLD<<}`` where a
+        markdown list marker is the label. A block with a role carries
+        ``[role]`` after its syntax head. Before the first block, a note says
+        so when the comparison is filtered, when alignment stopped early, and
+        for each kind of content a reader dropped. Labels are written as the
+        document wrote them. This is the document the MCP ``annotate`` tool
+        and a reviewing model read.
+
+        What it may be relied on for is exactly this: accept-all reproduces
+        the test rendering exactly; reject-all reproduces the source text as a
+        multiset of lines, up to whitespace and markdown syntax heads, except
+        where an old list-marker label moved into a note. Accept-all and
+        reject-all are those of the reference reader,
+        ``tests/helpers/criticmarkup.py``. CriticMarkup defines no escape, so
+        document text that would read as a delimiter is escaped with
+        backslashes (ADR-0037, "Escaping"), which other CriticMarkup tools do
+        not understand.
+
+        A filtered comparison renders the same test document with only its
+        own nodes marked. The output is a normalised document, not the input
+        bytes: the readers have re-joined hard wraps, and a setext heading
+        comes out as ATX. Blocks are separated by a blank line, with no
+        trailing newline.
+
+        :param syntax: ``"markdown"`` writes the markdown variant, with
+            heading hashes, list markers, fences, quote markers and the table
+            alignment row; ``"text"`` writes none of them. ``None``, the
+            default, means ``"markdown"`` when the test document was read as
+            markdown and ``"text"`` otherwise. ``"html"`` is reserved for the
+            HTML variant (ADR-0038). Not ``format``, which means the *input*
+            format everywhere in Python.
+        :param roles: write each block's role as a ``[role]`` prefix (R21a).
+        :return: the annotated document.
+        :raises ValueError: if ``syntax`` is not ``None``, ``"text"``,
+            ``"markdown"`` or ``"html"``. The check is case-sensitive.
+        :raises NotImplementedError: for ``syntax="html"``, until the HTML
+            renderer arrives.
+        """
+        if syntax is None:
+            syntax = "markdown" if self.config.test_format == "markdown" else "text"
+        if syntax == "html":
+            raise NotImplementedError(
+                "output_annotated(syntax='html') arrives with the HTML renderer"
+            )
+        if syntax == "text" or syntax == "markdown":
+            return render_inplace(self, CRITIC, syntax=syntax, roles=roles)
+        raise ValueError(
+            "syntax must be None, 'text', 'markdown' or 'html', "
+            f"got {syntax!r}"
         )
 
     def to_dict(
