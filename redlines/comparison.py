@@ -351,9 +351,8 @@ class Comparison:
     ) -> str:
         """Return the test document with this comparison's changes marked in a 0.6 style (ADR-0037).
 
-        The output is the *test* document, one block per paragraph and a
-        blank line between blocks, with every change marked where a reader
-        looks for it:
+        The output is the *test* document, block by block with a blank line
+        between blocks, and every change marked where a reader looks for it:
 
         - an inserted or deleted block is one mark around its label and text;
           a deleted block stands where it stood, among the blocks that stayed
