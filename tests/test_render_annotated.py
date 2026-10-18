@@ -709,6 +709,56 @@ def test_the_reader_finds_exactly_the_marks_the_renderer_wrote(
     ] == written
 
 
+NOTES_SOURCE = (
+    "## 1. Notes\n\n"
+    "1.1 A literal {>>note<<} and a highlight {==mark==} stay as typed, shall hold.\n\n"
+    "1.2 Another {>>x<<} here.\n"
+)
+NOTES_TEST = (
+    "## 1. Notes\n\n"
+    "1.1 A literal {>>note<<} and a highlight {==mark==} stay as typed, must hold.\n\n"
+    "1.2 Another {>>y<<} here {==z==}.\n"
+)
+
+
+@pytest.mark.parametrize("roles", [True, False], ids=["roles", "no_roles"])
+@pytest.mark.parametrize("syntax", ["markdown", "text"])
+def test_note_and_highlight_delimiters_in_document_text_stay_literal(
+    syntax: Syntax, roles: bool
+) -> None:
+    """The note opener is the one the renderer writes itself, and the highlight
+    pair is one it never writes; neither is in the shared hostile case."""
+    annotated = md(NOTES_SOURCE, NOTES_TEST).output_annotated(
+        syntax=syntax, roles=roles
+    )
+    for escaped in (
+        "\\{>>note<<\\}",
+        "\\{==mark==\\}",
+        "\\{>>x<<\\}",
+        "\\{>>y<<\\}",
+        "\\{==z==\\}",
+    ):
+        assert escaped in annotated, escaped
+    assert [token.kind for token in cm.parse(annotated) if token.kind != "text"] == [
+        "substitution",
+        "delete",
+        "insert",
+    ]
+    test_rendering = md(NOTES_TEST, NOTES_TEST).output_annotated(
+        syntax=syntax, roles=roles
+    )
+    source_rendering = md(NOTES_SOURCE, NOTES_SOURCE).output_annotated(
+        syntax=syntax, roles=roles
+    )
+    accepted = cm.accept_all(annotated, roles=roles)
+    rejected = cm.reject_all(annotated, roles=roles)
+    assert accepted == cm.accept_all(test_rendering, roles=roles)
+    assert cm.multiset(rejected, cm.reject_all(source_rendering, roles=roles))
+    if syntax == "markdown":
+        assert accepted == own_lines(NOTES_TEST)
+        assert Counter(rejected) == Counter(own_lines(NOTES_SOURCE))
+
+
 ROLE_SHAPED_STARTS = [
     pytest.param(
         "[2020] SGCA 5 held that the rule applies.\n",
