@@ -2,6 +2,7 @@
 
 **Status:** Accepted
 **Date:** 2026-08-26
+**Amended:** 2026-10-18 -- the facade replays 0.6's own opcodes, and deprecation follows a schedule ([ADR-0036](0036-redlines-facade.md)). See *Amendment* below.
 **Deciders:** houfu
 
 ## Context
@@ -13,6 +14,16 @@ The structural engine (ADR-0001) needs a different shape: readers, profiles, a c
 ## Decision
 
 redlines 1.0 introduces a new top-level API for the structural engine, and keeps the entire 0.6 surface working unchanged, reimplemented over the new core as a facade that builds a one-block-per-paragraph tree. Deprecation warnings where something is superseded; no removals in 1.0.
+
+## Amendment, 2026-10-18: the facade replays 0.6's own opcodes
+
+The mechanism in the Decision, "a facade that builds a one-block-per-paragraph tree", is superseded by [ADR-0036](0036-redlines-facade.md), because it cannot meet this ADR's own criterion. 0.6 diffs the whole document as one token stream. On the 54 realistic pairs in the repository, 130 of its 735 non-equal opcodes straddle a paragraph boundary, in 39 of the pairs, and a paragraph pair cannot hold such an opcode. Built as written, the facade fails 32 of the 237 runnable tests in the v0.6.2 test tree. With every 0.6 quirk faked in, it is byte-identical on only 16 of the 54 realistic pairs, and `test_repetitive_schedule_reproduces_autojunk_pathology` cannot pass at all.
+
+The facade keeps 0.6's own code for every 0.6 output, over the processor's own opcodes, and derives a one-block change tree from the same opcodes through the core's `build_change_tree`, on demand. That passes 237 of 237 and is byte-identical on all 576 measured comparisons. The design constraint in Consequences holds in its degenerate form: the core expresses a whole document as one block, and builds its change tree from 0.6's opcodes.
+
+The revisit clause's per-case note list is **empty**. No style needs a note, and the criterion is not relaxed. "Byte-identical" means identical to 0.6.2, whose bytes the M0 goldens are; the mitigation in Consequences was carried out in M0, and those goldens are now pinned by SHA-256.
+
+The deprecation sentence is narrowed, not reversed. Nothing is removed in 1.0, and nothing warns in 1.0 either: 1.0 ships the mechanism, a test tripwire and a schedule. Pending-deprecation warnings on `changes`, `redlines` and `get_changes` start in 1.1, deprecation warnings in 1.2, and removal waits for 2.0 at the earliest, as the revisit clause already says.
 
 ## Alternatives considered
 
