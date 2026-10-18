@@ -94,6 +94,9 @@ GOLDENS: tuple[Golden, ...] = (
     # them pin placement, the legacy picture of a nested move and the absence
     # of escaping, not styling.
     ("markdown.none.md", _markdown("none")),
+    # Comparison.output_annotated (#181): both CriticMarkup syntaxes on every case.
+    ("annotated.markdown.md", lambda comparison: comparison.output_annotated(syntax="markdown")),
+    ("annotated.text.txt", lambda comparison: comparison.output_annotated(syntax="text")),
     # Comparison.output_html and output_annotated(syntax="html") (#182): both
     # HTML fragments of every case.
     ("expected/changes.html", _changes_html),

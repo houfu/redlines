@@ -554,7 +554,7 @@ def test_the_methods_are_the_renderers_with_the_schema_version() -> None:
 
 @pytest.mark.parametrize("syntax", ["HTML", "Html", "xml", "", "md", " html"])
 def test_an_unknown_syntax_raises(syntax: str) -> None:
-    with pytest.raises(ValueError, match="'text', 'markdown', 'html' or None"):
+    with pytest.raises(ValueError, match="None, 'text', 'markdown' or 'html'"):
         fixture("four_kinds").output_annotated(syntax=syntax)  # type: ignore[arg-type]
 
 

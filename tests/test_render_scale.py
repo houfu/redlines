@@ -135,6 +135,16 @@ def test_the_markdown_and_rich_renders_each_take_under_a_second(
     assert str(rich).startswith(f"{BLOCKS // 2} changes: 0 inserted, {BLOCKS // 2} deleted")
 
 
+@pytest.mark.slow
+def test_output_annotated_takes_under_a_second_in_either_syntax(half_deleted: Comparison) -> None:
+    seconds: list[float] = []
+    for syntax in ("markdown", "text"):
+        rendered = _timed(seconds, lambda: half_deleted.output_annotated(syntax=syntax))
+        assert isinstance(rendered, str)
+        assert rendered.count("{--") == BLOCKS // 2
+    assert all(elapsed < 1.0 for elapsed in seconds), seconds
+
+
 def _html_renders(comparison: Comparison) -> dict[str, Callable[[], object]]:
     return {
         "change list": comparison.output_html,

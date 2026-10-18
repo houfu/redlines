@@ -460,25 +460,60 @@ class Comparison:
         syntax: Literal["text", "markdown", "html"] | None = None,
         roles: bool = True,
     ) -> str:
-        """Render the test document with its changes marked in place (ADR-0037).
+        """Return the test document with this comparison's changes marked in place (ADR-0037).
 
-        Deletions and the origins of moves sit where they stood, and a
-        filtered comparison draws the same test document with only its own
-        nodes marked. ``"text"`` and ``"markdown"`` write CriticMarkup.
-        ``"html"`` writes the document view: one script-free HTML fragment, the
-        same one the MCP App and the documentation site inject, with a block
-        element per entry, headings as ``role="heading"`` rather than
-        ``<h1>``–``<h6>``, and the fragment contract of ADR-0038 (see
-        `redlines.renderers.STYLESHEET`).
+        The view walks the *test* document, the one a reader asks about, and
+        marks each change node where it stands, in CriticMarkup:
+        ``{++inserted++}``, ``{--deleted--}``, ``{~~old~>new~~}`` for a
+        replacement and ``{>>note<<}`` for what CriticMarkup has no mark for.
+        A deleted block stands where it stood in the source. A moved block is
+        drawn at its destination with its own edits and ends with
+        ``{>>moved from SRC_LABEL SRC_ADDRESS<<}``; its origin is a line
+        ``{>>SRC_LABEL moved to TEST_LABEL TEST_ADDRESS<<}``. A renumbered
+        label is ``{~~OLD~>NEW~~}``, or ``{>>renumbered from OLD<<}`` where a
+        markdown list marker is the label. A block with a role carries
+        ``[role]`` after its syntax head. Before the first block, a note says
+        so when the comparison is filtered, when alignment stopped early, and
+        for each kind of content a reader dropped. Labels are written as the
+        document wrote them. This is the document the MCP ``annotate`` tool
+        and a reviewing model read.
 
-        :param syntax: ``"text"``, ``"markdown"`` or ``"html"``, matched
-            case-sensitively. ``None`` means ``"markdown"`` when the test side
-            was read as markdown, and ``"text"`` otherwise; never ``"html"``.
-        :param roles: show each block's role: a ``[ROLE] `` prefix in
-            CriticMarkup, a role span in HTML. The HTML's ``data-role``
-            attributes are written either way.
-        :return: the rendering, with no trailing newline.
-        :raises ValueError: if ``syntax`` is anything else.
+        What it may be relied on for is exactly this: accept-all reproduces
+        the test rendering exactly; reject-all reproduces the source text as a
+        multiset of lines, up to whitespace and markdown syntax heads, except
+        where an old list-marker label moved into a note. Accept-all and
+        reject-all are those of the reference reader,
+        ``tests/helpers/criticmarkup.py``. CriticMarkup defines no escape, so
+        document text that would read as a delimiter is escaped with
+        backslashes (ADR-0037, "Escaping"), which other CriticMarkup tools do
+        not understand.
+
+        A filtered comparison renders the same test document with only its
+        own nodes marked. The output is a normalised document, not the input
+        bytes: the readers have re-joined hard wraps, and a setext heading
+        comes out as ATX. In CriticMarkup, blocks are separated by a blank
+        line, with no trailing newline.
+
+        ``syntax="html"`` writes the same view as one script-free HTML
+        fragment, ADR-0038's document view, the one the MCP App and the
+        documentation site inject: a block element per entry, one to a line,
+        ``<ins>`` and ``<del>`` for the marks, headings as ``role="heading"``
+        rather than ``<h1>`` to ``<h6>``, every document string escaped, and
+        its own scoped stylesheet (`redlines.renderers.STYLESHEET`).
+
+        :param syntax: ``"markdown"`` writes the markdown variant, with
+            heading hashes, list markers, fences, quote markers and the table
+            alignment row; ``"text"`` writes none of them. ``None``, the
+            default, means ``"markdown"`` when the test document was read as
+            markdown and ``"text"`` otherwise, never ``"html"``. ``"html"``
+            writes the document view as an HTML fragment (ADR-0038). Not
+            ``format``, which means the *input* format everywhere in Python.
+        :param roles: write each block's role as a ``[role]`` prefix (R21a),
+            or, in HTML, as a role span. The HTML's ``data-role`` attributes
+            are written either way.
+        :return: the annotated document.
+        :raises ValueError: if ``syntax`` is not ``None``, ``"text"``,
+            ``"markdown"`` or ``"html"``. The check is case-sensitive.
         """
         if syntax is None:
             syntax = "markdown" if self.config.test_format == "markdown" else "text"
@@ -487,7 +522,8 @@ class Comparison:
         if syntax == "text" or syntax == "markdown":
             return render_inplace(self, CRITIC, syntax=syntax, roles=roles)
         raise ValueError(
-            f"syntax must be 'text', 'markdown', 'html' or None, got {syntax!r}"
+            "syntax must be None, 'text', 'markdown' or 'html', "
+            f"got {syntax!r}"
         )
 
     def output_html(self) -> str:
