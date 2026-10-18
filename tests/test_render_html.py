@@ -754,6 +754,84 @@ def test_the_theme_table_is_the_adrs() -> None:
     assert "color-scheme" not in STYLESHEET and "@" not in STYLESHEET
 
 
+# --- the rich header says what the HTML header says ---------------------------------
+
+
+def _notice_comparisons() -> dict[str, Comparison]:
+    """Comparisons that between them raise every notice, alone and together."""
+    exhausted = AlignmentConfig(similarity="difflib", max_comparisons=0)
+    dropping = compare(
+        "The fee\x00 is due.\n\nA second\x01 paragraph here.",
+        "The fee is due now.\n\nA second paragraph, edited\x0b, here.",
+        format="text",
+        alignment=exhausted,
+    )
+    sample = fixture("sample_pair.md")
+    return {
+        "unfiltered": sample,
+        "filtered on four fields": sample.filter(
+            kinds=("modify", "move"),
+            labels=("2.4", "9.6"),
+            min_chars=5,
+            has_inline=True,
+        ),
+        "filtered on the other two": sample.filter(
+            address_prefixes=("/section[1]", "/section[4]"),
+            roles=("clause", "schedule"),
+            has_inline=False,
+        ),
+        "filtered to nothing": sample.filter(min_chars=1_000_000),
+        "budget exhausted": compare(
+            "The fee is due.\n\nA second paragraph here.",
+            "The fee is due now.\n\nA second paragraph, edited, here.",
+            format="text",
+            alignment=exhausted,
+        ),
+        "dropped on both sides, budget exhausted": dropping,
+        "all three notices": dropping.filter(kinds=("modify",), min_chars=3),
+        "one change": compare(
+            "7.1 The\x00 fee is due.", "7.1 The fee is due today.", format="text"
+        ),
+        "no changes": compare(sample.test, sample.test),
+    }
+
+
+NOTICES: dict[str, list[str]] = {
+    "unfiltered": [],
+    "filtered on four fields": ["filtered"],
+    "filtered on the other two": ["filtered"],
+    "filtered to nothing": ["filtered"],
+    "budget exhausted": ["budget-exhausted"],
+    "dropped on both sides, budget exhausted": [
+        "budget-exhausted",
+        "dropped",
+        "dropped",
+    ],
+    "all three notices": ["filtered", "budget-exhausted", "dropped", "dropped"],
+    "one change": ["dropped"],
+    "no changes": [],
+}
+"""The notices each comparison raises, by ``data-notice``, in order."""
+
+
+@pytest.mark.parametrize("name", list(NOTICES))
+def test_the_rich_header_and_the_html_header_say_the_same(name: str) -> None:
+    """The rich header copies the HTML header's words (#180): held together here."""
+    comparison = _notice_comparisons()[name]
+    lines = comparison.output_rich().plain.split("\n\n", 1)[0].split("\n")
+    for fragment in (
+        comparison.output_html(),
+        comparison.output_annotated(syntax="html"),
+    ):
+        root = fc.parse(fragment)
+        (counts,) = [e for e in root.walk() if "redlines-counts" in e.classes()]
+        spans = [span.text() for span in counts.elements()]
+        notices = [e for e in root.walk() if "redlines-notice" in e.classes()]
+        assert [notice.get("data-notice") for notice in notices] == NOTICES[name]
+        assert lines[0] == f"{spans[0]}: " + ", ".join(spans[1:])
+        assert lines[1:] == [notice.text() for notice in notices]
+
+
 # --- size --------------------------------------------------------------------------
 
 
