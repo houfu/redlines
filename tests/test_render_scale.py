@@ -85,3 +85,16 @@ def test_the_view_of_the_scale_pair_has_every_ghost_in_place(half_deleted: Compa
         BlockStatus.UNCHANGED,
         BlockStatus.DELETE,
     ]
+
+
+@pytest.mark.slow
+def test_the_markdown_and_rich_renders_each_take_under_a_second(
+    half_deleted: Comparison,
+) -> None:
+    """``Comparison.output_markdown`` and ``Comparison.output_rich`` at N2's size (#179, #180)."""
+    seconds: list[float] = []
+    markdown = _timed(seconds, lambda: half_deleted.output_markdown("none"))
+    rich = _timed(seconds, half_deleted.output_rich)
+    assert all(elapsed < 1.0 for elapsed in seconds), seconds
+    assert isinstance(markdown, str) and markdown.count("<del>") == BLOCKS // 2
+    assert str(rich).startswith(f"{BLOCKS // 2} changes: 0 inserted, {BLOCKS // 2} deleted")
