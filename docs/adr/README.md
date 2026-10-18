@@ -11,6 +11,7 @@ This directory records the decisions behind redlines 1.0 — the reasoning, the 
 - One decision per file, numbered in the order they were taken: `NNNN-short-title.md`.
 - **Status** is one of: Proposed (recommended, not yet agreed), Accepted, Superseded by ADR-NNNN, or Deprecated.
 - An accepted ADR is not edited when we change our minds. A new ADR is written that supersedes it, and the old one's status is changed to point at the new one. The trail of superseded decisions is the point.
+- An accepted ADR may carry a dated *Amended* note when a later decision changes a detail and not the decision. The note is either an italic sentence beside the detail it changes, or an **Amended:** line under the status with an *Amendment* section after the decision, and it names the ADR or the measurement behind it. Besides a status change, this is the only edit an accepted ADR takes. A changed decision is still a new ADR.
 - Each ADR ends with **Revisit when**: the concrete signal that should make us reopen it. A decision with no revisit condition is usually a decision that was never really made.
 
 ## Index
@@ -52,6 +53,9 @@ This directory records the decisions behind redlines 1.0 — the reasoning, the 
 | [0033](0033-change-tree-wire-format.md) | The change-tree wire format | Accepted |
 | [0034](0034-benchmark-labels-and-metric.md) | The alignment label format and metric definitions | Accepted |
 | [0035](0035-hosted-demo-server.md) | A hosted demo server over streamable HTTP that retains nothing | Accepted |
+| [0036](0036-redlines-facade.md) | The `Redlines` facade: 0.6's code over 0.6's opcodes, with a change tree derived from them | Accepted |
+| [0037](0037-annotate-the-test-document.md) | Annotate the test document with CriticMarkup | Accepted |
+| [0038](0038-render-html-once-in-python.md) | Render HTML once, in Python: one fragment contract | Accepted |
 
 ## Evidence base
 
