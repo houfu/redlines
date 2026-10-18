@@ -1,0 +1,90 @@
+schema: redlines/alignment-labels/1
+pair: mixed-labels-light
+source:
+  file: source.txt
+  format: text
+  profile: contract
+  sha256: 9e8dbb4b8b1bb0879b66f0addd9cb2fde1533ec8d0433370056914779423bb45
+test:
+  file: test.txt
+  format: text
+  profile: contract
+  sha256: 300d2d86993ad5cac376392c6133e3b9b20dfdcd8608c16d895062b66fb24bc4
+provenance:
+  kind: synthetic
+  origin: tests/corpus/hard_cases/mixed_label_styles.txt + plan:light
+  generator: benchmark/generate.py
+  generator_version: 1
+  seed: 2748034071149471534
+  plan: light
+correspondences:
+- source: /section[1]/heading[1]
+  test: /section[1]/heading[1]
+  kind: same
+  source_label: Section 1
+  test_label: Section 1
+  source_digest: 08443f07fa9809d4
+  test_digest: 08443f07fa9809d4
+  status: confirmed
+- source: /section[1]/list_item[1]
+  test: /section[1]/list_item[1]
+  kind: same
+  source_label: '1.1'
+  test_label: '1.1'
+  source_digest: 163eaf3f39941516
+  test_digest: 940c25a3b519d938
+  status: confirmed
+- source: /section[1]/list_item[2]
+  test: /section[1]/list_item[2]
+  kind: same
+  source_label: '1.2'
+  test_label: '1.2'
+  source_digest: d47f89845b986fa2
+  test_digest: d47f89845b986fa2
+  status: confirmed
+- source: /section[1]/list_item[2]/list_item[1]
+  test: /section[1]/list_item[2]/list_item[1]
+  kind: same
+  source_label: (a)
+  test_label: (a)
+  source_digest: 6988b77b618ba090
+  test_digest: 6988b77b618ba090
+  status: confirmed
+- source: /section[1]/list_item[2]/list_item[2]
+  test: /section[1]/list_item[2]/list_item[2]
+  kind: same
+  source_label: (b)
+  test_label: (b)
+  source_digest: 9d9971645d9edbe4
+  test_digest: 9d9971645d9edbe4
+  status: confirmed
+- source: /list_item[1]
+  test: /list_item[1]
+  kind: same
+  source_label: Section 2
+  test_label: Section 2
+  source_digest: b1e739df7fd87ec8
+  test_digest: b1e739df7fd87ec8
+  status: confirmed
+- source: /list_item[2]
+  test: /list_item[2]
+  kind: same
+  source_label: '2'
+  test_label: '2'
+  source_digest: ca1da27562f07380
+  test_digest: 7d79ed697b0ee76e
+  status: confirmed
+- source: /list_item[2]/list_item[1]
+  test: /list_item[2]/list_item[1]
+  kind: same
+  source_label: '2.1'
+  test_label: '2.1'
+  source_digest: 00a3690e43d2e82f
+  test_digest: 00a3690e43d2e82f
+  status: confirmed
+inserted: []
+deleted: []
+splits: []
+merges: []
+unscored: []
+move_verdicts: []

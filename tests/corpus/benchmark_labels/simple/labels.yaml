@@ -1,0 +1,101 @@
+schema: redlines/alignment-labels/1
+pair: simple-fixture
+source:
+  file: source.txt
+  format: text
+  profile: contract
+  sha256: "4b00ac75908fe73db62984535d356a30bda32cac4286733319fa82c21ef1b74c"
+test:
+  file: test.txt
+  format: text
+  profile: contract
+  sha256: "8cb709beefae9b9a9e2c93beeae99494144eeb15516ab61b598ed7ce9d52bd8d"
+provenance:
+  kind: hand
+  origin: "tests/test_benchmark_labels.py fixture, hand-written for the format's own tests"
+  prepared_by: "tests/test_benchmark_labels.py"
+  normalisations: []
+correspondences:
+  - source: "/section[1]/heading[1]"
+    test: "/section[1]/heading[1]"
+    kind: same
+    source_label: null
+    test_label: null
+    source_digest: "2dff10f6a8b7e698"
+    test_digest: "2dff10f6a8b7e698"
+    status: confirmed
+  - source: "/section[1]/section[1]/heading[1]"
+    test: "/section[1]/section[1]/heading[1]"
+    kind: same
+    source_label: "1"
+    test_label: "1"
+    source_digest: "67ac16eb8062466c"
+    test_digest: "67ac16eb8062466c"
+    status: confirmed
+  - source: "/section[1]/section[1]/list_item[1]"
+    test: "/section[1]/section[1]/list_item[1]"
+    kind: same
+    source_label: "1.1"
+    test_label: "1.1"
+    source_digest: "f85b67981659c69d"
+    test_digest: "f85b67981659c69d"
+    status: confirmed
+  - source: "/section[1]/section[1]/list_item[2]"
+    test: "/section[1]/section[1]/list_item[2]"
+    kind: same
+    source_label: "1.2"
+    test_label: "1.2"
+    source_digest: "9b78f45bc522585a"
+    test_digest: "9b78f45bc522585a"
+    status: confirmed
+  - source: "/section[1]/section[2]/heading[1]"
+    test: "/section[1]/section[2]/heading[1]"
+    kind: same
+    source_label: "2"
+    test_label: "2"
+    source_digest: "e4f3dba39c453c23"
+    test_digest: "e4f3dba39c453c23"
+    status: confirmed
+  - source: "/section[1]/section[2]/paragraph[1]"
+    test: "/section[1]/section[2]/paragraph[1]"
+    kind: same
+    source_label: null
+    test_label: null
+    source_digest: "794fc11b1e46db3f"
+    test_digest: "0e2d2fa8845c2630"
+    status: confirmed
+  - source: "/section[1]/section[3]/heading[1]"
+    test: "/section[1]/section[3]/heading[1]"
+    kind: same
+    source_label: "3"
+    test_label: "3"
+    source_digest: "8f9b3a8822176c96"
+    test_digest: "8f9b3a8822176c96"
+    status: confirmed
+  - source: "/section[1]/section[3]/list_item[1]"
+    test: "/section[1]/section[3]/list_item[1]"
+    kind: same
+    source_label: "3.1"
+    test_label: "3.1"
+    source_digest: "f3eab959bcb22e02"
+    test_digest: "2ffcfb2d0161a4e0"
+    status: confirmed
+inserted:
+  - test: "/section[1]/section[1]/list_item[3]"
+    test_digest: "561cf7c5fe13ac92"
+    status: confirmed
+deleted:
+  - source: "/section[1]/section[3]/list_item[2]"
+    source_digest: "ea4494496c0b897a"
+    status: confirmed
+splits: []
+merges: []
+unscored: []
+review:
+  labelled_by: houfu
+  labelled_at: "2026-09-05"
+  reviewed_by: houfu
+  reviewed_at: "2026-09-05"
+  decision: accepted
+  override_rate: 0.0
+move_verdicts: []

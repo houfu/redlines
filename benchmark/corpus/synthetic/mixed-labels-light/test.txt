@@ -1,0 +1,15 @@
+Section 1. Services
+
+1.1 The Supplier must provide the Services with reasonable skill and care.
+
+1.2 The Supplier shall meet the service levels in Schedule 1.
+
+(a) Availability is measured over each calendar month.
+
+(b) Downtime for planned maintenance is excluded.
+
+Section 2. Charges
+
+2. The Customer must pay the Charges monthly in arrears.
+
+2.1 An invoice is due thirty days after receipt.

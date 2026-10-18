@@ -1,0 +1,26 @@
+1. SERVICES
+
+1.1 Neither party shall engage the other party's personnel without written consent during the Term and for six months after it ends.
+
+1.2 The parties shall review the operation of this Agreement at least once in each year of the Term and shall record the outcome of that review in writing.
+
+2. CHARGES
+
+2.1 The Charges are set out in Schedule 2.
+
+SCHEDULE 1
+
+Description of the Services
+
+1. The Supplier shall host the Customer Data in the United Kingdom.
+
+1.1 Availability is measured over each calendar month.
+
+2. The Supplier shall provide support by email on Business
+Days.
+
+SCHEDULE 2
+
+Charges
+
+1. The monthly fee is four thousand pounds.

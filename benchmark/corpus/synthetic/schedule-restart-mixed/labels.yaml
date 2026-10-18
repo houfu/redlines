@@ -1,0 +1,128 @@
+schema: redlines/alignment-labels/1
+pair: schedule-restart-mixed
+source:
+  file: source.txt
+  format: text
+  profile: contract
+  sha256: ab914fb3f9f490a416defba818bde4f72a34e9ea02052e91cc613ec369835ee6
+test:
+  file: test.txt
+  format: text
+  profile: contract
+  sha256: b2e9ebca6262764b43649652284684736599f57dfd469dd1f843707232571e5a
+provenance:
+  kind: synthetic
+  origin: tests/corpus/hard_cases/schedule_numbering_restart.txt + plan:mixed
+  generator: benchmark/generate.py
+  generator_version: 1
+  seed: 16955887132388275777
+  plan: mixed
+correspondences:
+- source: /section[1]/heading[1]
+  test: /section[1]/heading[1]
+  kind: same
+  source_label: '1'
+  test_label: '1'
+  source_digest: 5c9b2acb4ff8a5b7
+  test_digest: 5c9b2acb4ff8a5b7
+  status: confirmed
+- source: /section[1]/list_item[2]
+  test: /section[1]/list_item[1]
+  kind: renumber
+  source_label: '1.2'
+  test_label: '1.1'
+  source_digest: f5d03b5b2ddc068b
+  test_digest: eddc6511643072d8
+  status: confirmed
+- source: /section[2]/heading[1]
+  test: /section[2]/heading[1]
+  kind: same
+  source_label: '2'
+  test_label: '2'
+  source_digest: 74964817d66ddd58
+  test_digest: 74964817d66ddd58
+  status: confirmed
+- source: /section[2]/list_item[1]
+  test: /section[2]/list_item[1]
+  kind: same
+  source_label: '2.1'
+  test_label: '2.1'
+  source_digest: 7bc433e6fa120a5a
+  test_digest: 0abe1191b30768f5
+  status: confirmed
+- source: /section[3]/heading[1]
+  test: /section[3]/heading[1]
+  kind: same
+  source_label: SCHEDULE 1
+  test_label: SCHEDULE 1
+  source_digest: 88751fc8f54acaa9
+  test_digest: 88751fc8f54acaa9
+  status: confirmed
+- source: /section[3]/section[1]/heading[1]
+  test: /section[3]/section[1]/heading[1]
+  kind: same
+  source_label: null
+  test_label: null
+  source_digest: fb5b1dedd7ea824e
+  test_digest: fb5b1dedd7ea824e
+  status: confirmed
+- source: /section[3]/section[1]/list_item[1]
+  test: /section[3]/section[1]/list_item[1]
+  kind: renumber
+  source_label: '1'
+  test_label: '2'
+  source_digest: d4f076fe2f615d91
+  test_digest: 350eb7b60f10154d
+  status: confirmed
+- source: /section[3]/section[1]/list_item[1]/list_item[1]
+  test: /section[3]/section[1]/list_item[1]/list_item[1]
+  kind: same
+  source_label: '1.1'
+  test_label: '1.1'
+  source_digest: 2355f8aff786d581
+  test_digest: 2355f8aff786d581
+  status: confirmed
+- source: /section[1]/list_item[1]
+  test: /section[3]/section[1]/list_item[3]
+  kind: move
+  source_label: '1.1'
+  test_label: '4'
+  source_digest: 004f871e74b647b3
+  test_digest: aa39046528fbb0a4
+  status: confirmed
+- source: /section[4]/heading[1]
+  test: /section[4]/heading[1]
+  kind: same
+  source_label: SCHEDULE 2
+  test_label: SCHEDULE 2
+  source_digest: 01fc6bffc8cf383b
+  test_digest: 01fc6bffc8cf383b
+  status: confirmed
+- source: /section[4]/section[1]/heading[1]
+  test: /section[4]/section[1]/heading[1]
+  kind: same
+  source_label: null
+  test_label: null
+  source_digest: d3f9533d4d14486d
+  test_digest: d3f9533d4d14486d
+  status: confirmed
+- source: /section[4]/section[1]/list_item[1]
+  test: /section[4]/section[1]/list_item[1]
+  kind: same
+  source_label: '1'
+  test_label: '1'
+  source_digest: a7411ef875105a2d
+  test_digest: a7411ef875105a2d
+  status: confirmed
+inserted:
+- test: /section[3]/section[1]/list_item[2]
+  test_digest: fad154984c6824d9
+  status: confirmed
+deleted:
+- source: /section[3]/section[1]/list_item[2]
+  source_digest: 4e84b3fd58896d05
+  status: confirmed
+splits: []
+merges: []
+unscored: []
+move_verdicts: []

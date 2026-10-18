@@ -2,9 +2,9 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "https://houfu.github.io/redlines/schemas/comparison-v2.json",
   "title": "Redlines Comparison (JSON v2)",
-  "description": "Schema for redlines.comparison.Comparison.to_dict() -- the M2 comparison document: two block trees, what corresponds between them, and what changed (ADR-0032, ADR-0033). Frozen at schema_version 2.0. Policy: an additive change (a new optional field, a new change kind, a new statistic) bumps the minor and widens this same file; a breaking change bumps the major, gets its own ADR, and the previous major stays producible from its own schema file. This one file also carries the block tree, at #/definitions/blockTree -- there is no separate block-tree schema -- because a second file would need a cross-file $ref to a URL that does not exist until this file itself is published (M4), which is a resolution trap offline and in tests. The presence of the schema_version key is itself the v1/v2 discriminator: v1's Redlines.output_json has no such key at all.",
+  "description": "Schema for redlines.comparison.Comparison.to_dict() -- the M2 comparison document: two block trees, what corresponds between them, and what changed (ADR-0032, ADR-0033). Frozen at schema_version 2.0. Policy: an additive change (a new optional field, a new change kind, a new statistic) bumps the minor and widens this same file; a breaking change bumps the major, gets its own ADR, and the previous major stays producible from its own schema file. This one file also carries the block tree, at #/definitions/blockTree -- there is no separate block-tree schema -- because a second file would need a cross-file $ref to a URL that does not exist until this file itself is published (M4), which is a resolution trap offline and in tests. The presence of the schema_version key is itself the v1/v2 discriminator: v1's Redlines.output_json has no such key at all. The two block trees are emitted by default but are not required: to_dict(include_trees=False) writes the compact form -- config, changes and statistics -- for a consumer that only needs to know what changed (ADR-0033, amendment of 2026-10-18). Every change node carries both addresses and both texts, so the compact form stands on its own; it cannot be rebuilt into a Comparison.",
   "type": "object",
-  "required": ["schema_version", "config", "source", "test", "changes", "statistics"],
+  "required": ["schema_version", "config", "changes", "statistics"],
   "additionalProperties": false,
   "properties": {
     "schema_version": {
@@ -14,11 +14,11 @@
     "config": { "$ref": "#/definitions/comparisonConfig" },
     "source": {
       "$ref": "#/definitions/blockTree",
-      "description": "The earlier document, byte-for-byte redlines.blocks.BlockTree.to_dict() output -- not reshaped, so an M1 expected tree stays valid as a slice of this document."
+      "description": "The earlier document, byte-for-byte redlines.blocks.BlockTree.to_dict() output -- not reshaped, so an M1 expected tree stays valid as a slice of this document. Present by default; absent from the compact form written with to_dict(include_trees=False). source and test are either both present or both absent."
     },
     "test": {
       "$ref": "#/definitions/blockTree",
-      "description": "The later document, in the same shape as source."
+      "description": "The later document, in the same shape as source, and present exactly when source is."
     },
     "changes": {
       "type": "array",
@@ -591,7 +591,7 @@
           "passes": ["exact", "label", "structural", "fuzzy", "move", "positional"],
           "similarity": "auto",
           "fuzzy_min_similarity": 0.6,
-          "label_min_similarity": 0.35,
+          "label_min_similarity": 0.5,
           "positional_min_similarity": 0.35,
           "move_min_similarity": 0.8,
           "move_tie_margin": 0.1,

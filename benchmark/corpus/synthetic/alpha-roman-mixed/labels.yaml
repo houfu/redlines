@@ -1,0 +1,145 @@
+schema: redlines/alignment-labels/1
+pair: alpha-roman-mixed
+source:
+  file: source.txt
+  format: text
+  profile: contract
+  sha256: 5a15c8d05ec879331d829ce5745445b2ce1764adfb538fe9439ad963fdb2b62d
+test:
+  file: test.txt
+  format: text
+  profile: contract
+  sha256: 97281152ac7772340a05f113938c06f0fc08fdc9efa08a32678a0093349d0485
+provenance:
+  kind: synthetic
+  origin: tests/corpus/hard_cases/alpha_roman_ambiguity.txt + plan:mixed
+  generator: benchmark/generate.py
+  generator_version: 1
+  seed: 15447864204235765355
+  plan: mixed
+correspondences:
+- source: /section[1]/heading[1]
+  test: /section[1]/heading[1]
+  kind: same
+  source_label: '7'
+  test_label: '7'
+  source_digest: 90cc74f98038264f
+  test_digest: 90cc74f98038264f
+  status: confirmed
+- source: /section[1]/list_item[1]
+  test: /section[1]/list_item[1]
+  kind: same
+  source_label: '7.1'
+  test_label: '7.1'
+  source_digest: 80e1865c57f8923f
+  test_digest: 060b3c84cf3a9c9f
+  status: confirmed
+- source: /section[1]/list_item[1]/list_item[1]
+  test: /section[1]/list_item[1]/list_item[1]
+  kind: renumber
+  source_label: (a)
+  test_label: (b)
+  source_digest: de8f8edf3d7349b3
+  test_digest: c7f0e22fc7c1ebf7
+  status: confirmed
+- source: /section[1]/list_item[1]/list_item[2]
+  test: /section[1]/list_item[1]/list_item[2]
+  kind: renumber
+  source_label: (b)
+  test_label: (c)
+  source_digest: 476d81da715b5fd5
+  test_digest: ce6182d422adb211
+  status: confirmed
+- source: /section[1]/list_item[1]/list_item[3]
+  test: /section[1]/list_item[1]/list_item[4]
+  kind: renumber
+  source_label: (c)
+  test_label: (e)
+  source_digest: 59ad0209cb94d8ac
+  test_digest: 1d5590b274af3cad
+  status: confirmed
+- source: /section[1]/list_item[1]/list_item[4]
+  test: /section[1]/list_item[1]/list_item[5]
+  kind: renumber
+  source_label: (d)
+  test_label: (f)
+  source_digest: 60de6ef51b917dbb
+  test_digest: b018ac20ec12cda6
+  status: confirmed
+- source: /section[1]/list_item[1]/list_item[5]
+  test: /section[1]/list_item[1]/list_item[6]
+  kind: renumber
+  source_label: (e)
+  test_label: (g)
+  source_digest: c91939284d9e5fef
+  test_digest: 5295d7bb83b0c3a7
+  status: confirmed
+- source: /section[1]/list_item[1]/list_item[6]
+  test: /section[1]/list_item[1]/list_item[7]
+  kind: renumber
+  source_label: (f)
+  test_label: (h)
+  source_digest: 6c541f763787304a
+  test_digest: aad716ce2701b6c0
+  status: confirmed
+- source: /section[1]/list_item[2]/list_item[2]
+  test: /section[1]/list_item[1]/list_item[8]
+  kind: move
+  source_label: (ii)
+  test_label: (i)
+  source_digest: 6ee8579d550c9629
+  test_digest: e890d3e89be3b11a
+  status: confirmed
+- source: /section[1]/list_item[1]/list_item[10]
+  test: /section[1]/list_item[1]/list_item[10]
+  kind: renumber
+  source_label: (j)
+  test_label: (k)
+  source_digest: 7f85336e9aef6fe3
+  test_digest: f4bf26947a66a12b
+  status: confirmed
+- source: /section[1]/list_item[2]
+  test: /section[1]/list_item[2]
+  kind: same
+  source_label: '7.2'
+  test_label: '7.2'
+  source_digest: 93ca336a81ca51ca
+  test_digest: 93ca336a81ca51ca
+  status: confirmed
+- source: /section[1]/list_item[2]/list_item[1]
+  test: /section[1]/list_item[2]/list_item[1]
+  kind: same
+  source_label: (i)
+  test_label: (i)
+  source_digest: 8d6432a611d4ccab
+  test_digest: c3a1dde9b4af3b2b
+  status: confirmed
+- source: /section[1]/list_item[2]/list_item[3]
+  test: /section[1]/list_item[2]/list_item[2]
+  kind: same
+  source_label: (iii)
+  test_label: (iii)
+  source_digest: 296378f08ae4f398
+  test_digest: 296378f08ae4f398
+  status: confirmed
+inserted:
+- test: /section[1]/list_item[1]/list_item[3]
+  test_digest: 4b53995a9a591651
+  status: confirmed
+deleted:
+- source: /section[1]/list_item[1]/list_item[7]
+  source_digest: 57e76c7c85c1d689
+  status: confirmed
+splits: []
+merges:
+- sources:
+  - /section[1]/list_item[1]/list_item[8]
+  - /section[1]/list_item[1]/list_item[9]
+  test: /section[1]/list_item[1]/list_item[9]
+  source_digests:
+  - 13c03ce34f252353
+  - 900906c76519b6c0
+  test_digest: 72d45df15abedf5b
+  status: confirmed
+unscored: []
+move_verdicts: []
