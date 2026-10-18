@@ -57,7 +57,7 @@ Concretely:
   ([ADR-0038](0038-render-html-once-in-python.md)): the app-only result carries the compact change list and
   the two HTML views rendered from the same `Comparison`, and not the full v2 document, which the iframe no
   longer needs. It still goes to the iframe and nowhere else, and it is the comparison the iframe keeps. On
-  the sample pair it is about 44,000 characters; with the full document it was about 186,000, over the
+  the sample pair it is about 63,000 characters; with the full document it was about 186,000, over the
   150,000-character tool result Claude documents.*
 - **The compact form is self-sufficient.** Every change node already carries both addresses, both labels and
   both texts ([ADR-0033](0033-change-tree-wire-format.md)), so Claude needs no follow-up tool to discuss a
