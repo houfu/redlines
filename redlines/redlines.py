@@ -91,6 +91,10 @@ class RedlinesOptions(t.TypedDict, total=False):
 
 
 class Redlines:
+    """
+    `Comparison.output_markdown(...)` is a method, while `Redlines.output_markdown` stays a property.
+    """
+
     _source: str | None = None
     _test: str | None = None
     _seq1: list[str] | None = None
