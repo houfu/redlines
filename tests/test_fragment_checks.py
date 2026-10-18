@@ -1,4 +1,4 @@
-"""The checks of ``tests/helpers/fragment_checks.py`` catch what they claim to (ADR-0038).
+"""The checks of ``tests/helpers/fragment_checks.py`` catch what they claim (ADR-0038).
 
 A check that never fails proves nothing about the fragments it passes, so each
 one is run here against markup that breaks it: hand-written strings for the
@@ -38,10 +38,12 @@ BORDER = _var("border", "--color-border-tertiary", "light-dark(#1F1E1D26,#DEDCD1
 
 GOOD_CSS = "\n".join(
     (
-        ".redlines{font-family:var(--redlines-font,var(--font-sans,system-ui,sans-serif));"
+        ".redlines{font-family:"
+        "var(--redlines-font,var(--font-sans,system-ui,sans-serif));"
         f"color:{FG};background:var(--redlines-bg,transparent)}}",
         f".redlines .redlines-change+.redlines-change{{border-top:1px solid {BORDER}}}",
-        ".redlines code{font-family:var(--redlines-mono,var(--font-mono,ui-monospace,monospace))}",
+        ".redlines code{font-family:"
+        "var(--redlines-mono,var(--font-mono,ui-monospace,monospace))}",
         ".redlines .redlines-role{color:"
         + _var("muted", "--color-text-secondary", "light-dark(#3D3D3A,#C2C0B6)")
         + "}",
@@ -96,7 +98,9 @@ def test_a_minimal_fragment_parses_to_its_root() -> None:
         ("<!DOCTYPE html>" + wrap(""), "a declaration"),
     ],
 )
-def test_f1_rejects_markup_that_is_not_one_well_formed_root(fragment: str, message: str) -> None:
+def test_f1_rejects_markup_that_is_not_one_well_formed_root(
+    fragment: str, message: str
+) -> None:
     with pytest.raises(fc.FragmentError, match=re.escape(message)):
         fc.check_well_formed(fragment)
 
@@ -104,12 +108,19 @@ def test_f1_rejects_markup_that_is_not_one_well_formed_root(fragment: str, messa
 @pytest.mark.parametrize(
     ("root", "message"),
     [
-        ('<div class="redlines" data-redlines-view="changes" data-redlines-fragment="1.0" '
-         f'data-redlines-schema="{SCHEMA_VERSION}">', "not a <section>"),
+        (
+            '<div class="redlines" data-redlines-view="changes" '
+            'data-redlines-fragment="1.0" '
+            f'data-redlines-schema="{SCHEMA_VERSION}">',
+            "not a <section>",
+        ),
         (ROOT.replace(' data-redlines-schema="2.0"', ""), "the root's attributes"),
         (ROOT.replace('fragment="1.0"', 'fragment="2.0"'), "data-redlines-fragment"),
         (ROOT.replace('view="changes"', 'view="other"'), "data-redlines-view"),
-        (ROOT.replace('class="redlines"', 'class="redlines extra"'), "the root's class"),
+        (
+            ROOT.replace('class="redlines"', 'class="redlines extra"'),
+            "the root's class",
+        ),
     ],
 )
 def test_f1_requires_the_root_and_its_three_attributes(root: str, message: str) -> None:
@@ -153,7 +164,9 @@ def test_f2_requires_the_style_to_be_the_first_child() -> None:
         fc.check_self_contained(fc.check_well_formed(fragment))
 
 
-@pytest.mark.parametrize("css", ['@import "x.css";', ".redlines{background:url(x.png)}"])
+@pytest.mark.parametrize(
+    "css", ['@import "x.css";', ".redlines{background:url(x.png)}"]
+)
 def test_f2_rejects_an_external_reference_in_the_stylesheet(css: str) -> None:
     with pytest.raises(fc.FragmentError, match="the stylesheet contains"):
         fc.check_self_contained(fc.check_well_formed(wrap("", css=css)))
@@ -188,15 +201,43 @@ def test_f3_accepts_a_stylesheet_that_reads_all_thirteen_names() -> None:
         ((f"color:{FG}", "color:#141413"), "a colour outside"),
         ((f"color:{FG}", "color:var(--redlines-fg,#141413)"), "is not one var()"),
         (
-            (f"color:{FG}", "color:var(--redlines-fg,var(--color-text-secondary,light-dark(#000,#fff)))"),
+            (
+                f"color:{FG}",
+                "color:var(--redlines-fg,"
+                "var(--color-text-secondary,light-dark(#000,#fff)))",
+            ),
             "falls back to --color-text-secondary",
         ),
-        ((f"color:{FG}", "color:var(--redlines-fg,var(--color-text-primary,#000))"), "light-dark()"),
-        ((f"color:{FG}", "color:var(--color-text-primary,light-dark(#000,#fff))"), "not --redlines-*"),
-        ((f"color:{FG}", "color:var(--redlines-accent,var(--x,light-dark(#000,#fff)))"), "not one of the thirteen"),
-        (("background:var(--redlines-bg,transparent)", "background:var(--redlines-bg,white)"), "not transparent"),
-        ((f"border-top:1px solid {BORDER}", f"border-top:1px wavy {BORDER}"), "'wavy' beside"),
-        ((f"border-top:1px solid {BORDER}", "border-top:1px solid black"), "a colour outside"),
+        (
+            (f"color:{FG}", "color:var(--redlines-fg,var(--color-text-primary,#000))"),
+            "light-dark()",
+        ),
+        (
+            (f"color:{FG}", "color:var(--color-text-primary,light-dark(#000,#fff))"),
+            "not --redlines-*",
+        ),
+        (
+            (
+                f"color:{FG}",
+                "color:var(--redlines-accent,var(--x,light-dark(#000,#fff)))",
+            ),
+            "not one of the thirteen",
+        ),
+        (
+            (
+                "background:var(--redlines-bg,transparent)",
+                "background:var(--redlines-bg,white)",
+            ),
+            "not transparent",
+        ),
+        (
+            (f"border-top:1px solid {BORDER}", f"border-top:1px wavy {BORDER}"),
+            "'wavy' beside",
+        ),
+        (
+            (f"border-top:1px solid {BORDER}", "border-top:1px solid black"),
+            "a colour outside",
+        ),
         ((f"color:{FG}", f"color:{FG};--redlines-fg:red"), "custom property"),
         ((f"color:{FG}", f"color:{FG};color-scheme:light dark"), "color-scheme"),
         ((f"color:{FG}", f"color:{FG};line-height:{FG}"), "not a theme property"),
@@ -206,7 +247,9 @@ def test_f3_accepts_a_stylesheet_that_reads_all_thirteen_names() -> None:
         ),
     ],
 )
-def test_f3_rejects_a_declaration_the_theme_does_not_reach(change: tuple[str, str], message: str) -> None:
+def test_f3_rejects_a_declaration_the_theme_does_not_reach(
+    change: tuple[str, str], message: str
+) -> None:
     old, new = change
     assert old in GOOD_CSS
     with pytest.raises(fc.FragmentError, match=re.escape(message)):
@@ -215,7 +258,10 @@ def test_f3_rejects_a_declaration_the_theme_does_not_reach(change: tuple[str, st
 
 @pytest.mark.parametrize(
     "css",
-    ["@media (prefers-color-scheme:dark){.redlines{color:red}}", ".redlines{color:red}/* x */"],
+    [
+        "@media (prefers-color-scheme:dark){.redlines{color:red}}",
+        ".redlines{color:red}/* x */",
+    ],
 )
 def test_f3_reads_only_a_flat_stylesheet(css: str) -> None:
     with pytest.raises(fc.FragmentError):
@@ -224,7 +270,15 @@ def test_f3_reads_only_a_flat_stylesheet(css: str) -> None:
 
 @pytest.mark.parametrize(
     "selector",
-    [".redlines-change", "p", "ins", ".redlines :root", ".redlines body p", "html .redlines", "*"],
+    [
+        ".redlines-change",
+        "p",
+        "ins",
+        ".redlines :root",
+        ".redlines body p",
+        "html .redlines",
+        "*",
+    ],
 )
 def test_f4_rejects_a_selector_that_reaches_the_page(selector: str) -> None:
     with pytest.raises(fc.FragmentError, match="selector"):
@@ -233,8 +287,14 @@ def test_f4_rejects_a_selector_that_reaches_the_page(selector: str) -> None:
 
 @pytest.mark.parametrize(
     "selector",
-    [".redlines", ".redlines .redlines-change", '.redlines[data-redlines-display="fullscreen"]',
-     ".redlines>p", '.redlines [data-x="body"]', ".redlines .redlines-change+.redlines-change"],
+    [
+        ".redlines",
+        ".redlines .redlines-change",
+        '.redlines[data-redlines-display="fullscreen"]',
+        ".redlines>p",
+        '.redlines [data-x="body"]',
+        ".redlines .redlines-change+.redlines-change",
+    ],
 )
 def test_f4_accepts_a_selector_scoped_under_the_root(selector: str) -> None:
     fc.check_scoped(selector + "{margin:0}")
@@ -274,12 +334,22 @@ def test_the_unaltered_change_list_passes() -> None:
         ),
         (' data-confidence="0.8667"', ' data-confidence="0.87"', "attributes"),
         ("<details><summary>", "<details> <summary>", "<details> does not hold"),
-        ('</span><span class="redlines-excerpt">', '</span> <span class="redlines-excerpt">', "whitespace"),
-        ('<code class="redlines-address">', '<span class="redlines-address">', "not a <code>"),
+        (
+            '</span><span class="redlines-excerpt">',
+            '</span> <span class="redlines-excerpt">',
+            "whitespace",
+        ),
+        (
+            '<code class="redlines-address">',
+            '<span class="redlines-address">',
+            "not a <code>",
+        ),
         ("label 0.8667</span>", "label 0.9</span>", "the match reads"),
     ],
 )
-def test_f5_rejects_a_row_that_does_not_carry_its_node(old: str, new: str, message: str) -> None:
+def test_f5_rejects_a_row_that_does_not_carry_its_node(
+    old: str, new: str, message: str
+) -> None:
     comparison = four_kinds()
     fragment = comparison.output_html()
     assert old in fragment
@@ -296,12 +366,16 @@ def test_f5_counts_the_rows() -> None:
     fragment = comparison.output_html()
     rows = re.findall(r"\n<li .*?</li>", fragment, flags=re.S)
     with pytest.raises(fc.FragmentError, match="3 rows for 4 changes"):
-        fc.check_rows(fc.check_well_formed(fragment.replace(rows[-1], "", 1)), comparison)
+        fc.check_rows(
+            fc.check_well_formed(fragment.replace(rows[-1], "", 1)), comparison
+        )
 
 
 def test_f6_fails_when_an_attribute_disagrees_with_the_filter() -> None:
     comparison = four_kinds()
-    fragment = comparison.output_html().replace(' data-chars="10"', ' data-chars="3"', 1)
+    fragment = comparison.output_html().replace(
+        ' data-chars="10"', ' data-chars="3"', 1
+    )
     root = fc.check_well_formed(fragment)
     assert fc.select_rows(fc.row_elements(root), ChangeFilter(min_chars=1)) == [0]
     with pytest.raises(fc.FragmentError, match="filter parity fails"):
@@ -325,7 +399,9 @@ def test_f6_prefixes_are_segment_aligned() -> None:
         ("<ins><span", "<del><span", "the body is not one <ins>"),
     ],
 )
-def test_f7_rejects_a_body_that_does_not_read_its_node(old: str, new: str, message: str) -> None:
+def test_f7_rejects_a_body_that_does_not_read_its_node(
+    old: str, new: str, message: str
+) -> None:
     comparison = four_kinds()
     fragment = comparison.output_html()
     assert old in fragment
@@ -342,13 +418,25 @@ def test_f7_reads_the_document_view_block_by_block() -> None:
     fc.check_document(fragment, comparison)
     for old, new, message in (
         ("Late payments carry interest", "Late payments carry no interest", "reads"),
-        ('aria-level="2" data-test-address="/section[2]/heading[1]"', 'data-test-address="/section[2]/heading[1]"', "role=heading"),
-        ('data-test-address="/section[2]/list_item[2]" data-source-address', 'data-source-address', "data-kind"),
+        (
+            'aria-level="2" data-test-address="/section[2]/heading[1]"',
+            'data-test-address="/section[2]/heading[1]"',
+            "role=heading",
+        ),
+        (
+            'data-test-address="/section[2]/list_item[2]" data-source-address',
+            "data-source-address",
+            "data-kind",
+        ),
     ):
         assert old in fragment
         altered = fragment.replace(old, new, 1)
         if "aria-level" in old:
-            altered = altered.replace(' role="heading" data-test-address="/section[2]', ' data-test-address="/section[2]', 1)
+            altered = altered.replace(
+                ' role="heading" data-test-address="/section[2]',
+                ' data-test-address="/section[2]',
+                1,
+            )
         with pytest.raises(fc.FragmentError):
             fc.check_block_texts(fc.check_well_formed(altered), comparison)
 
@@ -373,10 +461,14 @@ def test_f8_wants_each_notice_exactly_when_it_is_true() -> None:
     filtered = four_kinds().filter(kinds=("modify",))
     fragment = filtered.output_html()
     fc.check_header(fc.check_well_formed(fragment), filtered)
-    notice = re.search(r'\n<p class="redlines-notice" data-notice="filtered">[^\n]*</p>', fragment)
+    notice = re.search(
+        r'\n<p class="redlines-notice" data-notice="filtered">[^\n]*</p>', fragment
+    )
     assert notice is not None
     with pytest.raises(fc.FragmentError, match="the notices are"):
-        fc.check_header(fc.check_well_formed(fragment.replace(notice.group(0), "", 1)), filtered)
+        fc.check_header(
+            fc.check_well_formed(fragment.replace(notice.group(0), "", 1)), filtered
+        )
     unfiltered = four_kinds().output_html()
     forged = unfiltered.replace("\n<button", notice.group(0) + "\n<button", 1)
     with pytest.raises(fc.FragmentError, match="the notices are"):

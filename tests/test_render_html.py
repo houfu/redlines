@@ -26,6 +26,7 @@ from __future__ import annotations
 import re
 from functools import lru_cache
 from pathlib import Path
+from typing import Literal
 
 import pytest
 
@@ -42,13 +43,27 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 SAMPLE = REPO_ROOT / "tests" / "corpus" / "sample_pair"
 RENDERED = SAMPLE / "expected" / "rendered"
 CASES = REPO_ROOT / "tests" / "renderer_cases"
-CASE_NAMES = ("four_kinds", "moved_neighbour", "nested_move", "trailing_insert", "hostile")
+CASE_NAMES = (
+    "four_kinds",
+    "moved_neighbour",
+    "nested_move",
+    "trailing_insert",
+    "hostile",
+)
 DIFFLIB = AlignmentConfig(similarity="difflib")
 
 # (fixture, change-list golden, document-view golden)
 GOLDENS: tuple[tuple[str, Path, Path], ...] = (
-    ("sample_pair.md", RENDERED / "changes.markdown.html", RENDERED / "annotated.markdown.html"),
-    ("sample_pair.txt", RENDERED / "changes.contract.html", RENDERED / "annotated.contract.html"),
+    (
+        "sample_pair.md",
+        RENDERED / "changes.markdown.html",
+        RENDERED / "annotated.markdown.html",
+    ),
+    (
+        "sample_pair.txt",
+        RENDERED / "changes.contract.html",
+        RENDERED / "annotated.contract.html",
+    ),
     *(
         (name, CASES / name / "changes.html", CASES / name / "annotated.html")
         for name in CASE_NAMES
@@ -64,10 +79,12 @@ def _read(path: Path) -> str:
 
 @lru_cache(maxsize=None)
 def fixture(name: str) -> Comparison:
-    """A fixture compared the way its goldens were generated: named format and profile, difflib."""
+    """A fixture compared as its goldens were: format and profile named, difflib."""
     if name.startswith("sample_pair."):
         extension = name.removeprefix("sample_pair.")
-        fmt, profile = ("markdown", "markdown") if extension == "md" else ("text", "contract")
+        fmt, profile = (
+            ("markdown", "markdown") if extension == "md" else ("text", "contract")
+        )
         return compare(
             _read(SAMPLE / f"source.{extension}"),
             _read(SAMPLE / f"test.{extension}"),
@@ -93,14 +110,16 @@ def document_of(comparison: Comparison) -> str:
 
 
 def check_both(comparison: Comparison) -> tuple[fc.Element, fc.Element]:
-    """F1 to F9 on both fragments of one comparison, the document view with and without roles."""
+    """F1 to F9 on both fragments of one comparison, the document view both ways."""
     changes = fc.check_deterministic(changes_of, comparison)
     root = fc.check_change_list(changes, comparison)
     fc.check_filter_parity(root, comparison)
     document = fc.check_deterministic(document_of, comparison)
     for roles in (True, False):
         fc.check_document(
-            comparison.output_annotated(syntax="html", roles=roles), comparison, roles=roles
+            comparison.output_annotated(syntax="html", roles=roles),
+            comparison,
+            roles=roles,
         )
     return root, fc.check_well_formed(document)
 
@@ -172,7 +191,8 @@ HOSTILE_TEXT = (
     f"1. Attacks {ATTACKS[3]}\n\n1.1 Kept: {HOSTILE} ends C:\\dir\\old\n\n"
     f"1.2 Struck out entirely: {ATTACKS[0]} {ATTACKS[3]} {ATTACKS[4]}\n",
     f"1. Attacks {ATTACKS[3]}\n\n1.1 Kept: {HOSTILE} ends C:\\dir\\new\n\n"
-    f"1.3 A brand new obligation: {ATTACKS[2]} {ATTACKS[5]} {ATTACKS[6]} {ATTACKS[7]}\n",
+    f"1.3 A brand new obligation: {ATTACKS[2]} {ATTACKS[5]} {ATTACKS[6]} "
+    f"{ATTACKS[7]}\n",
 )
 
 HOSTILE_ROLE = '"><script>alert(1)</script>'
@@ -180,7 +200,9 @@ HOSTILE_LABEL = '1"><img src=x onerror=alert(1)>'
 
 
 def _tree(*children: Block, dropped: tuple[Dropped, ...] = ()) -> BlockTree:
-    return BlockTree.build(Block(kind=BlockKind.DOCUMENT, children=children), dropped=dropped)
+    return BlockTree.build(
+        Block(kind=BlockKind.DOCUMENT, children=children), dropped=dropped
+    )
 
 
 def _section(heading: str, *children: Block) -> Block:
@@ -203,7 +225,10 @@ def _table(*rows: tuple[str, ...]) -> Block:
     return Block(
         kind=BlockKind.TABLE,
         children=tuple(
-            Block(kind=BlockKind.ROW, children=tuple(Block(kind=BlockKind.CELL, text=cell) for cell in row))
+            Block(
+                kind=BlockKind.ROW,
+                children=tuple(Block(kind=BlockKind.CELL, text=cell) for cell in row),
+            )
             for row in rows
         ),
     )
@@ -220,13 +245,19 @@ def hostile_trees() -> Comparison:
         _section(
             f"Heading {HOSTILE}",
             _clause("(a)", f"Kept {HOSTILE} and C:\\dir\\old", HOSTILE_ROLE),
-            _clause("(b)", f"Struck out entirely: {ATTACKS[0]} {ATTACKS[3]}", "x</style>y"),
+            _clause(
+                "(b)", f"Struck out entirely: {ATTACKS[0]} {ATTACKS[3]}", "x</style>y"
+            ),
             _clause('(c)"', f"Moved away {HOSTILE}"),
             _table(("Item", "Note"), (HOSTILE, "a | b"), ("gone", "</style>")),
         ),
         _section("Second </style>", _clause("(d)", "Another clause stays as it is.")),
         dropped=(
-            Dropped(kind="<img src=x onerror=alert(1)>", count=2, reason='"><script>alert(1)</script> & </style>'),
+            Dropped(
+                kind="<img src=x onerror=alert(1)>",
+                count=2,
+                reason='"><script>alert(1)</script> & </style>',
+            ),
         ),
     )
     test = _tree(
@@ -234,14 +265,20 @@ def hostile_trees() -> Comparison:
             f"Heading {HOSTILE}",
             _clause("(a)", f"Kept {HOSTILE} and C:\\dir\\new", HOSTILE_ROLE),
             _table(("Item", "Note"), (HOSTILE, "a | b"), ("new </style>", "{++x++}")),
-            _clause("(e)", f"A brand new obligation: {ATTACKS[1]} {ATTACKS[2]} {ATTACKS[5]}", HOSTILE_ROLE),
+            _clause(
+                "(e)",
+                f"A brand new obligation: {ATTACKS[1]} {ATTACKS[2]} {ATTACKS[5]}",
+                HOSTILE_ROLE,
+            ),
         ),
         _section(
             "Second </style>",
             _clause("(d)", "Another clause stays as it is."),
             _clause('(f)"><b>', f"Moved away {HOSTILE}"),
         ),
-        dropped=(Dropped(kind="</style>", count=1, reason="<script>alert(1)</script>"),),
+        dropped=(
+            Dropped(kind="</style>", count=1, reason="<script>alert(1)</script>"),
+        ),
     )
     return compare(source, test, alignment=DIFFLIB)
 
@@ -252,7 +289,9 @@ def hostile_comparisons() -> dict[str, Comparison]:
         "markdown": compare(*HOSTILE_MARKDOWN, format="markdown", alignment=DIFFLIB),
         "text": compare(*HOSTILE_TEXT, format="text", alignment=DIFFLIB),
         "trees": trees,
-        "trees, filtered": trees.filter(labels=(HOSTILE_ROLE, "(a)", "(e)"), roles=(HOSTILE_ROLE,)),
+        "trees, filtered": trees.filter(
+            labels=(HOSTILE_ROLE, "(a)", "(e)"), roles=(HOSTILE_ROLE,)
+        ),
         "committed case": fixture("hostile"),
     }
 
@@ -261,17 +300,31 @@ def hostile_comparisons() -> dict[str, Comparison]:
 def test_hostile_input_passes_f1_to_f9_and_reads_back_exactly(name: str) -> None:
     comparison = hostile_comparisons()[name]
     check_both(comparison)
-    for fragment in (comparison.output_html(), comparison.output_annotated(syntax="html")):
+    for fragment in (
+        comparison.output_html(),
+        comparison.output_annotated(syntax="html"),
+    ):
         after_the_stylesheet = fragment.split("</style>", 1)[1]
         for raw in ("<script", "<img", "</style>", "<b>", " onerror"):
-            assert raw not in after_the_stylesheet.replace("&lt;img src=x onerror", ""), (name, raw)
+            assert raw not in after_the_stylesheet.replace(
+                "&lt;img src=x onerror", ""
+            ), (name, raw)
 
 
 def test_the_hostile_corpus_has_every_kind_and_every_attack() -> None:
     trees = hostile_trees()
-    assert {change.kind.value for change in trees.changes} == {"insert", "delete", "modify", "move"}
+    assert {change.kind.value for change in trees.changes} == {
+        "insert",
+        "delete",
+        "modify",
+        "move",
+    }
     markdown = hostile_comparisons()["markdown"]
-    assert {change.kind.value for change in markdown.changes} >= {"insert", "delete", "modify"}
+    assert {change.kind.value for change in markdown.changes} >= {
+        "insert",
+        "delete",
+        "modify",
+    }
     fragment = trees.output_html()
     after_the_stylesheet = fragment.split("</style>", 1)[1]
     for attack in ATTACKS:
@@ -283,7 +336,11 @@ def test_the_hostile_corpus_has_every_kind_and_every_attack() -> None:
         assert attack in shown  # every attack reaches the reader as text, escaped
     assert any(element.get("data-role") == HOSTILE_ROLE for element in root.walk())
     assert any(element.get("data-test-label") == '(f)"><b>' for element in root.walk())
-    notices = [element.text() for element in root.walk() if "redlines-notice" in element.classes()]
+    notices = [
+        element.text()
+        for element in root.walk()
+        if "redlines-notice" in element.classes()
+    ]
     assert notices == [
         "2 <img src=x onerror=alert(1)> dropped from the source: "
         '"><script>alert(1)</script> & </style>',
@@ -294,8 +351,13 @@ def test_the_hostile_corpus_has_every_kind_and_every_attack() -> None:
 def test_a_hostile_filter_value_is_escaped_in_its_notice() -> None:
     filtered = hostile_comparisons()["trees, filtered"]
     root = fc.parse(filtered.output_html())
-    (notice,) = [element for element in root.walk() if element.get("data-notice") == "filtered"]
-    assert notice.text() == f"Filtered: labels={HOSTILE_ROLE},(a),(e); roles={HOSTILE_ROLE}"
+    (notice,) = [
+        element for element in root.walk() if element.get("data-notice") == "filtered"
+    ]
+    assert (
+        notice.text()
+        == f"Filtered: labels={HOSTILE_ROLE},(a),(e); roles={HOSTILE_ROLE}"
+    )
 
 
 def test_a_hostile_heading_level_is_clamped() -> None:
@@ -309,7 +371,9 @@ def test_a_hostile_heading_level_is_clamped() -> None:
 
 def _document(comparison: Comparison, *, roles: bool = True) -> list[fc.Element]:
     root = fc.parse(comparison.output_annotated(syntax="html", roles=roles))
-    (document,) = [element for element in root.walk() if "redlines-document" in element.classes()]
+    (document,) = [
+        element for element in root.walk() if "redlines-document" in element.classes()
+    ]
     return document.elements()
 
 
@@ -323,10 +387,23 @@ def _heading(level: int, atx: object) -> int:
 
 @pytest.mark.parametrize(
     ("level", "atx", "expected"),
-    [(1, 2, 2), (1, None, 2), (0, None, 1), (5, None, 6), (9, None, 6), (1, 99, 6), (1, 0, 1),
-     (1, -3, 1), (3, "4", 4), (3, "x", 4), (3, True, 4)],
+    [
+        (1, 2, 2),
+        (1, None, 2),
+        (0, None, 1),
+        (5, None, 6),
+        (9, None, 6),
+        (1, 99, 6),
+        (1, 0, 1),
+        (1, -3, 1),
+        (3, "4", 4),
+        (3, "x", 4),
+        (3, True, 4),
+    ],
 )
-def test_a_heading_is_role_heading_with_a_clamped_aria_level(level: int, atx: object, expected: int) -> None:
+def test_a_heading_is_role_heading_with_a_clamped_aria_level(
+    level: int, atx: object, expected: int
+) -> None:
     assert _heading(level, atx) == expected
 
 
@@ -340,9 +417,17 @@ def test_the_document_view_has_no_h1_to_h6_and_no_id() -> None:
 def test_a_ghost_carries_no_test_address_and_a_tombstone_names_both_ends() -> None:
     elements = _document(fixture("four_kinds"))
     (ghost,) = [element for element in elements if element.get("data-kind") == "delete"]
-    assert ghost.names() == ["class", "data-source-address", "data-level", "data-kind", "data-role"]
+    assert ghost.names() == [
+        "class",
+        "data-source-address",
+        "data-level",
+        "data-kind",
+        "data-role",
+    ]
     assert ghost.get("data-source-address") == "/section[2]/list_item[2]"
-    (tombstone,) = [element for element in elements if "redlines-note" in element.classes()]
+    (tombstone,) = [
+        element for element in elements if "redlines-note" in element.classes()
+    ]
     assert tombstone.attrs == [
         ("class", "redlines-note"),
         ("data-kind", "move"),
@@ -350,26 +435,38 @@ def test_a_ghost_carries_no_test_address_and_a_tombstone_names_both_ends() -> No
         ("data-test-address", "/section[2]/list_item[2]"),
     ]
     assert tombstone.text() == "1.2 moved to 2.2 /section[2]/list_item[2]"
-    (moved,) = [element for element in elements if element.get("data-kind") == "move"
-                and "redlines-block" in element.classes()]
+    (moved,) = [
+        element
+        for element in elements
+        if element.get("data-kind") == "move" and "redlines-block" in element.classes()
+    ]
     notes = [child for child in moved.elements() if "redlines-note" in child.classes()]
-    assert [note.text() for note in notes] == ["moved from 1.2 /section[1]/list_item[2]"]
+    assert [note.text() for note in notes] == [
+        "moved from 1.2 /section[1]/list_item[2]"
+    ]
     assert moved.elements()[-1] is notes[0]
     assert moved.get("data-source-address") == "/section[1]/list_item[2]"
 
 
 def test_a_renumber_is_a_label_span_of_a_delete_and_an_insert() -> None:
     elements = _document(fixture("sample_pair.md"))
-    renumbered = [element for element in elements if element.get("data-kind") == "renumber"]
+    renumbered = [
+        element for element in elements if element.get("data-kind") == "renumber"
+    ]
     assert len(renumbered) == 2
     label = renumbered[0].elements()[1]
     assert label.attrs == [("class", "redlines-label")]
-    assert [(mark.tag, mark.text()) for mark in label.elements()] == [("del", "3.3"), ("ins", "3.4")]
+    assert [(mark.tag, mark.text()) for mark in label.elements()] == [
+        ("del", "3.3"),
+        ("ins", "3.4"),
+    ]
 
 
 def test_an_inserted_block_wraps_its_label_and_text_in_one_ins() -> None:
     elements = _document(fixture("four_kinds"))
-    (inserted,) = [element for element in elements if element.get("data-kind") == "insert"]
+    (inserted,) = [
+        element for element in elements if element.get("data-kind") == "insert"
+    ]
     role, mark = inserted.elements()
     assert role.classes() == ["redlines-role"] and mark.tag == "ins"
     assert mark.elements()[0].classes() == ["redlines-label"]
@@ -389,8 +486,11 @@ def _table_document(test: str) -> fc.Element:
 
 def _rows(table: fc.Element) -> list[list[str]]:
     return [
-        [f"{cell.tag}:{cell.text()}" + ("-" if cell.elements() and cell.elements()[0].tag == "del" else "")
-         for cell in row.elements()]
+        [
+            f"{cell.tag}:{cell.text()}"
+            + ("-" if cell.elements() and cell.elements()[0].tag == "del" else "")
+            for cell in row.elements()
+        ]
         for part in table.elements()
         for row in part.elements()
     ]
@@ -398,7 +498,8 @@ def _rows(table: fc.Element) -> list[list[str]]:
 
 def test_a_table_places_a_deleted_row_where_it_stood() -> None:
     table = _table_document(
-        "## Deliverables\n\n| Item | Owner |\n| --- | --- |\n| Plan | Supplier |\n| Review | Client |\n"
+        "## Deliverables\n\n| Item | Owner |\n| --- | --- |\n"
+        "| Plan | Supplier |\n| Review | Client |\n"
     )
     assert _rows(table) == [
         ["th:Item", "th:Owner"],
@@ -410,7 +511,8 @@ def test_a_table_places_a_deleted_row_where_it_stood() -> None:
 
 def test_a_deleted_first_row_never_becomes_the_header() -> None:
     table = _table_document(
-        "## Deliverables\n\n| Item | Owner |\n| --- | --- |\n| Report | Supplier |\n| Review | Client |\n"
+        "## Deliverables\n\n| Item | Owner |\n| --- | --- |\n"
+        "| Report | Supplier |\n| Review | Client |\n"
     )
     assert _rows(table)[:2] == [["th:Item", "th:Owner"], ["td:Plan-", "td:Supplier-"]]
 
@@ -424,11 +526,22 @@ def test_a_cell_pipe_is_written_as_a_pipe() -> None:
 def test_roles_false_drops_the_role_spans_and_keeps_data_role() -> None:
     with_roles = _document(fixture("four_kinds"))
     without = _document(fixture("four_kinds"), roles=False)
-    assert any("redlines-role" in element.classes() for block in with_roles for element in block.walk())
-    assert not any("redlines-role" in element.classes() for block in without for element in block.walk())
-    assert [block.get("data-role") for block in with_roles] == [block.get("data-role") for block in without]
+    assert any(
+        "redlines-role" in element.classes()
+        for block in with_roles
+        for element in block.walk()
+    )
+    assert not any(
+        "redlines-role" in element.classes()
+        for block in without
+        for element in block.walk()
+    )
+    assert [block.get("data-role") for block in with_roles] == [
+        block.get("data-role") for block in without
+    ]
     assert without[1].text() == (
-        "1.1 The Supplier shall deliver the goods within thirty (30sixty (60) days of each order."
+        "1.1 The Supplier shall deliver the goods within thirty (30sixty (60) days"
+        " of each order."
     )
 
 
@@ -441,18 +554,26 @@ def test_a_move_row_shows_both_labels_both_addresses_and_the_label_change() -> N
     summary, body = row.elements()[0].elements()
     texts = {span.classes()[0]: span.text() for span in summary.elements()}
     assert texts["redlines-label"] == "1.2 → 2.2"
-    assert texts["redlines-address"] == "/section[1]/list_item[2] → /section[2]/list_item[2]"
+    assert (
+        texts["redlines-address"]
+        == "/section[1]/list_item[2] → /section[2]/list_item[2]"
+    )
     assert body.elements()[0].classes() == ["redlines-label"]
-    assert [(mark.tag, mark.text()) for mark in body.elements()[0].elements()] == [("del", "1.2"), ("ins", "2.2")]
+    assert [(mark.tag, mark.text()) for mark in body.elements()[0].elements()] == [
+        ("del", "1.2"),
+        ("ins", "2.2"),
+    ]
 
 
 def test_an_inserted_row_shows_its_cells_joined() -> None:
     root = fc.parse(fixture("sample_pair.md").output_html())
-    (row,) = [row for row in fc.row_elements(root) if row.get("data-block-kind") == "row"]
+    (row,) = [
+        row for row in fc.row_elements(root) if row.get("data-block-kind") == "row"
+    ]
     summary, body = row.elements()[0].elements()
-    assert {span.classes()[0]: span.text() for span in summary.elements()}["redlines-excerpt"] == (
-        "Training day | Week 9 | Client"
-    )
+    assert {span.classes()[0]: span.text() for span in summary.elements()}[
+        "redlines-excerpt"
+    ] == ("Training day | Week 9 | Client")
     assert body.text() == "Training day | Week 9 | Client"
 
 
@@ -461,11 +582,15 @@ def test_an_excerpt_is_cut_at_a_space_within_80_characters() -> None:
     tree_a = _tree(Block(kind=BlockKind.PARAGRAPH, text=long + "first"))
     tree_b = _tree(Block(kind=BlockKind.PARAGRAPH, text=long + "second"))
     root = fc.parse(compare(tree_a, tree_b).output_html())
-    excerpt = [element for element in root.walk() if "redlines-excerpt" in element.classes()][0].text()
+    excerpt = [
+        element for element in root.walk() if "redlines-excerpt" in element.classes()
+    ][0].text()
     assert excerpt == ("word " * 16).rstrip() + "…"
     unbroken = _tree(Block(kind=BlockKind.PARAGRAPH, text="x" * 100))
     root = fc.parse(compare(_tree(), unbroken).output_html())
-    excerpt = [element for element in root.walk() if "redlines-excerpt" in element.classes()][0].text()
+    excerpt = [
+        element for element in root.walk() if "redlines-excerpt" in element.classes()
+    ][0].text()
     assert excerpt == "x" * 80 + "…"
 
 
@@ -473,19 +598,33 @@ def test_no_changes_says_so_and_counts_none() -> None:
     comparison = fixture("four_kinds")
     same = compare(comparison.test, comparison.test)
     root = fc.check_change_list(same.output_html(), same)
-    assert [element.text() for element in root.walk() if "redlines-empty" in element.classes()] == ["No changes."]
+    assert [
+        element.text()
+        for element in root.walk()
+        if "redlines-empty" in element.classes()
+    ] == ["No changes."]
     assert "0 changes" in root.text()
     assert not any(element.get("data-kind") for element in _document(same))
 
 
 def test_one_change_is_singular_and_a_dropped_report_is_a_notice() -> None:
-    comparison = compare("7.1 The\x00 fee\x07 is due.", "7.1 The fee is due today.", format="text")
+    comparison = compare(
+        "7.1 The\x00 fee\x07 is due.", "7.1 The fee is due today.", format="text"
+    )
     root = fc.check_change_list(comparison.output_html(), comparison)
-    texts = [element.text() for element in root.walk() if element.get("data-count") == "total"]
+    texts = [
+        element.text()
+        for element in root.walk()
+        if element.get("data-count") == "total"
+    ]
     assert texts == ["1 change"]
-    (notice,) = [element for element in root.walk() if element.get("data-notice") == "dropped"]
+    (notice,) = [
+        element for element in root.walk() if element.get("data-notice") == "dropped"
+    ]
     assert notice.get("data-side") == "source"
-    assert notice.text().startswith("2 control_character dropped from the source: Control characters")
+    assert notice.text().startswith(
+        "2 control_character dropped from the source: Control characters"
+    )
 
 
 def test_an_exhausted_budget_is_a_notice() -> None:
@@ -496,9 +635,16 @@ def test_an_exhausted_budget_is_a_notice() -> None:
         alignment=AlignmentConfig(similarity="difflib", max_comparisons=0),
     )
     assert comparison.config.budget_exhausted
-    for fragment in (comparison.output_html(), comparison.output_annotated(syntax="html")):
+    for fragment in (
+        comparison.output_html(),
+        comparison.output_annotated(syntax="html"),
+    ):
         root = fc.parse(fragment)
-        notices = [element.get("data-notice") for element in root.walk() if element.get("data-notice")]
+        notices = [
+            element.get("data-notice")
+            for element in root.walk()
+            if element.get("data-notice")
+        ]
         assert notices == ["budget-exhausted"]
     check_both(comparison)
 
@@ -511,24 +657,39 @@ def test_a_filtered_change_list_lists_only_its_nodes_and_says_so() -> None:
     check_both(filtered)
     root = fc.parse(filtered.output_html())
     rows = fc.row_elements(root)
-    # Four modify nodes, less 9.2's cross-reference, whose "3.3." to "3.4." is 4 characters.
+    # Four modify nodes, less 9.2's cross-reference: "3.3." to "3.4." is 4 characters.
     assert len(rows) == len(filtered.changes) == 3
     assert [row.get("data-index") for row in rows] == ["0", "1", "2"]
-    assert "/section[1]/section[9]/list_item[2]" not in [row.get("data-address") for row in rows]
+    assert "/section[1]/section[9]/list_item[2]" not in [
+        row.get("data-address") for row in rows
+    ]
     assert {row.get("data-kind") for row in rows} == {"modify"}
-    (notice,) = [element for element in root.walk() if element.get("data-notice") == "filtered"]
+    (notice,) = [
+        element for element in root.walk() if element.get("data-notice") == "filtered"
+    ]
     assert notice.text() == "Filtered: kinds=modify; min_chars=5"
 
 
 def test_a_filtered_document_view_marks_only_its_own_nodes() -> None:
     full = fixture("four_kinds")
     filtered = full.filter(kinds=("modify",))
-    marked = [element.get("data-kind") for element in _document(filtered) if element.get("data-kind")]
+    marked = [
+        element.get("data-kind")
+        for element in _document(filtered)
+        if element.get("data-kind")
+    ]
     assert marked == ["modify"]
-    inserted = [element for element in _document(filtered) if "The Buyer may reject" in element.text()]
+    inserted = [
+        element
+        for element in _document(filtered)
+        if "The Buyer may reject" in element.text()
+    ]
     assert inserted and not inserted[0].get("data-kind")
     assert "<ins>" not in "".join(
-        str(child) for element in inserted for child in element.children if isinstance(child, str)
+        str(child)
+        for element in inserted
+        for child in element.children
+        if isinstance(child, str)
     )
 
 
@@ -543,7 +704,9 @@ def test_a_filter_with_no_constraint_writes_no_notice() -> None:
 
 def test_the_methods_are_the_renderers_with_the_schema_version() -> None:
     comparison = fixture("four_kinds")
-    assert comparison.output_html() == render_change_list(comparison, schema_version=SCHEMA_VERSION)
+    assert comparison.output_html() == render_change_list(
+        comparison, schema_version=SCHEMA_VERSION
+    )
     assert comparison.output_annotated(syntax="html") == render_document(
         comparison, schema_version=SCHEMA_VERSION, roles=True
     )
@@ -562,8 +725,10 @@ def test_no_syntax_never_means_html() -> None:
     for name in ("four_kinds", "sample_pair.txt"):
         rendered = fixture(name).output_annotated()
         assert not rendered.startswith("<section")
-        expected = "markdown" if name == "four_kinds" else "text"
-        assert rendered == fixture(name).output_annotated(syntax=expected)  # type: ignore[arg-type]
+        expected: Literal["markdown", "text"] = (
+            "markdown" if name == "four_kinds" else "text"
+        )
+        assert rendered == fixture(name).output_annotated(syntax=expected)
 
 
 def test_the_package_exports_the_version_and_the_stylesheet() -> None:
@@ -572,13 +737,18 @@ def test_the_package_exports_the_version_and_the_stylesheet() -> None:
     assert redlines.renderers.__all__ == ("FRAGMENT_VERSION", "STYLESHEET")
     assert FRAGMENT_VERSION == "1.0"
     for name in FIXTURES[:2]:
-        for fragment in (fixture(name).output_html(), fixture(name).output_annotated(syntax="html")):
+        for fragment in (
+            fixture(name).output_html(),
+            fixture(name).output_annotated(syntax="html"),
+        ):
             assert fragment.count(f"<style>{STYLESHEET}</style>") == 1
             assert f'data-redlines-fragment="{FRAGMENT_VERSION}"' in fragment
 
 
 def test_the_theme_table_is_the_adrs() -> None:
-    assert {name: standard or None for name, standard, _ in THEME} == fc.STANDARD_VARIABLES
+    assert {
+        name: standard or None for name, standard, _ in THEME
+    } == fc.STANDARD_VARIABLES
     assert fc.check_theme(STYLESHEET) == set(fc.STANDARD_VARIABLES)
     fc.check_scoped(STYLESHEET)
     assert "color-scheme" not in STYLESHEET and "@" not in STYLESHEET
@@ -625,7 +795,8 @@ from redlines.comparison import compare
 
 root = Path("tests/corpus/sample_pair")
 config = AlignmentConfig(similarity="difflib")
-for extension, fmt, profile in (("md", "markdown", "markdown"), ("txt", "text", "contract")):
+twins = (("md", "markdown", "markdown"), ("txt", "text", "contract"))
+for extension, fmt, profile in twins:
     comparison = compare(
         (root / f"source.{extension}").read_text(encoding="utf-8"),
         (root / f"test.{extension}").read_text(encoding="utf-8"),
@@ -636,8 +807,12 @@ for extension, fmt, profile in (("md", "markdown", "markdown"), ("txt", "text", 
         print(filtered.output_annotated(syntax="html"))
         print(filtered.output_annotated(syntax="html", roles=False))
 case = Path("tests/renderer_cases/hostile")
-hostile = compare((case / "source.md").read_text(encoding="utf-8"),
-                  (case / "test.md").read_text(encoding="utf-8"), format="markdown", alignment=config)
+hostile = compare(
+    (case / "source.md").read_text(encoding="utf-8"),
+    (case / "test.md").read_text(encoding="utf-8"),
+    format="markdown",
+    alignment=config,
+)
 print(hostile.output_html())
 print(hostile.output_annotated(syntax="html"))
 """

@@ -1,4 +1,4 @@
-r"""The checks F1 to F9 of ADR-0038 over an HTML fragment, with ``html.parser`` and ``re``.
+r"""ADR-0038's checks F1 to F9 on an HTML fragment, with ``html.parser`` and ``re``.
 
 `redlines.comparison.Comparison.output_html` and
 ``output_annotated(syntax="html")`` return fragments that the MCP App shell and
@@ -8,17 +8,33 @@ than from the renderer. Nothing here imports ``redlines.renderers``: the
 stylesheet table below is the ADR's, copied, so a renderer that drifts from it
 fails rather than taking its oracle along.
 
-| Check | What it holds |
-|---|---|
-| F1 | the fragment parses: one root, every start tag closed in order, no stray end tag, no text outside the root, no comment; the root is ``<section class="redlines">`` with its three ``data-redlines-*`` attributes |
-| F2 | contract items 2 and 3: the element and attribute allowlist, no ``on*``, ``style``, ``id`` or URL-bearing attribute, exactly one ``<style>`` as the root's first child, no ``@import`` or ``url(`` |
-| F3 | every colour, background, border and font declaration reads one ``var(--redlines-NAME, var(--STANDARD, OWN))`` (``transparent`` for ``bg``) and has nothing else but lengths and border styles; the names used are the thirteen; no custom property and no ``color-scheme`` is declared; no colour appears outside such a ``var()`` |
-| F4 | every selector starts with the ``.redlines`` class and none names ``:root``, ``html`` or ``body`` |
-| F5 | one row per change, in order, each with its attributes in the ADR's order and equal to its node's fields, and the row's shape |
-| F6 | filter parity: for every `redlines.filters.ChangeFilter` of a battery, the rows the attributes select are exactly the nodes `redlines.filters.filter_changes` keeps |
-| F7 | the text the browser shows equals the documents' text: each row's body, and each block of the document view, on its accept and reject sides; the hostile corpus runs through F1 to F4 as well |
-| F8 | the header: counts equal ``statistics().counts`` ("1 change", singular), the configuration and structure lines, and each notice exactly when its condition holds, in order |
-| F9 | determinism: two renders are byte-equal, and a comparison rebuilt with ``from_dict(to_dict(include_alignment=True))`` renders the same bytes |
+- **F1**, well formed: one root, every start tag closed in order, no stray
+  end tag, no text outside the root, no comment; the root is
+  ``<section class="redlines">`` with its three ``data-redlines-*``
+  attributes.
+- **F2**, contract items 2 and 3: the element and attribute allowlist; no
+  ``on*``, ``style``, ``id`` or URL-bearing attribute; exactly one
+  ``<style>``, the root's first child; no ``@import`` or ``url(``.
+- **F3**, theming: every colour, background, border and font declaration
+  reads one ``var(--redlines-NAME, var(--STANDARD, OWN))`` (``transparent``
+  for ``bg``), with nothing beside it but lengths and border styles; the
+  names used are the thirteen; no custom property and no ``color-scheme`` is
+  declared; no colour appears outside such a ``var()``.
+- **F4**, scoping: every selector starts with the ``.redlines`` class, and
+  none names ``:root``, ``html`` or ``body``.
+- **F5**, rows: one per change, in order, each with its attributes in the
+  ADR's order and equal to its node's fields, in the ADR's shape.
+- **F6**, filter parity: for every `redlines.filters.ChangeFilter` of a
+  battery, the rows the attributes select are exactly the nodes
+  `redlines.filters.filter_changes` keeps.
+- **F7**, text: what a browser shows equals the documents' text, each row's
+  body and each block of the document view, on its accept and reject sides;
+  the hostile corpus runs through F1 to F4 as well.
+- **F8**, header: the counts equal ``statistics().counts`` ("1 change",
+  singular), then the configuration and structure lines, and each notice
+  exactly when its condition holds, in order.
+- **F9**, determinism: two renders are byte-equal, and a comparison rebuilt
+  with ``from_dict(to_dict(include_alignment=True))`` renders the same bytes.
 
 Two readings of the ADR are this module's, and the checks state them exactly.
 F3 lists ``border*``; ``border-collapse`` and ``border-spacing`` lay a table out
@@ -80,15 +96,28 @@ class FragmentError(AssertionError):
 # --------------------------------------------------------------------------
 
 VOID_ELEMENTS: Final[frozenset[str]] = frozenset(
-    {"area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta",
-     "source", "track", "wbr"}
+    {
+        "area",
+        "base",
+        "br",
+        "col",
+        "embed",
+        "hr",
+        "img",
+        "input",
+        "link",
+        "meta",
+        "source",
+        "track",
+        "wbr",
+    }
 )
 """The HTML void elements, which have no end tag (F1). The allowlist has none."""
 
 
 @dataclass
 class Element:
-    """One element and its children, text nodes as strings, attributes in source order."""
+    """One element and its children, text as strings, attributes in source order."""
 
     tag: str
     attrs: list[tuple[str, str | None]]
@@ -96,7 +125,7 @@ class Element:
     children: list[Element | str] = field(default_factory=list)
 
     def get(self, name: str) -> str | None:
-        """The value of an attribute, ``None`` if it is absent; ``""`` for a bare one."""
+        """An attribute's value: ``None`` when absent, ``""`` for a bare one."""
         for key, value in self.attrs:
             if key == name:
                 return "" if value is None else value
@@ -161,7 +190,9 @@ class _TreeBuilder(HTMLParser):
         if self.stack:
             self.stack[-1].children.append(data)
         elif data.strip():
-            self.problems.append(f"text outside the root on line {self.getpos()[0]}: {data!r}")
+            self.problems.append(
+                f"text outside the root on line {self.getpos()[0]}: {data!r}"
+            )
 
     def handle_comment(self, data: str) -> None:
         self.problems.append(f"a comment on line {self.getpos()[0]}")
@@ -177,13 +208,15 @@ class _TreeBuilder(HTMLParser):
 
 
 def parse(fragment: str) -> Element:
-    """Parse a fragment into its one root element, or raise `FragmentError` (F1's parse)."""
+    """Parse a fragment into its one root element, or raise `FragmentError` (F1)."""
     builder = _TreeBuilder()
     builder.feed(fragment)
     builder.close()
     problems = list(builder.problems)
     if builder.stack:
-        problems.append("unclosed: " + ", ".join(element.where() for element in builder.stack))
+        problems.append(
+            "unclosed: " + ", ".join(element.where() for element in builder.stack)
+        )
     if len(builder.roots) != 1:
         problems.append(f"{len(builder.roots)} root elements, not one")
     if problems:
@@ -214,17 +247,27 @@ def check_well_formed(fragment: str, *, view: str | None = None) -> Element:
     if root.tag != "section":
         raise FragmentError(f"the root is {root.where()}, not a <section>")
     if root.names() != list(ROOT_ATTRIBUTES):
-        raise FragmentError(f"the root's attributes are {root.names()}, not {list(ROOT_ATTRIBUTES)}")
+        raise FragmentError(
+            f"the root's attributes are {root.names()}, not {list(ROOT_ATTRIBUTES)}"
+        )
     if root.get("class") != "redlines":
-        raise FragmentError(f"the root's class is {root.get('class')!r}, not 'redlines'")
+        raise FragmentError(
+            f"the root's class is {root.get('class')!r}, not 'redlines'"
+        )
     if root.get("data-redlines-view") not in ("changes", "document"):
         raise FragmentError(f"data-redlines-view is {root.get('data-redlines-view')!r}")
     if view is not None and root.get("data-redlines-view") != view:
-        raise FragmentError(f"data-redlines-view is {root.get('data-redlines-view')!r}, not {view!r}")
+        raise FragmentError(
+            f"data-redlines-view is {root.get('data-redlines-view')!r}, not {view!r}"
+        )
     if root.get("data-redlines-fragment") != FRAGMENT_VERSION:
-        raise FragmentError(f"data-redlines-fragment is {root.get('data-redlines-fragment')!r}")
+        raise FragmentError(
+            f"data-redlines-fragment is {root.get('data-redlines-fragment')!r}"
+        )
     if root.get("data-redlines-schema") != SCHEMA_VERSION:
-        raise FragmentError(f"data-redlines-schema is {root.get('data-redlines-schema')!r}")
+        raise FragmentError(
+            f"data-redlines-schema is {root.get('data-redlines-schema')!r}"
+        )
     if not fragment.startswith("<section ") or not fragment.endswith("</section>"):
         raise FragmentError("the fragment does not begin and end with its root")
     return root
@@ -235,12 +278,43 @@ def check_well_formed(fragment: str, *, view: str | None = None) -> Element:
 # --------------------------------------------------------------------------
 
 ALLOWED_ELEMENTS: Final[frozenset[str]] = frozenset(
-    {"section", "style", "header", "p", "span", "button", "ol", "li", "details",
-     "summary", "div", "code", "ins", "del", "table", "thead", "tbody", "tr", "th", "td"}
+    {
+        "section",
+        "style",
+        "header",
+        "p",
+        "span",
+        "button",
+        "ol",
+        "li",
+        "details",
+        "summary",
+        "div",
+        "code",
+        "ins",
+        "del",
+        "table",
+        "thead",
+        "tbody",
+        "tr",
+        "th",
+        "td",
+    }
 )
 FORBIDDEN_ELEMENTS: Final[frozenset[str]] = frozenset(
-    {"script", "link", "img", "iframe", "object", "embed", "base", "meta", "form",
-     "svg", "math"}
+    {
+        "script",
+        "link",
+        "img",
+        "iframe",
+        "object",
+        "embed",
+        "base",
+        "meta",
+        "form",
+        "svg",
+        "math",
+    }
 )
 ALLOWED_ATTRIBUTES: Final[frozenset[str]] = frozenset(
     {"class", "role", "aria-level", "hidden", "type"}
@@ -251,7 +325,7 @@ URL_ATTRIBUTES: Final[frozenset[str]] = frozenset(
 
 
 def check_self_contained(root: Element) -> str:
-    """F2: only allowed elements and attributes, one leading ``<style>``, no external reference.
+    """F2: allowed elements and attributes, one leading ``<style>``, no reference out.
 
     :return: the stylesheet the one ``<style>`` holds.
     """
@@ -272,8 +346,12 @@ def check_self_contained(root: Element) -> str:
                 raise FragmentError(f"an id on {element.where()}")
             if name in URL_ATTRIBUTES:
                 raise FragmentError(f"a URL-bearing {name!r} on {element.where()}")
-            if name not in ALLOWED_ATTRIBUTES and not re.fullmatch(r"data-[a-z0-9-]+", name):
-                raise FragmentError(f"an attribute outside the allowlist: {name!r} on {element.where()}")
+            if name not in ALLOWED_ATTRIBUTES and not re.fullmatch(
+                r"data-[a-z0-9-]+", name
+            ):
+                raise FragmentError(
+                    f"an attribute outside the allowlist: {name!r} on {element.where()}"
+                )
     styles = [element for element in root.walk() if element.tag == "style"]
     if len(styles) != 1:
         raise FragmentError(f"{len(styles)} <style> elements, not one")
@@ -294,13 +372,17 @@ def check_self_contained(root: Element) -> str:
 
 
 def check_hooks(root: Element) -> None:
-    """Contract item 8: one hidden fullscreen button with no handler, and rows as ``<details>``."""
+    """Contract item 8: one hidden fullscreen button, with no handler."""
     buttons = [element for element in root.walk() if element.tag == "button"]
     if len(buttons) != 1:
         raise FragmentError(f"{len(buttons)} buttons, not the one fullscreen hook")
     button = buttons[0]
-    expected = [("type", "button"), ("class", "redlines-fullscreen"),
-                ("data-redlines-action", "fullscreen"), ("hidden", None)]
+    expected = [
+        ("type", "button"),
+        ("class", "redlines-fullscreen"),
+        ("data-redlines-action", "fullscreen"),
+        ("hidden", None),
+    ]
     if button.attrs != expected:
         raise FragmentError(f"the fullscreen button is {button.attrs}, not {expected}")
 
@@ -333,8 +415,16 @@ COLOUR_NAMES: Final[frozenset[str]] = frozenset(
 FONT_NAMES: Final[frozenset[str]] = frozenset({"font", "mono"})
 
 THEMED_PROPERTIES: Final[frozenset[str]] = frozenset(
-    {"color", "background", "background-color", "outline", "fill", "stroke",
-     "box-shadow", "font-family"}
+    {
+        "color",
+        "background",
+        "background-color",
+        "outline",
+        "fill",
+        "stroke",
+        "box-shadow",
+        "font-family",
+    }
 )
 LAYOUT_BORDER_PROPERTIES: Final[frozenset[str]] = frozenset(
     {"border-collapse", "border-spacing"}
@@ -344,7 +434,8 @@ _LENGTH = r"(?:0|-?(?:\d+\.?\d*|\.\d+)(?:px|em|rem|%|ch|ex|vw|vh|pt))"
 _BORDER_STYLE = r"(?:none|hidden|solid|dashed|dotted|double|groove|ridge|inset|outset)"
 _EXTRA_TOKEN: Final[re.Pattern[str]] = re.compile(rf"{_LENGTH}|{_BORDER_STYLE}")
 _COLOUR_LITERAL: Final[re.Pattern[str]] = re.compile(
-    r"#[0-9a-fA-F]{3,8}(?![0-9a-zA-Z])|\b(?:rgba?|hsla?|hwb|lab|lch|oklab|oklch|color|light-dark)\("
+    r"#[0-9a-fA-F]{3,8}(?![0-9a-zA-Z])"
+    r"|\b(?:rgba?|hsla?|hwb|lab|lch|oklab|oklch|color|light-dark)\("
     r"|\b(?:black|white|red|green|blue|yellow|gray|grey|orange|purple|pink|brown)\b",
     re.IGNORECASE,
 )
@@ -382,7 +473,7 @@ def _split_top_level(text: str, separator: str) -> list[str]:
 
 
 def rules(css: str) -> list[Rule]:
-    """Parse a flat stylesheet: rules of ``selector{declarations}``, no at-rule, no nesting."""
+    """Parse a flat stylesheet of ``selector{declarations}`` rules, with no at-rule."""
     if "@" in css:
         raise FragmentError("the stylesheet has an at-rule; it is meant to be flat")
     if "/*" in css:
@@ -391,9 +482,13 @@ def rules(css: str) -> list[Rule]:
     position = 0
     for match in re.finditer(r"([^{}]+)\{([^{}]*)\}", css):
         if css[position : match.start()].strip():
-            raise FragmentError(f"unparsed stylesheet text: {css[position:match.start()]!r}")
+            raise FragmentError(
+                f"unparsed stylesheet text: {css[position:match.start()]!r}"
+            )
         position = match.end()
-        selectors = tuple(part.strip() for part in _split_top_level(match.group(1), ","))
+        selectors = tuple(
+            part.strip() for part in _split_top_level(match.group(1), ",")
+        )
         declarations: list[tuple[str, str]] = []
         for declaration in match.group(2).split(";"):
             if not declaration.strip():
@@ -419,7 +514,7 @@ class _Var:
 
 
 def _vars(value: str) -> list[_Var]:
-    """The top-level ``var(...)`` groups of a value, each with its name and its fallback."""
+    """The top-level ``var(...)`` groups of a value, with their names and fallbacks."""
     found: list[_Var] = []
     index = 0
     while True:
@@ -453,12 +548,16 @@ def _themed(name: str) -> bool:
 def _check_fallback(name: str, fallback: str | None, where: str) -> None:
     if name == "bg":
         if fallback != "transparent":
-            raise FragmentError(f"--redlines-bg falls back to {fallback!r}, not transparent ({where})")
+            raise FragmentError(
+                f"--redlines-bg falls back to {fallback!r}, not transparent ({where})"
+            )
         return
     standard = STANDARD_VARIABLES[name]
     inner = _vars(fallback or "")
     if len(inner) != 1 or inner[0].start != 0 or inner[0].end != len(fallback or ""):
-        raise FragmentError(f"--redlines-{name}'s fallback {fallback!r} is not one var() ({where})")
+        raise FragmentError(
+            f"--redlines-{name}'s fallback {fallback!r} is not one var() ({where})"
+        )
     if inner[0].name != standard:
         raise FragmentError(
             f"--redlines-{name} falls back to {inner[0].name}, not {standard} ({where})"
@@ -467,13 +566,17 @@ def _check_fallback(name: str, fallback: str | None, where: str) -> None:
     if not own or "var(" in own:
         raise FragmentError(f"{standard} has no fallback of its own ({where})")
     if name in COLOUR_NAMES and not re.fullmatch(r"light-dark\([^()]+,[^()]+\)", own):
-        raise FragmentError(f"{standard}'s own fallback {own!r} is not a light-dark() ({where})")
+        raise FragmentError(
+            f"{standard}'s own fallback {own!r} is not a light-dark() ({where})"
+        )
     if name == "radius" and not re.fullmatch(_LENGTH, own):
-        raise FragmentError(f"{standard}'s own fallback {own!r} is not a length ({where})")
+        raise FragmentError(
+            f"{standard}'s own fallback {own!r} is not a length ({where})"
+        )
 
 
 def check_theme(css: str) -> set[str]:
-    """F3: every theme declaration reads one ``var(--redlines-NAME, …)``, as ADR-0038's table says.
+    """F3: every theme declaration reads one ``var(--redlines-NAME, …)`` (ADR-0038).
 
     :return: the names used, which equal the thirteen.
     """
@@ -482,49 +585,76 @@ def check_theme(css: str) -> set[str]:
         where = ",".join(rule.selectors)
         for name, value in rule.declarations:
             if name.startswith("--"):
-                raise FragmentError(f"the stylesheet declares the custom property {name} ({where})")
+                raise FragmentError(
+                    f"the stylesheet declares the custom property {name} ({where})"
+                )
             if name == "color-scheme" or "color-scheme" in value:
                 raise FragmentError(f"the stylesheet declares color-scheme ({where})")
             groups = _vars(value)
-            themed_groups = [group for group in groups if group.name.startswith("--redlines-")]
+            themed_groups = [
+                group for group in groups if group.name.startswith("--redlines-")
+            ]
             if len(groups) != len(themed_groups):
-                raise FragmentError(f"{name} reads a variable that is not --redlines-* ({where})")
+                raise FragmentError(
+                    f"{name} reads a variable that is not --redlines-* ({where})"
+                )
             outside = value
             for group in reversed(groups):
                 outside = outside[: group.start] + " " + outside[group.end :]
             if _COLOUR_LITERAL.search(outside):
-                raise FragmentError(f"a colour outside var(--redlines-*): {name}:{value} ({where})")
+                raise FragmentError(
+                    f"a colour outside var(--redlines-*): {name}:{value} ({where})"
+                )
             if not _themed(name):
                 if groups:
-                    raise FragmentError(f"{name} is not a theme property but reads one ({where})")
+                    raise FragmentError(
+                        f"{name} is not a theme property but reads one ({where})"
+                    )
                 continue
             if len(groups) != 1:
-                raise FragmentError(f"{name}:{value} does not read exactly one var() ({where})")
+                raise FragmentError(
+                    f"{name}:{value} does not read exactly one var() ({where})"
+                )
             group = groups[0]
             theme_name = group.name.removeprefix("--redlines-")
             if theme_name not in STANDARD_VARIABLES:
-                raise FragmentError(f"--redlines-{theme_name} is not one of the thirteen ({where})")
+                raise FragmentError(
+                    f"--redlines-{theme_name} is not one of the thirteen ({where})"
+                )
             _check_fallback(theme_name, group.fallback, where)
             if name == "font-family" and theme_name not in FONT_NAMES:
-                raise FragmentError(f"font-family reads --redlines-{theme_name} ({where})")
+                raise FragmentError(
+                    f"font-family reads --redlines-{theme_name} ({where})"
+                )
             if name != "font-family" and theme_name in FONT_NAMES:
-                raise FragmentError(f"{name} reads the font --redlines-{theme_name} ({where})")
+                raise FragmentError(
+                    f"{name} reads the font --redlines-{theme_name} ({where})"
+                )
             for token in outside.split():
                 if not _EXTRA_TOKEN.fullmatch(token):
-                    raise FragmentError(f"{name}:{value} has {token!r} beside its var() ({where})")
+                    raise FragmentError(
+                        f"{name}:{value} has {token!r} beside its var() ({where})"
+                    )
             used.add(theme_name)
     if used != set(STANDARD_VARIABLES):
         missing = sorted(set(STANDARD_VARIABLES) - used)
-        raise FragmentError(f"the stylesheet does not use all thirteen names; missing {missing}")
+        raise FragmentError(
+            f"the stylesheet does not use all thirteen names; missing {missing}"
+        )
     return used
 
 
 _SCOPED: Final[re.Pattern[str]] = re.compile(r"\.redlines(?![\w-])")
-_GLOBAL: Final[re.Pattern[str]] = re.compile(r":root|(?<![\w.#-])(?:html|body)(?![\w-])")
+_GLOBAL: Final[re.Pattern[str]] = re.compile(
+    r":root|(?<![\w.#-])(?:html|body)(?![\w-])"
+)
 
 
 def check_scoped(css: str) -> None:
-    """F4: every selector starts with the ``.redlines`` class; none names ``:root``, ``html`` or ``body``."""
+    """F4: every selector starts with the ``.redlines`` class.
+
+    None names ``:root``, ``html`` or ``body``.
+    """
     for rule in rules(css):
         for selector in rule.selectors:
             if not _SCOPED.match(selector):
@@ -567,7 +697,9 @@ def row_elements(root: Element) -> list[Element]:
     ]
 
 
-def _expected_row_attributes(index: int, change: Change) -> list[tuple[str, str | None]]:
+def _expected_row_attributes(
+    index: int, change: Change
+) -> list[tuple[str, str | None]]:
     values: list[tuple[str, str | None]] = [
         ("class", "redlines-change"),
         ("data-index", str(index)),
@@ -616,7 +748,7 @@ def _excerpt(text: str) -> str:
 
 
 def check_rows(root: Element, comparison: Comparison) -> list[Element]:
-    """F5: one row per change, in order, attributes in order and equal to the node's fields.
+    """F5: one row per change, in order, its attributes in order and its node's.
 
     :return: the rows.
     """
@@ -625,11 +757,17 @@ def check_rows(root: Element, comparison: Comparison) -> list[Element]:
     if len(rows) != len(changes):
         raise FragmentError(f"{len(rows)} rows for {len(changes)} changes")
     lists = [element for element in root.walk() if element.tag == "ol"]
-    empty = [element for element in root.walk() if "redlines-empty" in element.classes()]
+    empty = [
+        element for element in root.walk() if "redlines-empty" in element.classes()
+    ]
     if changes and (len(lists) != 1 or empty):
-        raise FragmentError("a change list with changes has one <ol> and no 'No changes.'")
+        raise FragmentError(
+            "a change list with changes has one <ol> and no 'No changes.'"
+        )
     if not changes and (lists or len(empty) != 1 or empty[0].text() != "No changes."):
-        raise FragmentError("a change list with no changes says 'No changes.' instead of a list")
+        raise FragmentError(
+            "a change list with no changes says 'No changes.' instead of a list"
+        )
     for index, (row, change) in enumerate(zip(rows, changes)):
         where = f"row {index}"
         names = row.names()
@@ -648,11 +786,17 @@ def check_rows(root: Element, comparison: Comparison) -> list[Element]:
         if (row.get("data-test-address") is None) != (kind == "delete"):
             raise FragmentError(f"{where}: data-test-address against kind {kind}")
         if row.get("data-matched-by") not in (*PASS_NAMES, UNMATCHED):
-            raise FragmentError(f"{where}: data-matched-by {row.get('data-matched-by')!r}")
+            raise FragmentError(
+                f"{where}: data-matched-by {row.get('data-matched-by')!r}"
+            )
         if row.get("data-confidence") != repr(round(change.confidence, 4)):
-            raise FragmentError(f"{where}: data-confidence {row.get('data-confidence')!r}")
+            raise FragmentError(
+                f"{where}: data-confidence {row.get('data-confidence')!r}"
+            )
         if row.get("data-has-inline") not in ("true", "false"):
-            raise FragmentError(f"{where}: data-has-inline {row.get('data-has-inline')!r}")
+            raise FragmentError(
+                f"{where}: data-has-inline {row.get('data-has-inline')!r}"
+            )
         _check_row_shape(row, change, where)
     return rows
 
@@ -671,12 +815,19 @@ def _check_row_shape(row: Element, change: Change, where: str) -> None:
         raise FragmentError(f"{where}: the body is {body.attrs}")
     if any(isinstance(child, str) for child in summary.children):
         raise FragmentError(f"{where}: whitespace or text between the summary's spans")
-    classes = [element.classes()[0] if element.classes() else "" for element in summary.elements()]
+    classes = [
+        element.classes()[0] if element.classes() else ""
+        for element in summary.elements()
+    ]
     if classes != _summary_classes(change):
-        raise FragmentError(f"{where}: summary spans {classes}, not {_summary_classes(change)}")
+        raise FragmentError(
+            f"{where}: summary spans {classes}, not {_summary_classes(change)}"
+        )
     spans = dict(zip(classes, summary.elements()))
     if spans["redlines-kind"].text() != change.kind.value:
-        raise FragmentError(f"{where}: the kind reads {spans['redlines-kind'].text()!r}")
+        raise FragmentError(
+            f"{where}: the kind reads {spans['redlines-kind'].text()!r}"
+        )
     if spans["redlines-address"].tag != "code":
         raise FragmentError(f"{where}: the address is not a <code>")
     address = (
@@ -685,17 +836,29 @@ def _check_row_shape(row: Element, change: Change, where: str) -> None:
         else change.test_address or change.source_address
     )
     if spans["redlines-address"].text() != address:
-        raise FragmentError(f"{where}: the address reads {spans['redlines-address'].text()!r}")
+        raise FragmentError(
+            f"{where}: the address reads {spans['redlines-address'].text()!r}"
+        )
     match = f"{change.matched_by} {repr(round(change.confidence, 4))}"
     if spans["redlines-match"].text() != match:
-        raise FragmentError(f"{where}: the match reads {spans['redlines-match'].text()!r}")
-    if change.breadcrumb and spans["redlines-breadcrumb"].text() != " › ".join(change.breadcrumb):
-        raise FragmentError(f"{where}: the breadcrumb reads {spans['redlines-breadcrumb'].text()!r}")
+        raise FragmentError(
+            f"{where}: the match reads {spans['redlines-match'].text()!r}"
+        )
+    if change.breadcrumb and spans["redlines-breadcrumb"].text() != " › ".join(
+        change.breadcrumb
+    ):
+        raise FragmentError(
+            f"{where}: the breadcrumb reads {spans['redlines-breadcrumb'].text()!r}"
+        )
     if change.role and spans["redlines-role"].text() != change.role:
-        raise FragmentError(f"{where}: the role reads {spans['redlines-role'].text()!r}")
+        raise FragmentError(
+            f"{where}: the role reads {spans['redlines-role'].text()!r}"
+        )
     own = change.source_text if change.kind is ChangeKind.DELETE else change.test_text
     if own and spans["redlines-excerpt"].text() != _excerpt(own):
-        raise FragmentError(f"{where}: the excerpt reads {spans['redlines-excerpt'].text()!r}")
+        raise FragmentError(
+            f"{where}: the excerpt reads {spans['redlines-excerpt'].text()!r}"
+        )
 
 
 # --------------------------------------------------------------------------
@@ -704,7 +867,10 @@ def _check_row_shape(row: Element, change: Change, where: str) -> None:
 
 
 def _prefix_matches(address: str | None, prefix: str) -> bool:
-    """Segment-aligned, as ADR-0033 defines it: equal, or under ``prefix + "/"``; ``/`` is everything."""
+    """Whether ``address`` is ``prefix`` or under it, segment-aligned (ADR-0033).
+
+    ``/`` matches every address, and ``None`` none.
+    """
     if address is None:
         return False
     if prefix == "/":
@@ -713,7 +879,7 @@ def _prefix_matches(address: str | None, prefix: str) -> bool:
 
 
 def select_rows(rows: Sequence[Element], spec: ChangeFilter) -> list[int]:
-    """The ``data-index`` of every row a filter keeps, read from the attributes alone."""
+    """The ``data-index`` of every row a filter keeps, from the attributes alone."""
     kinds = {kind.value for kind in spec.kinds}
     selected: list[int] = []
     for row in rows:
@@ -743,7 +909,7 @@ def select_rows(rows: Sequence[Element], spec: ChangeFilter) -> list[int]:
 
 
 def filter_battery(comparison: Comparison) -> list[ChangeFilter]:
-    """Filters over every field and some combinations, built from the comparison's own values."""
+    """Filters on every field and some combinations, from the comparison's values."""
     changes = list(comparison.changes)
     battery: list[ChangeFilter] = [ChangeFilter()]
     battery.extend(ChangeFilter(kinds=(ChangeKind(kind),)) for kind in CHANGE_KINDS)
@@ -752,10 +918,21 @@ def filter_battery(comparison: Comparison) -> list[ChangeFilter]:
     battery.extend(ChangeFilter(roles=(role,)) for role in roles)
     battery.append(ChangeFilter(roles=("no-such-role",)))
     labels = sorted(
-        {label for change in changes for label in (change.source_label, change.test_label) if label}
+        {
+            label
+            for change in changes
+            for label in (change.source_label, change.test_label)
+            if label
+        }
     )
     battery.extend(ChangeFilter(labels=(label,)) for label in labels[:8])
-    prefixes: set[str] = {"/", "/section[1]", "/section[1]/", "/section[1", "/no-such[1]"}
+    prefixes: set[str] = {
+        "/",
+        "/section[1]",
+        "/section[1]/",
+        "/section[1",
+        "/no-such[1]",
+    }
     for change in changes:
         for address in (change.source_address, change.test_address):
             if address:
@@ -763,12 +940,20 @@ def filter_battery(comparison: Comparison) -> list[ChangeFilter]:
                 prefixes.add("/".join(segments[:2]))
                 prefixes.add("/".join(segments[:-1]) or "/")
                 prefixes.add(address)
-    battery.extend(ChangeFilter(address_prefixes=(prefix,)) for prefix in sorted(prefixes))
-    battery.extend(ChangeFilter(min_chars=chars) for chars in (1, 2, 5, 10, 20, 50, 100, 10_000))
+    battery.extend(
+        ChangeFilter(address_prefixes=(prefix,)) for prefix in sorted(prefixes)
+    )
+    battery.extend(
+        ChangeFilter(min_chars=chars) for chars in (1, 2, 5, 10, 20, 50, 100, 10_000)
+    )
     battery.extend(ChangeFilter(has_inline=value) for value in (True, False))
     battery.append(ChangeFilter(kinds=(ChangeKind.MODIFY,), min_chars=5))
     battery.append(ChangeFilter(address_prefixes=("/section[1]",), has_inline=False))
-    battery.append(ChangeFilter(roles=tuple(roles[:2]), kinds=(ChangeKind.INSERT, ChangeKind.MODIFY)))
+    battery.append(
+        ChangeFilter(
+            roles=tuple(roles[:2]), kinds=(ChangeKind.INSERT, ChangeKind.MODIFY)
+        )
+    )
     battery.append(ChangeFilter(labels=tuple(labels[:3]), has_inline=True))
     return battery
 
@@ -776,7 +961,7 @@ def filter_battery(comparison: Comparison) -> list[ChangeFilter]:
 def check_filter_parity(
     root: Element, comparison: Comparison, specs: Iterable[ChangeFilter] | None = None
 ) -> int:
-    """F6: for each filter, the rows the attributes select are the nodes ``filter_changes`` keeps.
+    """F6: per filter, the rows the attributes select are those filter_changes keeps.
 
     :return: how many filters were checked.
     """
@@ -785,10 +970,16 @@ def check_filter_parity(
     checked = 0
     for spec in filter_battery(comparison) if specs is None else specs:
         kept = list(filter_changes(comparison.changes, spec))
-        expected = [index for index, change in enumerate(changes) if any(change is k for k in kept)]
+        expected = [
+            index
+            for index, change in enumerate(changes)
+            if any(change is k for k in kept)
+        ]
         actual = select_rows(rows, spec)
         if actual != expected:
-            raise FragmentError(f"filter parity fails for {spec}: rows {actual}, nodes {expected}")
+            raise FragmentError(
+                f"filter parity fails for {spec}: rows {actual}, nodes {expected}"
+            )
         checked += 1
     return checked
 
@@ -834,13 +1025,21 @@ def _side_text(element: Element, side: str, *, skip: frozenset[str]) -> str:
 
 
 def _followed_by_nothing(parent: Element, child: Element) -> bool:
-    """Whether ``child`` is the last thing in ``parent``, so the space before it is its own."""
+    """Whether ``child`` ends ``parent``, so the space before it is its own."""
     index = next(i for i, node in enumerate(parent.children) if node is child)
-    return all(isinstance(node, str) and not node for node in parent.children[index + 1 :])
+    return all(
+        isinstance(node, str) and not node for node in parent.children[index + 1 :]
+    )
 
 
 _TEXT_BEARING: Final[frozenset[BlockKind]] = frozenset(
-    {BlockKind.HEADING, BlockKind.PARAGRAPH, BlockKind.LIST_ITEM, BlockKind.CELL, BlockKind.UNKNOWN}
+    {
+        BlockKind.HEADING,
+        BlockKind.PARAGRAPH,
+        BlockKind.LIST_ITEM,
+        BlockKind.CELL,
+        BlockKind.UNKNOWN,
+    }
 )
 
 
@@ -849,7 +1048,7 @@ def _blocks(tree: BlockTree) -> dict[str, Block]:
 
 
 def subtree_lines(comparison: Comparison, change: Change) -> list[str]:
-    """What an insert's or a delete's body should read, from the trees and the alignment.
+    """What an insert's or a delete's body reads, from the trees and the alignment.
 
     One line per text-bearing block with a label or text, a row as its
     cells' texts joined by `` | ``, and a block that is matched (it moved in
@@ -916,20 +1115,25 @@ def check_row_texts(root: Element, comparison: Comparison) -> None:
             read = _side_text(marks[0], side, skip=labels).split("\n")
             if read != subtree_lines(comparison, change):
                 raise FragmentError(
-                    f"{where}: the body reads {read!r}, not {subtree_lines(comparison, change)!r}"
+                    f"{where}: the body reads {read!r}, "
+                    f"not {subtree_lines(comparison, change)!r}"
                 )
             continue
         accepted = _side_text(body, "accept", skip=labels)
         if accepted != change.test_text:
-            raise FragmentError(f"{where}: accept reads {accepted!r}, not {change.test_text!r}")
+            raise FragmentError(
+                f"{where}: accept reads {accepted!r}, not {change.test_text!r}"
+            )
         if change.inline:
             rejected = _side_text(body, "reject", skip=labels)
             if _loose(rejected) != _loose(change.source_text):
-                raise FragmentError(f"{where}: reject reads {rejected!r}, not {change.source_text!r}")
+                raise FragmentError(
+                    f"{where}: reject reads {rejected!r}, not {change.source_text!r}"
+                )
 
 
 def check_block_texts(root: Element, comparison: Comparison) -> None:
-    """F7 for the document view: each block reads its block's text, and each table its cells.
+    """F7 for the document view: blocks read their blocks' texts, tables their cells.
 
     A block in the test document reads its test text on the accept side; a
     deleted one reads its source text on the reject side; role spans, label
@@ -939,7 +1143,9 @@ def check_block_texts(root: Element, comparison: Comparison) -> None:
     """
     test, source = _blocks(comparison.test), _blocks(comparison.source)
     skip = frozenset({"redlines-role", "redlines-label", "redlines-note"})
-    document = [element for element in root.walk() if "redlines-document" in element.classes()]
+    document = [
+        element for element in root.walk() if "redlines-document" in element.classes()
+    ]
     if len(document) != 1:
         raise FragmentError("the document view has no single redlines-document")
     for element in document[0].elements():
@@ -951,7 +1157,9 @@ def check_block_texts(root: Element, comparison: Comparison) -> None:
         test_address = element.get("data-test-address")
         source_address = element.get("data-source-address")
         if element.tag == "table":
-            _check_table_text(element, test, source, test_address, source_address, where)
+            _check_table_text(
+                element, test, source, test_address, source_address, where
+            )
             continue
         if element.tag != "p" or "redlines-block" not in element.classes():
             raise FragmentError(f"{where}: not a block, a table or a note")
@@ -960,7 +1168,9 @@ def check_block_texts(root: Element, comparison: Comparison) -> None:
             read = _side_text(element, "accept", skip=skip)
         else:
             if element.get("data-kind") != "delete" or source_address is None:
-                raise FragmentError(f"{where}: a block with no test address is not a ghost")
+                raise FragmentError(
+                    f"{where}: a block with no test address is not a ghost"
+                )
             block = source[source_address]
             read = _side_text(element, "reject", skip=skip)
         if read != block.text:
@@ -968,16 +1178,19 @@ def check_block_texts(root: Element, comparison: Comparison) -> None:
         heading = element.get("role") == "heading"
         if heading != (block.kind is BlockKind.HEADING):
             raise FragmentError(f"{where}: role=heading on a {block.kind.value}")
-        if heading and element.get("aria-level") not in {str(level) for level in range(1, 7)}:
+        if heading and element.get("aria-level") not in {
+            str(level) for level in range(1, 7)
+        }:
             raise FragmentError(f"{where}: aria-level {element.get('aria-level')!r}")
 
 
 def _cells(row: Element, side: str) -> list[str] | None:
-    """A row's cell texts on one side, or ``None`` when every cell is a deleted (or inserted) one."""
+    """A row's cell texts on one side, or ``None`` when the side drops every cell."""
     dropped = "del" if side == "accept" else "ins"
     cells = row.elements()
     if all(
-        cell.elements() and all(mark.tag == dropped for mark in cell.elements())
+        cell.elements()
+        and all(mark.tag == dropped for mark in cell.elements())
         and not any(isinstance(child, str) and child for child in cell.children)
         for cell in cells
     ):
@@ -1038,10 +1251,10 @@ def _filter_fields(spec: ChangeFilter) -> list[str]:
 
 
 def check_header(root: Element, comparison: Comparison) -> None:
-    """F8: the counts, the configuration and structure lines, and the notices, in order."""
+    """F8: the counts, configuration and structure lines, and notices, in order."""
     headers = [element for element in root.walk() if element.tag == "header"]
     if len(headers) != 1 or headers[0].attrs != [("class", "redlines-header")]:
-        raise FragmentError("not one <header class=\"redlines-header\">")
+        raise FragmentError('not one <header class="redlines-header">')
     header = headers[0]
     parts = header.elements()
     statistics = comparison.statistics()
@@ -1053,7 +1266,8 @@ def check_header(root: Element, comparison: Comparison) -> None:
     spans = count_line.elements()
     keys = [span.get("data-count") for span in spans]
     if count_line.attrs != [("class", "redlines-counts")] or keys != [
-        "total", *(key for key, _, _ in _COUNT_KEYS)
+        "total",
+        *(key for key, _, _ in _COUNT_KEYS),
     ]:
         raise FragmentError(f"the counts line has {keys}")
     total = "1 change" if counts.total == 1 else f"{counts.total} changes"
@@ -1061,18 +1275,29 @@ def check_header(root: Element, comparison: Comparison) -> None:
         f"{getattr(counts, attribute)} {word}" for _, attribute, word in _COUNT_KEYS
     ]
     if [span.text() for span in spans] != expected:
-        raise FragmentError(f"the counts read {[span.text() for span in spans]}, not {expected}")
+        raise FragmentError(
+            f"the counts read {[span.text() for span in spans]}, not {expected}"
+        )
     config = comparison.config
     configured = (
-        f"{config.test_format} · profile {config.profile or 'none'} · similarity {config.similarity}"
+        f"{config.test_format} · profile {config.profile or 'none'}"
+        f" · similarity {config.similarity}"
     )
-    if config_line.attrs != [("class", "redlines-config")] or config_line.text() != configured:
+    if (
+        config_line.attrs != [("class", "redlines-config")]
+        or config_line.text() != configured
+    ):
         raise FragmentError(f"the configuration line reads {config_line.text()!r}")
     structure = (
-        f"{comparison.source.fallback_count} of {statistics.source_blocks} source blocks and "
-        f"{comparison.test.fallback_count} of {statistics.test_blocks} test blocks matched no rule"
+        f"{comparison.source.fallback_count} of {statistics.source_blocks}"
+        " source blocks and "
+        f"{comparison.test.fallback_count} of {statistics.test_blocks}"
+        " test blocks matched no rule"
     )
-    if structure_line.attrs != [("class", "redlines-structure")] or structure_line.text() != structure:
+    if (
+        structure_line.attrs != [("class", "redlines-structure")]
+        or structure_line.text() != structure
+    ):
         raise FragmentError(f"the structure line reads {structure_line.text()!r}")
     wanted: list[tuple[list[tuple[str, str | None]], str]] = []
     if config.filter is not None and _filter_fields(config.filter):
@@ -1093,8 +1318,13 @@ def check_header(root: Element, comparison: Comparison) -> None:
         for dropped in tree.dropped:
             wanted.append(
                 (
-                    [("class", "redlines-notice"), ("data-notice", "dropped"), ("data-side", side)],
-                    f"{dropped.count} {dropped.kind} dropped from the {side}: {dropped.reason}",
+                    [
+                        ("class", "redlines-notice"),
+                        ("data-notice", "dropped"),
+                        ("data-side", side),
+                    ],
+                    f"{dropped.count} {dropped.kind} dropped from the {side}: "
+                    f"{dropped.reason}",
                 )
             )
     found = [(notice.attrs, notice.text()) for notice in notices]
@@ -1107,8 +1337,10 @@ def check_header(root: Element, comparison: Comparison) -> None:
 # --------------------------------------------------------------------------
 
 
-def check_deterministic(render: Callable[[Comparison], str], comparison: Comparison) -> str:
-    """F9: two renders are byte-equal, and so is a render of the comparison rebuilt from its JSON.
+def check_deterministic(
+    render: Callable[[Comparison], str], comparison: Comparison
+) -> str:
+    """F9: two renders are byte-equal, and so is one of the comparison from its JSON.
 
     :return: the rendering.
     """
@@ -1117,7 +1349,9 @@ def check_deterministic(render: Callable[[Comparison], str], comparison: Compari
         raise FragmentError("two renders of one comparison differ")
     rebuilt = Comparison.from_dict(comparison.to_dict(include_alignment=True))
     if render(rebuilt) != first:
-        raise FragmentError("the comparison rebuilt with from_dict renders different bytes")
+        raise FragmentError(
+            "the comparison rebuilt with from_dict renders different bytes"
+        )
     return first
 
 
@@ -1142,7 +1376,9 @@ def check_change_list(fragment: str, comparison: Comparison) -> Element:
     return root
 
 
-def check_document(fragment: str, comparison: Comparison, *, roles: bool = True) -> Element:
+def check_document(
+    fragment: str, comparison: Comparison, *, roles: bool = True
+) -> Element:
     """F1 to F4, F7 and F8 on a document view fragment, and its block rules.
 
     :return: the root element.
@@ -1154,6 +1390,8 @@ def check_document(fragment: str, comparison: Comparison, *, roles: bool = True)
     check_scoped(css)
     check_header(root, comparison)
     check_block_texts(root, comparison)
-    if not roles and any("redlines-role" in element.classes() for element in root.walk()):
+    if not roles and any(
+        "redlines-role" in element.classes() for element in root.walk()
+    ):
         raise FragmentError("roles=False and a role span")
     return root

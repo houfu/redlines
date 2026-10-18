@@ -80,7 +80,13 @@ from .readers import DEFAULT_MAX_CHARS
 from .readers.detect import detect_format
 from .renderers._html import render_change_list, render_document
 from .renderers._inplace import render_inplace
-from .renderers._marks import CRITIC, DEFAULT_DEL_CLASS, DEFAULT_INS_CLASS, LEGACY, custom_css
+from .renderers._marks import (
+    CRITIC,
+    DEFAULT_DEL_CLASS,
+    DEFAULT_INS_CLASS,
+    LEGACY,
+    custom_css,
+)
 from .renderers._rich import render_rich
 from .statistics import ComparisonStatistics, statistics as _statistics
 

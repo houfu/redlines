@@ -5,12 +5,17 @@ r"""The two HTML fragments: the change list and the document view (ADR-0038).
 producers of change HTML in the project: the MCP App shell (M5) and the
 documentation site (M6) inject these strings and never render change data.
 
-**The change list** is one row per change node, in change-list order::
+**The change list** is one row per change node, in change-list order (shown
+wrapped here; a row has no whitespace inside it, and rows are joined by a
+newline)::
 
-    <section class="redlines" data-redlines-view="changes" data-redlines-fragment="1.0" data-redlines-schema="2.0">
+    <section class="redlines" data-redlines-view="changes"
+        data-redlines-fragment="1.0" data-redlines-schema="2.0">
     <style>STYLESHEET</style>
     <header class="redlines-header">…</header>
-    <ol class="redlines-changes"><li class="redlines-change" ATTRS><details><summary>…</summary><div class="redlines-inline">BODY</div></details></li>
+    <ol class="redlines-changes"><li class="redlines-change" ATTRS><details>
+        <summary>SUMMARY</summary><div class="redlines-inline">BODY</div>
+    </details></li>
     …</ol>
     </section>
 
@@ -164,7 +169,7 @@ _THEME: Final[dict[str, tuple[str, str]]] = {
 
 
 def _var(name: str) -> str:
-    """``var(--redlines-NAME,var(--standard,OWN))``, or straight to ``OWN`` for ``bg``."""
+    """``var(--redlines-NAME,var(--standard,OWN))``; ``bg`` goes straight to ``OWN``."""
     standard, own = _THEME[name]
     fallback = f"var({standard},{own})" if standard else own
     return f"var(--redlines-{name},{fallback})"
@@ -194,8 +199,9 @@ _RULES: Final[tuple[tuple[str, str], ...]] = (
         "display:flex;flex-wrap:wrap;gap:.25em 1em;font-weight:600",
     ),
     (
-        ".redlines .redlines-config,.redlines .redlines-structure,.redlines .redlines-empty,"
-        ".redlines .redlines-breadcrumb,.redlines .redlines-address,.redlines .redlines-match,"
+        ".redlines .redlines-config,.redlines .redlines-structure,"
+        ".redlines .redlines-empty,.redlines .redlines-breadcrumb,"
+        ".redlines .redlines-address,.redlines .redlines-match,"
         ".redlines .redlines-role",
         f"color:{_MUTED};font-size:.875em",
     ),
@@ -228,8 +234,9 @@ _RULES: Final[tuple[tuple[str, str], ...]] = (
     ),
     (".redlines .redlines-block,.redlines .redlines-inline", "white-space:pre-wrap"),
     (
-        ".redlines .redlines-block,.redlines .redlines-excerpt,.redlines .redlines-inline,"
-        ".redlines .redlines-label,.redlines .redlines-breadcrumb,.redlines .redlines-role,"
+        ".redlines .redlines-block,.redlines .redlines-excerpt,"
+        ".redlines .redlines-inline,.redlines .redlines-label,"
+        ".redlines .redlines-breadcrumb,.redlines .redlines-role,"
         ".redlines .redlines-note",
         "unicode-bidi:isolate",
     ),
@@ -307,7 +314,7 @@ _CELL_JOINER: Final[str] = " | "
 
 
 def _attributes(pairs: Sequence[tuple[str, str | None]]) -> str:
-    """`` name="value"`` for each pair, in order; a ``None`` or empty value is left out."""
+    """`` name="value"`` for each pair, in order, but a ``None`` or empty value."""
     return "".join(f' {name}="{html_attr(value)}"' for name, value in pairs if value)
 
 
@@ -341,12 +348,14 @@ def _header(comparison: Comparison) -> list[str]:
         f'<span data-count="renumber">{counts.renumbered} renumbered</span>'
         "</p>",
         '<p class="redlines-config">'
-        f"{html_text(config.test_format)} · profile {html_text(config.profile or 'none')}"
+        f"{html_text(config.test_format)}"
+        f" · profile {html_text(config.profile or 'none')}"
         f" · similarity {html_text(config.similarity)}</p>",
         '<p class="redlines-structure">'
-        f"{comparison.source.fallback_count} of {statistics.source_blocks} source blocks and "
-        f"{comparison.test.fallback_count} of {statistics.test_blocks} test blocks "
-        "matched no rule</p>",
+        f"{comparison.source.fallback_count} of {statistics.source_blocks}"
+        " source blocks and "
+        f"{comparison.test.fallback_count} of {statistics.test_blocks}"
+        " test blocks matched no rule</p>",
     ]
     lines.extend(_notices(comparison))
     lines.append(_BUTTON)
@@ -355,7 +364,7 @@ def _header(comparison: Comparison) -> list[str]:
 
 
 def _notices(comparison: Comparison) -> list[str]:
-    """The notices, each only when it is true: filtered, budget, then each ``Dropped``."""
+    """The notices, each only when true: filtered, budget, then each ``Dropped``."""
     notices: list[str] = []
     config = comparison.config
     if config.filter is not None:
@@ -389,14 +398,14 @@ def _label_span(inner: str) -> str:
 
 
 def _relabel(old: str, new: str) -> str:
-    """A changed label: ``<span class="redlines-label"><del>OLD</del><ins>NEW</ins></span>``."""
+    """A changed label, ``<del>OLD</del><ins>NEW</ins>`` in a label span."""
     deleted = f"<del>{html_text(old)}</del>" if old else ""
     inserted = f"<ins>{html_text(new)}</ins>" if new else ""
     return _label_span(deleted + inserted)
 
 
 def _spell(pieces: Sequence[Piece]) -> str:
-    """Spell pieces with the `redlines.renderers._marks.HTML` set: the shared escape and marks."""
+    """Spell pieces with the `redlines.renderers._marks.HTML` escape and marks."""
     return serialize([Chunk(tuple(pieces))], HTML, roles=False)
 
 
@@ -444,7 +453,7 @@ def _keeps(change: Change) -> Callable[[ViewNode], bool]:
 
 
 def _subtree_lines(node: ViewNode, keep: Callable[[ViewNode], bool]) -> list[_Line]:
-    """One line per text-bearing block of a subtree, in pre-order; a row is its cells joined."""
+    """One line per text-bearing block of a subtree, in pre-order; a row, its cells."""
     lines: list[_Line] = []
     stack: list[ViewNode] = [node]
     while stack:
@@ -463,7 +472,11 @@ def _subtree_lines(node: ViewNode, keep: Callable[[ViewNode], bool]) -> list[_Li
 
 
 def _excerpt(text: str) -> str:
-    """Whitespace collapsed; past 80 characters, cut at the last space at or before the 80th, then ``…``."""
+    """Whitespace collapsed, and past 80 characters cut at a space, then ``…``.
+
+    The cut is at the last space at or before the 80th character, or at the
+    80th character when there is none.
+    """
     collapsed = " ".join(text.split())
     if len(collapsed) <= _EXCERPT_LENGTH:
         return collapsed
@@ -515,7 +528,11 @@ def _row_attributes(index: int, change: Change) -> str:
 
 
 def _summary_label(change: Change) -> str:
-    """``OLD → NEW`` for a move or a renumber whose labels differ; else the test label, the source label on a delete."""
+    """The summary's label: ``OLD → NEW``, or the one label the node has.
+
+    ``OLD → NEW`` for a move or a renumber whose labels differ; otherwise the
+    test label, or the source label on a delete.
+    """
     source, test = change.source_label or "", change.test_label or ""
     if change.kind in (ChangeKind.MOVE, ChangeKind.RENUMBER) and source != test:
         return f"{source}{_ARROW}{test}".strip()
@@ -534,7 +551,9 @@ def _summary(change: Change, node: ViewNode) -> str:
     parts.append(f'<span class="redlines-excerpt">{html_text(_excerpt(text))}</span>')
     if change.breadcrumb:
         breadcrumb = _BREADCRUMB_JOINER.join(change.breadcrumb)
-        parts.append(f'<span class="redlines-breadcrumb">{html_text(breadcrumb)}</span>')
+        parts.append(
+            f'<span class="redlines-breadcrumb">{html_text(breadcrumb)}</span>'
+        )
     if change.role:
         parts.append(f'<span class="redlines-role">{html_text(change.role)}</span>')
     if change.kind is ChangeKind.MOVE:
@@ -656,9 +675,11 @@ class _Document:
         }
 
     def elements(self) -> list[str]:
-        """One element per chunk of the layout, in its order; the header notices left out."""
+        """One element per chunk of the layout, in order, but the header notices."""
         elements: list[str] = []
-        chunks = layout(self.comparison, HTML, syntax="text", roles=self.roles, view=self.view)
+        chunks = layout(
+            self.comparison, HTML, syntax="text", roles=self.roles, view=self.view
+        )
         for chunk in chunks:
             block, status = chunk.block, chunk.status
             if block is None or status is None:
@@ -695,12 +716,15 @@ class _Document:
         )
 
     def _tombstone(self, chunk: Chunk, block: Block) -> str:
-        """A move's origin, with the layout's own note: ``SRC_LABEL moved to TEST_LABEL TEST_ADDRESS``."""
+        """A move's origin, with the layout's own note.
+
+        The note reads ``SRC_LABEL moved to TEST_LABEL TEST_ADDRESS``.
+        """
         change = self.moves[block.path]
         return _note(chunk, source_address=block.path, test_address=change.test_address)
 
     def _moved_container(self, chunk: Chunk, block: Block) -> str:
-        """A moved block with no line of its own, such as a table: its ``moved from`` note."""
+        """A moved block with no line of its own, such as a table: its note."""
         change = self.test_nodes[block.path].change
         source = None if change is None else change.source_address
         return _note(chunk, source_address=source, test_address=block.path)
@@ -761,7 +785,9 @@ class _Document:
             parts.append(
                 "<tbody>"
                 + "".join(
-                    "<tr>" + "".join(f"<td>{_spell(cell)}</td>" for cell in row) + "</tr>"
+                    "<tr>"
+                    + "".join(f"<td>{_spell(cell)}</td>" for cell in row)
+                    + "</tr>"
                     for row in body
                 )
                 + "</tbody>"
@@ -771,9 +797,9 @@ class _Document:
 
 
 def _note(chunk: Chunk, *, source_address: str | None, test_address: str | None) -> str:
-    """A note on a line of its own: ``<p class="redlines-note" data-kind="move" …>``."""
+    """A note on a line of its own, a ``<p class="redlines-note" data-kind="move">``."""
     if len(chunk.pieces) != 1 or chunk.pieces[0].kind != "note":
-        raise AssertionError(  # pragma: no cover - the layout writes a note line as one note
+        raise AssertionError(  # pragma: no cover - a note line is one note
             f"a note line is one note, got {chunk.pieces!r}"
         )
     attributes = _attributes(
@@ -786,9 +812,9 @@ def _note(chunk: Chunk, *, source_address: str | None, test_address: str | None)
 
 
 def _whole(pieces: Sequence[Piece], block: Block) -> str:
-    """An inserted or deleted block: its label and text in one ``<ins>`` or ``<del>``."""
+    """An inserted or deleted block: label and text in one ``<ins>`` or ``<del>``."""
     if len(pieces) != 1 or pieces[0].kind not in ("insert", "delete"):
-        raise AssertionError(  # pragma: no cover - the layout writes a whole block as one mark
+        raise AssertionError(  # pragma: no cover - a whole block is one mark
             f"a whole block is one mark, got {pieces!r}"
         )
     mark = pieces[0]
@@ -802,10 +828,10 @@ def _whole(pieces: Sequence[Piece], block: Block) -> str:
 
 
 def _take(pieces: list[Piece], kind: str, prefix: str) -> None:
-    """Remove ``prefix`` from the start of ``pieces``, where the layout wrote it as a ``kind`` piece."""
+    """Take ``prefix``, written by the layout as a ``kind`` piece, off ``pieces``."""
     first = pieces[0] if pieces else None
     if first is None or first.kind != kind or not first.text.startswith(prefix):
-        raise AssertionError(  # pragma: no cover - the layout's label part, by construction
+        raise AssertionError(  # pragma: no cover - the label part, by construction
             f"expected the label part {prefix!r} as a {kind} piece, got {first!r}"
         )
     rest = first.text[len(prefix) :]
@@ -824,13 +850,15 @@ def _table_rows(pieces: Sequence[Piece]) -> list[list[list[Piece]]]:
     rows: list[list[list[Piece]]] = []
     for piece in pieces:
         if piece.kind != "syntax":
-            rows[-1][-1].append(Piece(piece.kind, _unpipe(piece.text), _unpipe(piece.new)))
+            rows[-1][-1].append(
+                Piece(piece.kind, _unpipe(piece.text), _unpipe(piece.new))
+            )
         elif piece.text == "| ":
             rows.append([[]])
         elif piece.text == " | ":
             rows[-1].append([])
         elif piece.text not in (" |", "\n"):
-            raise AssertionError(  # pragma: no cover - the text variant writes no alignment row
+            raise AssertionError(  # pragma: no cover - no alignment row in text
                 f"unexpected table syntax {piece.text!r}"
             )
     return rows
@@ -842,7 +870,11 @@ def _unpipe(text: str) -> str:
 
 
 def _heading_level(block: Block) -> int:
-    """``attrs["atx_level"]`` when it reads as an integer, else ``min(level + 1, 6)``; clamped to 1 to 6."""
+    """A heading's ``aria-level``, from 1 to 6.
+
+    ``attrs["atx_level"]`` when it reads as an integer, else
+    ``min(level + 1, 6)``, and clamped to 1 to 6 either way.
+    """
     value = block.attrs.get("atx_level")
     level = min(block.level + 1, 6)
     if isinstance(value, (int, float, str)) and not isinstance(value, bool):
@@ -856,7 +888,7 @@ def _heading_level(block: Block) -> int:
 def render_document(
     comparison: Comparison, *, schema_version: str, roles: bool = True
 ) -> str:
-    """Render the document view fragment: the test document with its changes in place (ADR-0038).
+    """Render the document view: the test document, its changes in place (ADR-0038).
 
     :param comparison: the comparison, filtered or not; a filtered one draws
         the same test document with only its own nodes marked.
