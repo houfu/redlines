@@ -43,20 +43,47 @@ async function main() {
   }
 
   // Import every module M1 adds under redlines.* plus the profile loader,
-  // and confirm a minimal profile actually loads. Left uncaught so a
-  // failure propagates as a PythonError carrying the formatted CPython
-  // traceback, which we print before exiting non-zero.
+  // and confirm a minimal profile actually loads. Then import the M3
+  // renderer package -- nothing star-imports it from redlines/__init__
+  // until the Comparison render methods arrive -- and run its core once:
+  // build the view of a two-paragraph pair and render it in place with the
+  // legacy "none" set (ADR-0037). Each renderer adds its own method's call
+  // below. Left uncaught so a failure propagates as a PythonError carrying
+  // the formatted CPython traceback, which we print before exiting non-zero.
   const checkScript = `
 import redlines
 import redlines.blocks
 import redlines.readers
 import redlines.readers.detect
 import redlines.profiles
+import redlines.renderers
+import redlines.renderers._escape
+import redlines.renderers._inplace
+import redlines.renderers._marks
+import redlines.renderers._view
+from redlines import compare
 from redlines.profiles import load_profile
+from redlines.renderers._inplace import render_inplace
+from redlines.renderers._marks import LEGACY
+from redlines.renderers._view import build_view
 
 profile = load_profile("name: x")
 assert profile.name == "x", f"unexpected profile name: {profile.name!r}"
-f"redlines ok; profile {profile.name!r} loaded"
+
+pair = compare(
+    "The quick brown fox jumps over the lazy dog.\n\nA second paragraph stays.",
+    "The quick brown fox walks past the lazy dog.\n\nA second paragraph stays.",
+    format="text",
+)
+view = build_view(pair)
+assert len(view.children) == 2, f"unexpected view: {view.children!r}"
+rendered = render_inplace(pair, LEGACY["none"], syntax="text", roles=False)
+expected = (
+    "The quick brown fox <del>jumps over </del><ins>walks past </ins>the lazy dog."
+    "\n\nA second paragraph stays."
+)
+assert rendered == expected, f"unexpected in-place render: {rendered!r}"
+f"redlines ok; profile {profile.name!r} loaded; renderer core ok"
 `;
 
   let result;
