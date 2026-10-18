@@ -22,7 +22,7 @@
     },
     "changes": {
       "type": "array",
-      "description": "The change tree: a flat, document-ordered list of Change objects. The only nesting is a change's own inline ops; there are no child change nodes (ADR-0033).",
+      "description": "The change tree: a flat, document-ordered list of Change objects. The only nesting is a change's own inline ops; there are no child change nodes (ADR-0033). A delete sits in its own parent, after its nearest preceding sibling that stayed in place (ADR-0033, amendment).",
       "items": { "$ref": "#/definitions/change" }
     },
     "alignment": {
@@ -534,12 +534,12 @@
     "sectionStatistics": {
       "type": "object",
       "description": "redlines.statistics.SectionStatistics.to_dict() -- counts and density for one section-with-heading unit: every block of kind 'section' that has a 'heading' child, wherever it sits in the tree. This is a deliberate reinterpretation of #139's 'top-level section' (see redlines/statistics.py's module docstring and the #138/#139/#140 PR body).",
-      "required": ["address", "heading", "breadcrumb", "blocks", "counts", "density"],
+      "required": ["address", "heading", "breadcrumb", "blocks", "counts", "density", "side"],
       "additionalProperties": false,
       "properties": {
         "address": {
           "type": "string",
-          "description": "The section block's test address, or its source address when the whole section was deleted."
+          "description": "The section block's test address, or its source address when the whole section was deleted; side says which."
         },
         "heading": { "type": "string" },
         "breadcrumb": {
@@ -557,6 +557,11 @@
           "type": "number",
           "minimum": 0.0,
           "description": "counts.total / blocks, rounded to 4 decimal places; 0.0 when blocks is 0."
+        },
+        "side": {
+          "type": "string",
+          "enum": ["source", "test"],
+          "description": "The tree address, heading and breadcrumb come from: 'test' for a section of the test document, 'source' for a section deleted whole. A deleted section's source address can also be a test section's address (delete the second of three sections and the third becomes /section[2]), so a row is identified by side and address together (ADR-0033, amendment)."
         }
       }
     },

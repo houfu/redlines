@@ -37,6 +37,16 @@ sibling above it has a new address and nothing else, and no node is emitted
 for it. A renumbered clause shifts *and* changes its label, and the label is
 what makes it a `renumber`.
 
+**A delete sits in its own parent** (ADR-0033, amendment). It has no test
+address to be sorted by, so it is placed where a reader of the test document
+would notice it missing: in the test counterpart of its source parent, after
+its nearest preceding sibling that stayed in place. A sibling that moved away
+does not count, because it is no longer there to sit after. `Anchors`
+computes that placement once, from the alignment and the two trees, and the
+same placement puts a moved block's origin. The renderers draw a deleted
+block and an origin where it says, and `redlines.statistics` counts a
+deletion in the section it says, so the three cannot disagree.
+
 **Inline ops carry character offsets into each block's own text**, the same
 frame `redlines.blocks.Span` uses, so "which spans did this edit touch?" is an
 interval overlap and nothing more, and M3's annotated renderer can splice by
@@ -470,8 +480,12 @@ class ChangeTree:
     changes to.
 
     :param changes: the nodes, ordered by where they land in the test
-        document, with a delete sitting after the last surviving block before
-        it.
+        document. A delete has no test address of its own, so it sits in its
+        own parent, after its nearest preceding sibling that stayed in place:
+        immediately after the whole test subtree of that sibling, or first in
+        the parent when no earlier sibling stayed (ADR-0033, amendment). A
+        sibling that moved away is skipped. Every other node sits at its test
+        address.
     """
 
     changes: tuple[Change, ...] = ()
@@ -516,6 +530,131 @@ class ChangeTree:
                 Change.from_dict(change) for change in data.get("changes", ()) or ()
             )
         )
+
+
+# --------------------------------------------------------------------------
+# Where a block with no test address of its own sits (ADR-0033, amendment).
+# Importable from this module -- the M3 renderers place a deleted block and a
+# move's origin with it -- but not in `__all__`, so not yet a documented
+# surface: the view that consumes it is private as well.
+# --------------------------------------------------------------------------
+
+
+@dataclass(frozen=True, slots=True)
+class Anchor:
+    """Where a source block sits in the test document when it has no place of its own.
+
+    A deleted block is not in the test document, and the origin of a moved
+    block is not where the block now is, so neither can be placed by a test
+    address. Each sits in its own parent instead, right after the nearest
+    preceding sibling that stayed in place (`Anchors`).
+
+    :param test_parent: the test counterpart of the block's source parent.
+    :param after: a child of ``test_parent``: the counterpart of the nearest
+        preceding source sibling that stayed in place. The block sits
+        immediately after that child's whole test subtree. ``None`` when no
+        earlier sibling stayed, and the block then sits first in
+        ``test_parent``: after its own block and before its first child, which
+        for the root means before the first block of the document.
+    """
+
+    test_parent: str
+    after: str | None
+
+
+class Anchors:
+    """Where every source block sits in the test document, by its own parent.
+
+    One placement rule, used three times (ADR-0033, amendment): the change
+    list sorts a ``delete`` node by it, `redlines.statistics` counts a
+    deletion in the section it names, and the renderers draw a deleted block
+    and a moved block's origin where it says. A block sits in its own parent
+    -- the test counterpart of its source parent -- right after its nearest
+    preceding sibling that *stayed in place*: one that has a counterpart,
+    under that same test parent, and is not the source of a move of its own.
+
+    A sibling that moved away is not there any more to sit after. M2 placed a
+    delete after the last earlier block in pre-order that had a counterpart,
+    and so filed a deletion in whichever section such a sibling had moved to.
+    A move of its own is a moved pair that did not just ride along inside a
+    moved ancestor: exactly the source addresses of the change list's
+    ``move`` nodes, decided by the same function.
+
+    Built once from an alignment and the two trees it came from, never from
+    a change list. A filtered comparison therefore places a block where the
+    unfiltered one does, and so does one rebuilt with
+    `redlines.comparison.Comparison.from_dict`. One pass over every source
+    parent's children, O(N) in the blocks of the two trees.
+
+    :param source: the earlier document's block tree.
+    :param test: the later one's.
+    :param alignment: the alignment of these two trees. A pair naming an
+        address that is not in them anchors nothing.
+    """
+
+    __slots__ = ("_anchors",)
+
+    def __init__(
+        self, *, source: BlockTree, test: BlockTree, alignment: Alignment
+    ) -> None:
+        """Place every source block. See the class docstring."""
+        source_blocks = tuple(source.walk())
+        source_parent: dict[str, str | None] = {source.root.path: None}
+        for block in source_blocks:
+            for child in block.children:
+                source_parent[child.path] = block.path
+        test_parent: dict[str, str | None] = {test.root.path: None}
+        for block in test.walk():
+            for child in block.children:
+                test_parent[child.path] = block.path
+        moved = {
+            pair.source_path: pair.test_path for pair in alignment.pairs if pair.moved
+        }
+        own_moves = {
+            path: None
+            for path, landed in moved.items()
+            if not _under_a_move(path, landed, source_parent=source_parent, moved=moved)
+        }
+        anchors: dict[str, Anchor | None] = {source.root.path: None}
+        for block in source_blocks:
+            parent_counterpart = alignment.test_for(block.path)
+            if parent_counterpart not in test_parent:
+                parent_counterpart = None
+            last: str | None = None
+            for child in block.children:
+                if parent_counterpart is None:
+                    anchors[child.path] = None
+                    continue
+                anchors[child.path] = Anchor(test_parent=parent_counterpart, after=last)
+                counterpart = alignment.test_for(child.path)
+                if (
+                    counterpart is not None
+                    and child.path not in own_moves
+                    and test_parent.get(counterpart) == parent_counterpart
+                ):
+                    last = counterpart
+        self._anchors = anchors
+
+    def place(self, source_path: str) -> Anchor | None:
+        """Where one source block sits in the test document.
+
+        :param source_path: the block's address in the source tree.
+        :return: its `Anchor`. ``None`` when the block's source parent has no
+            counterpart, because the block sits inside a deleted ancestor and
+            goes wherever that ancestor goes, and for the root, which has no
+            parent. Under an alignment from `redlines.alignment.align`, the
+            block of a ``delete`` node always has an anchor: a topmost deleted
+            block's parent was not deleted, so it has a counterpart.
+        :raises KeyError: if ``source_path`` is not an address in the source
+            tree these anchors were built from.
+        """
+        try:
+            return self._anchors[source_path]
+        except KeyError:
+            raise KeyError(
+                f"{source_path!r} is not an address in the source tree these "
+                "anchors were built from"
+            ) from None
 
 
 def build_change_tree(
@@ -732,13 +871,19 @@ def _clamped_offsets(text: str, chunk_tokens: Sequence[str]) -> tuple[int, ...]:
 
 
 class _Side:
-    """One tree, indexed the three ways the builder reads it."""
+    """One tree, indexed the four ways the builder reads it.
+
+    ``order`` is each block's pre-order position and ``last`` the position of
+    the last block in its subtree, so "immediately after the whole subtree of
+    this block" is ``last[path]`` with no walk.
+    """
 
     def __init__(self, tree: BlockTree) -> None:
         self.tree = tree
         self.block: dict[str, Block] = {}
         self.order: dict[str, int] = {}
         self.parent: dict[str, str | None] = {}
+        self.last: dict[str, int] = {}
         stack: list[tuple[Block, str | None]] = [(tree.root, None)]
         # An explicit walk rather than BlockTree.walk(), because the parent of
         # each block is wanted and walk() reports blocks alone.
@@ -752,6 +897,13 @@ class _Side:
             stack.extend(
                 (child, block.path) for child in reversed(block.children)
             )
+        # In reverse pre-order every block comes after its whole subtree, so a
+        # block's last child already knows where that subtree ends.
+        for path in reversed(self.order):
+            children = self.block[path].children
+            self.last[path] = (
+                self.last[children[-1].path] if children else self.order[path]
+            )
 
     def breadcrumb(self, path: str) -> tuple[str, ...]:
         """The ADR-0029 heading breadcrumb for one address."""
@@ -760,11 +912,16 @@ class _Side:
 
 @dataclass(frozen=True, slots=True)
 class _Sortable:
-    """A node and the key it sorts by (ADR-0033).
+    """A node and the key it sorts by (ADR-0033, amendment).
 
-    :param test_rank: where the node lands in the test document -- the test
-        block's own position, or, for a delete, the position of the last
-        surviving block before it.
+    The key is ``(test_rank, after, source_rank, kind_rank)``. A node with a
+    test address sorts at that address. A delete sorts just after the block
+    its `Anchor` names: the end of the ``after`` sibling's test subtree, or
+    the test parent's own block when the delete is first in its parent.
+
+    :param test_rank: where the node lands in the test document, as a
+        pre-order position: the test block's own, or, for a delete, the
+        position of the block it sits just after (`_anchor_rank`).
     :param after: 0 for a node that is *at* ``test_rank``, 1 for a delete that
         sits just after it.
     :param source_rank: the source block's position, ``-1`` for an insert.
@@ -802,6 +959,7 @@ class _Builder:
         self.moved = {
             pair.source_path: pair.test_path for pair in alignment.pairs if pair.moved
         }
+        self.anchors = Anchors(source=source.tree, test=test.tree, alignment=alignment)
 
     def run(self) -> ChangeTree:
         """Build every node, order them, and check the order is total."""
@@ -858,30 +1016,26 @@ class _Builder:
             )
 
     def _deletes(self) -> Iterator[_Sortable]:
-        """One node per topmost deleted block, placed by its surviving neighbour.
+        """One node per topmost deleted block, placed in its own parent.
 
         A delete has no test address, so it has no position of its own in the
-        test document. It is sorted immediately after the last source block
-        before it that survived -- which is where a reader looking at the test
-        document would notice it missing.
+        test document. It is sorted where `Anchors` places it (ADR-0033,
+        amendment): in the test counterpart of its source parent, immediately
+        after the whole test subtree of its nearest preceding sibling that
+        stayed in place, or first in that parent when none did. That is where
+        a reader looking at the test document would notice it missing.
+
+        A sibling that moved away is skipped. Sorting after the last earlier
+        block that survived anywhere, as M2 did, put a deletion in whichever
+        section that block had moved to.
         """
-        surviving = -1
-        by_source_order = sorted(self.deleted, key=lambda path: self.source.order[path])
-        placement: dict[str, int] = {}
-        for path in sorted(self.source.order, key=self.source.order.__getitem__):
-            if path in self.deleted:
-                placement[path] = surviving
-                continue
-            counterpart = self.alignment.test_for(path)
-            if counterpart is not None:
-                surviving = self.test.order[counterpart]
-        for path in by_source_order:
+        for path in self.alignment.deleted:
             parent = self.source.parent[path]
             if parent is not None and parent in self.deleted:
                 continue
             block = self.source.block[path]
             yield _Sortable(
-                test_rank=placement[path],
+                test_rank=_anchor_rank(self.anchors.place(path), self.test),
                 after=1,
                 source_rank=self.source.order[path],
                 kind_rank=_KIND_ORDER["delete"],
@@ -917,8 +1071,11 @@ class _Builder:
             source_block = self.source.block[pair.source_path]
             test_block = self.test.block[pair.test_path]
             inline = self._inline(source_block, test_block)
-            moved = pair.moved and not self._under_a_move(
-                pair.source_path, pair.test_path
+            moved = pair.moved and not _under_a_move(
+                pair.source_path,
+                pair.test_path,
+                source_parent=self.source.parent,
+                moved=self.moved,
             )
             kind = self._kind(moved, pair.renumbered, inline)
             if kind is None:
@@ -945,27 +1102,6 @@ class _Builder:
                     breadcrumb=self.test.breadcrumb(pair.test_path),
                 ),
             )
-
-    def _under_a_move(self, source_path: str, test_path: str) -> bool:
-        """Whether this pair rode along inside an ancestor's move.
-
-        Topmost wins: a block that went where its parent went is not a move of
-        its own, and a descendant that *also* changed is reported as the
-        `modify` or `renumber` it is, carrying both of its addresses.
-
-        The test address has to be checked, not just the source ancestry: a
-        block that left a moving clause for somewhere else moved on its own
-        account, and suppressing that would lose a real move. So an ancestor
-        only absorbs this pair when the pair landed inside where that ancestor
-        landed.
-        """
-        ancestor = self.source.parent[source_path]
-        while ancestor is not None:
-            landed = self.moved.get(ancestor)
-            if landed is not None and _is_under(test_path, landed):
-                return True
-            ancestor = self.source.parent[ancestor]
-        return False
 
     def _kind(
         self, moved: bool, renumbered: bool, inline: tuple[InlineOp, ...]
@@ -1029,6 +1165,65 @@ def _touched_span_types(
             if op.test_start < span.end and span.start < op.test_end:
                 found[span.type] = None
     return tuple(sorted(found))
+
+
+def _under_a_move(
+    source_path: str,
+    test_path: str,
+    *,
+    source_parent: Mapping[str, str | None],
+    moved: Mapping[str, str],
+) -> bool:
+    """Whether a moved pair rode along inside an ancestor's move.
+
+    Topmost wins: a block that went where its parent went is not a move of
+    its own, and a descendant that *also* changed is reported as the
+    `modify` or `renumber` it is, carrying both of its addresses.
+
+    The test address has to be checked, not just the source ancestry: a
+    block that left a moving clause for somewhere else moved on its own
+    account, and suppressing that would lose a real move. So an ancestor
+    only absorbs this pair when the pair landed inside where that ancestor
+    landed.
+
+    One function, so the builder's ``move`` nodes and the siblings `Anchors`
+    skips are the same set by construction.
+
+    :param source_path: the pair's source address.
+    :param test_path: its test address.
+    :param source_parent: every source address's parent, the root's ``None``.
+    :param moved: every moved pair, source address to test address.
+    """
+    ancestor = source_parent.get(source_path)
+    while ancestor is not None:
+        landed = moved.get(ancestor)
+        if landed is not None and _is_under(test_path, landed):
+            return True
+        ancestor = source_parent.get(ancestor)
+    return False
+
+
+def _anchor_rank(anchor: Anchor | None, test: _Side) -> int:
+    """The test pre-order position a block placed by `Anchors` sorts just after.
+
+    The last block of the ``after`` sibling's test subtree, or the test
+    parent's own block when the block is first in its parent. This and
+    `Anchors.place` are the whole rule, and the change list and
+    `redlines.statistics` both call them, so a delete node and a deleted
+    section's row cannot be ordered two ways.
+
+    :param anchor: the block's `Anchor`. ``None`` only from an alignment that
+        accounts for neither the block's parent nor the parent's deletion,
+        which `redlines.alignment.align` never produces; such a block sorts
+        first, as if it were the first block of the document.
+    :param test: the test tree, indexed.
+    :return: the position.
+    """
+    if anchor is None:
+        return test.order[test.tree.root.path]
+    if anchor.after is None:
+        return test.order[anchor.test_parent]
+    return test.last[anchor.after]
 
 
 def _is_under(path: str, prefix: str) -> bool:
