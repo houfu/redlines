@@ -11,9 +11,13 @@ read back with the reference reader (``tests/helpers/criticmarkup.py``):
   and 59 of 60 loosely, the one loose exception being
   ``benchmark/hand/csa-1.1-to-2.0``, whose old clause numbers live only in
   ``{>>renumbered from …<<}`` notes;
-- for the ``none`` style, accept-all is exact and reject-all keeps source
-  order, up to whitespace and syntax heads, on 60 of 60, because the legacy
-  styles strike a moved block at its origin.
+- for the ``none`` style, accept-all is exact on 60 of 60, and reject-all
+  keeps source order, up to whitespace and syntax heads, on 59 of 60,
+  because the legacy styles strike a moved block at its origin. The
+  exception is ``benchmark/hand/csa-1.1-to-2.0``, where ``2.1`` became
+  ``2.1.``: a relabel that differs only in its full stop leaves no change
+  node, so nothing is marked and reject-all keeps the test's label as written
+  (``label_raw``).
 
 The test rendering and the source rendering are the same renderer over
 ``compare(test, test)`` and ``compare(source, source)``.
@@ -609,7 +613,12 @@ def test_accept_all_reproduces_the_test_rendering_on_every_committed_run(
 def test_without_the_residue_rule_accept_all_holds_on_56_of_60(
     oracle: dict[str, list[str]],
 ) -> None:
-    assert len(oracle["accept_bare"]) == 4
+    assert oracle["accept_bare"] == [
+        "benchmark/synthetic/msa-markdown-table",
+        "benchmark/synthetic/twin-markdown-heavy",
+        "benchmark/synthetic/twin-markdown-mixed",
+        "benchmark/hand/csa-1.1-to-2.0",
+    ]
     assert oracle["removed"] == ["6", "33"]
 
 
@@ -617,14 +626,26 @@ def test_reject_all_is_a_loose_multiset_on_59_of_60_and_strict_on_49(
     oracle: dict[str, list[str]],
 ) -> None:
     assert oracle["reject_loose"] == ["benchmark/hand/csa-1.1-to-2.0"]
-    assert len(oracle["reject_strict"]) == 11
+    assert oracle["reject_strict"] == [
+        "tests/corpus/course_lesson6",
+        "tests/corpus/whitespace_after_equal",
+        "benchmark/synthetic/adr-moves-mixed",
+        "benchmark/synthetic/msa-markdown-mixed",
+        "benchmark/synthetic/msa-markdown-move-heavy",
+        "benchmark/synthetic/msa-markdown-renumber-storm",
+        "benchmark/synthetic/msa-markdown-structure",
+        "benchmark/synthetic/msa-markdown-table",
+        "benchmark/synthetic/msa-text-heavy",
+        "benchmark/hand/csa-1.1-to-2.0",
+        "benchmark/hand/sla-1.0-to-2.0",
+    ]
 
 
 def test_the_none_style_accepts_exactly_and_rejects_in_source_order_on_every_run(
     oracle: dict[str, list[str]],
 ) -> None:
     assert oracle["none_accept"] == []
-    assert oracle["none_order"] == []
+    assert oracle["none_order"] == ["benchmark/hand/csa-1.1-to-2.0"]  # label_raw: a dot-only relabel with no change node
 
 
 # --- determinism ------------------------------------------------------------------
