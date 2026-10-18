@@ -75,6 +75,16 @@ def test_the_anchors_the_view_and_a_render_each_take_under_a_second(
     assert hasattr(view, "walk")
 
 
+@pytest.mark.slow
+def test_output_annotated_takes_under_a_second_in_either_syntax(half_deleted: Comparison) -> None:
+    seconds: list[float] = []
+    for syntax in ("markdown", "text"):
+        rendered = _timed(seconds, lambda: half_deleted.output_annotated(syntax=syntax))
+        assert isinstance(rendered, str)
+        assert rendered.count("{--") == BLOCKS // 2
+    assert all(elapsed < 1.0 for elapsed in seconds), seconds
+
+
 def test_the_view_of_the_scale_pair_has_every_ghost_in_place(half_deleted: Comparison) -> None:
     view = build_view(half_deleted)
     statuses = [node.status for node in view.children]
