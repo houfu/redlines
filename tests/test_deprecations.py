@@ -1,32 +1,33 @@
-"""The deprecation mechanism (R46; ADR-0036, decision D11 of the M3 plan).
+"""The deprecation mechanism (R46; ADR-0036).
 
 redlines 1.0 ships the means to deprecate something, and deprecates nothing at
 runtime: two warning categories, the one function that raises them, a pytest
 tripwire and a written schedule (``redlines/_deprecation.py`` has the schedule).
 This module checks each part, and the promise.
 
-- The categories exist, are exported from ``redlines``, and extend the standard
-  categories they are named for. They do not extend one another, so a filter on
-  one never catches the other.
-- ``warn_deprecated`` emits exactly the category it is given, with the message
-  ``"{old} is deprecated since redlines {since}; use {new} instead."``, attributed
-  to the caller of the deprecated function.
+- The categories exist, are defined in ``redlines._deprecation``, are exported from
+  ``redlines``, and extend the standard categories they are named for. They do not
+  extend one another, so a filter on one never catches the other.
+- ``warn_deprecated`` emits exactly the category it is given, and must be given one,
+  with the message ``"{old} is deprecated since redlines {since}; use {new}
+  instead."``, attributed to the caller of the deprecated function.
 - The tripwire in ``pyproject.toml`` is armed for both categories, and for nothing
   broader: ``error::DeprecationWarning`` would fail on click 8.5's own warning.
-- ``tests/test_quick_path_is_silent.py`` would catch a warning of either category
-  even when ``stacklevel`` aims it at user code. Its ``blame()`` is not imported:
-  that module says that test modules do not import each other, and ``tests/`` is
-  not a package, so importing it would load a second copy. The rule that matters
-  here, that a category defined in the package is the package's own, is restated
-  below and applied to the real classes.
-- Nothing in the package calls ``warn_deprecated`` or names either category but
+- Nothing in the package mentions ``warn_deprecated``, or names either category but
   to define and export them, which is the promise of 1.0; and the three names that
   1.1 will warn on say in their docstrings that they are superseded.
 
-When 1.1 puts the first warning on ``changes``, ``redlines`` and ``get_changes``,
-the two tests that scan the package change with it, to assert that exactly those
-three names call ``warn_deprecated`` and that they do it through a private
-``_changes()``. The rest of this module stays as it is.
+``tests/test_quick_path_is_silent.py`` holds the other half of the promise, for what a
+0.6 user copies, runs or types. It counts a warning as redlines' own when its category
+is defined in the package, wherever ``stacklevel`` makes it point, and a deprecation
+warning points at the user's code, so that rule is the one that sees it. That module
+tries the rule on stand-in classes; what is pinned here is the premise, that the real
+categories are defined in the package.
+
+When 1.1 puts the first warning on ``changes``, ``redlines`` and ``get_changes``, the
+two tests that scan the package change with it, to assert that exactly those three
+names call ``warn_deprecated`` and that they do it through a private ``_changes()``.
+The rest of this module stays as it is.
 """
 
 from __future__ import annotations
@@ -38,6 +39,7 @@ import linecache
 import re
 import sys
 import warnings
+from collections.abc import Callable
 from pathlib import Path
 
 import pytest
@@ -71,7 +73,9 @@ BOTH_CATEGORIES = [
 
 
 def deprecated_function() -> None:
-    warn_deprecated("old_name", "new_name", since="1.1")
+    warn_deprecated(
+        "old_name", "new_name", since="1.1", category=RedlinesPendingDeprecationWarning
+    )
 
 
 def deprecated_function_in(category: Category) -> None:
@@ -79,7 +83,13 @@ def deprecated_function_in(category: Category) -> None:
 
 
 def deprecated_function_at(stacklevel: int) -> None:
-    warn_deprecated("old_name", "new_name", since="1.1", stacklevel=stacklevel)
+    warn_deprecated(
+        "old_name",
+        "new_name",
+        since="1.1",
+        category=RedlinesPendingDeprecationWarning,
+        stacklevel=stacklevel,
+    )
 
 
 def same_file(filename: str, expected: Path) -> bool:
@@ -89,6 +99,12 @@ def same_file(filename: str, expected: Path) -> bool:
 def source_line(warning: warnings.WarningMessage) -> str:
     """The line of source that a warning names."""
     return linecache.getline(warning.filename, warning.lineno).strip()
+
+
+def lines_of(function: Callable[..., object]) -> range:
+    """The lines of this file that a function's source covers."""
+    source, first = inspect.getsourcelines(function)
+    return range(first, first + len(source))
 
 
 # --- the categories --------------------------------------------------------
@@ -132,12 +148,15 @@ def test_warn_deprecated_is_not_part_of_the_public_surface() -> None:
 # --- warn_deprecated -------------------------------------------------------
 
 
-def test_the_default_category_is_the_pending_one() -> None:
-    with pytest.warns(RedlinesPendingDeprecationWarning) as record:
-        deprecated_function()
+def test_category_is_required_and_has_no_default() -> None:
+    """A call that moves on to 1.2 must not be able to go on raising the pending
+    category, which Python hides, by forgetting to change it."""
+    category = inspect.signature(warn_deprecated).parameters["category"]
+    assert category.kind is inspect.Parameter.KEYWORD_ONLY
+    assert category.default is inspect.Parameter.empty
 
-    [warning] = record
-    assert warning.category is RedlinesPendingDeprecationWarning
+    with pytest.raises(TypeError, match="category"):
+        warn_deprecated("old_name", "new_name", since="1.1")  # type: ignore[call-arg]
 
 
 @pytest.mark.parametrize("category", BOTH_CATEGORIES)
@@ -155,7 +174,10 @@ def test_warn_deprecated_emits_exactly_the_category_it_is_given(
 def test_the_message_names_old_new_and_since_on_one_line() -> None:
     with pytest.warns(RedlinesPendingDeprecationWarning) as record:
         warn_deprecated(
-            "Redlines.changes", "redlines.compare(...).changes", since="1.1"
+            "Redlines.changes",
+            "redlines.compare(...).changes",
+            since="1.1",
+            category=RedlinesPendingDeprecationWarning,
         )
 
     message = str(record[0].message)
@@ -187,7 +209,7 @@ def test_stacklevel_is_passed_to_warnings_warn() -> None:
         deprecated_function_at(2)
     [inside] = record
     assert same_file(inside.filename, THIS_FILE)
-    assert source_line(inside).startswith("warn_deprecated(")
+    assert inside.lineno in lines_of(deprecated_function_at)
 
 
 # --- the tripwire ----------------------------------------------------------
@@ -254,69 +276,29 @@ def test_either_category_is_an_error_under_the_configuration(
 
 # --- the quick path --------------------------------------------------------
 #
-# `tests/test_quick_path_is_silent.py` calls a recorded warning redlines' own
-# when (1) it names a file of the package, or (2) its category is defined in the
-# package, in which case it does not matter which file it names. A deprecation
-# warning is raised with stacklevel=3, so it names the user's file and only
-# rule 2 can catch it. The rule is restated here from that module's `blame()`.
-
-
-def category_names(category: type[Warning]) -> tuple[str, ...]:
-    return tuple(f"{base.__module__}.{base.__qualname__}" for base in category.__mro__)
-
-
-def defined_in_redlines(qualified_name: str) -> bool:
-    module = qualified_name.rpartition(".")[0]
-    return module == "redlines" or module.startswith("redlines.")
+# `tests/test_quick_path_is_silent.py` counts a recorded warning as redlines' own when
+# its category is defined in the package (its second rule), wherever `stacklevel`
+# makes it point. A deprecation warning is raised with stacklevel=3, so it names the
+# user's file and only that rule can catch it. That module tries the rule on
+# stand-in classes, so what is pinned here is the premise, for the real ones.
 
 
 @pytest.mark.parametrize("category", BOTH_CATEGORIES)
-def test_the_quick_path_rules_catch_either_category_aimed_at_user_code(
-    category: Category,
-) -> None:
-    with pytest.warns(category) as record:
-        deprecated_function_in(category)
-
-    [warning] = record
-    # Rule 1 lets it through: the warning names this file, not one of the package.
-    assert not Path(warning.filename).resolve().is_relative_to(PACKAGE_DIR)
-    # Rule 2 catches it: the category is defined in the package.
-    assert any(defined_in_redlines(name) for name in category_names(warning.category))
-
-
-@pytest.mark.parametrize(
-    "category", [DeprecationWarning, PendingDeprecationWarning, UserWarning]
-)
-def test_the_quick_path_rules_leave_a_standard_category_alone(
-    category: type[Warning],
-) -> None:
-    assert not any(defined_in_redlines(name) for name in category_names(category))
+def test_a_category_is_defined_in_the_redlines_package(category: Category) -> None:
+    assert category.__module__ == "redlines._deprecation"
 
 
 # --- nothing warns in 1.0 --------------------------------------------------
 #
-# These two tests are the "no runtime warning in 1.0" promise, kept in the source.
-# They flip in 1.1, when the three names start to warn.
-
-
-def calls_to(source: str, function: str) -> list[int]:
-    """The lines of the calls to a function called ``function``, called by its bare
-    name or as an attribute of anything. A definition is not a call."""
-    lines = []
-    for node in ast.walk(ast.parse(source)):
-        if not isinstance(node, ast.Call):
-            continue
-        called = node.func
-        if isinstance(called, ast.Name) and called.id == function:
-            lines.append(node.lineno)
-        elif isinstance(called, ast.Attribute) and called.attr == function:
-            lines.append(node.lineno)
-    return sorted(lines)
+# These tests are the "no runtime warning in 1.0" promise, kept in the source. They
+# flip in 1.1, when the three names start to warn.
 
 
 def mentions_of(source: str, names: frozenset[str]) -> list[int]:
-    """The lines that use one of ``names``: as a name, as an attribute, as an
-    imported name, or as a string (``getattr(module, "Name")``)."""
+    """The lines that use one of ``names``: as a name, as an attribute, as an imported
+    name (under its own name or another), or as a string (``getattr(module, "Name")``).
+    A search for calls would miss ``from ._deprecation import warn_deprecated as w``;
+    this does not."""
     lines = []
     for node in ast.walk(ast.parse(source)):
         if isinstance(node, ast.Name) and node.id in names:
@@ -337,38 +319,43 @@ def package_sources() -> dict[Path, str]:
     }
 
 
-def test_the_scans_find_what_they_look_for() -> None:
+def test_the_scan_finds_what_it_looks_for() -> None:
     """A scan that never matches would let the two tests below pass for the wrong
     reason."""
-    assert calls_to("warn_deprecated('a', 'b', since='1')", "warn_deprecated") == [1]
-    assert calls_to("x.y.warn_deprecated('a', 'b', since='1')", "warn_deprecated") == [
-        1
-    ]
-    assert calls_to("def warn_deprecated(): ...", "warn_deprecated") == []
-    assert calls_to("print(warn_deprecated)", "warn_deprecated") == []
+    names = frozenset({"warn_deprecated"})
+    assert mentions_of("warn_deprecated('a', 'b', since='1')", names) == [1]
+    assert mentions_of("x.y.warn_deprecated('a', 'b', since='1')", names) == [1]
+    assert mentions_of("import m\nm.warn_deprecated()", names) == [2]
+    assert mentions_of("from m import warn_deprecated as w", names) == [1]
+    assert mentions_of("from m import warn_deprecated", names) == [1]
+    assert mentions_of("getattr(m, 'warn_deprecated')", names) == [1]
+    assert mentions_of("def warn_deprecated(): ...", names) == []
+    assert mentions_of("print(warn_deprecated_twice)", names) == []
+    assert mentions_of("import redlines._deprecation as d", names) == []
 
-    names = frozenset({"Category"})
-    assert mentions_of("raise Category", names) == [1]
-    assert mentions_of("import m\nm.Category", names) == [2]
-    assert mentions_of("from m import Category as C", names) == [1]
-    assert mentions_of("getattr(m, 'Category')", names) == [1]
-    assert mentions_of("category = None", names) == []
+    categories = frozenset({"Category"})
+    assert mentions_of("raise Category", categories) == [1]
+    assert mentions_of("from m import Category as C", categories) == [1]
+    assert mentions_of("category = None", categories) == []
 
     sources = package_sources()
     assert PACKAGE_DIR / "_deprecation.py" in sources
     assert PACKAGE_DIR / "redlines.py" in sources
 
 
-def test_nothing_in_the_package_calls_warn_deprecated() -> None:
-    """1.0 has the mechanism and no runtime warning (ADR-0036). 1.1 flips this: the
-    calls are the three public names, through a private ``_changes()``."""
-    calls = {
+def test_nothing_in_the_package_uses_warn_deprecated() -> None:
+    """1.0 has the mechanism and no runtime warning (ADR-0036): ``warn_deprecated``
+    is defined in ``_deprecation.py`` and named nowhere else, so it is neither
+    called nor imported under another name. 1.1 flips this: the three public names
+    call it, through a private ``_changes()``."""
+    uses = {
         path.relative_to(REPO_ROOT).as_posix(): lines
         for path, source in package_sources().items()
-        if (lines := calls_to(source, "warn_deprecated"))
+        if path != PACKAGE_DIR / "_deprecation.py"
+        and (lines := mentions_of(source, frozenset({"warn_deprecated"})))
     }
 
-    assert calls == {}
+    assert uses == {}
 
 
 def test_only_the_definition_and_the_export_name_the_categories() -> None:

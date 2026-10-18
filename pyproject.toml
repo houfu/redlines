@@ -68,12 +68,16 @@ pythonpath = ["."]
 markers = [
     "slow: a test that measures something rather than asserting it quickly (N2)",
 ]
-# The deprecation tripwire (ADR-0036, decision D11). Nothing in redlines warns in
-# 1.0, so a warning of either of its own categories reaching a test is a mistake,
-# and here it is an error rather than a line in a summary. Only the two categories
-# are named, never the bare `DeprecationWarning`: click 8.5 emits one of its own.
+# The deprecation tripwire (ADR-0036). Nothing in redlines warns in 1.0, so a
+# warning of either of its own categories reaching a test is a mistake, and here it
+# is an error rather than a line in a summary. Only the two categories are named,
+# never the bare `DeprecationWarning`: click 8.5 emits one of its own.
 # When 1.1 starts to warn, add message-scoped `ignore:` entries *below* these two
 # for the unmodified 0.6 tests, because pytest applies the last entry that matches.
+# To resolve these entries pytest imports `redlines` while it loads its configuration,
+# before pytest-cov starts, so `pytest --cov` under-reports every line that runs at
+# import (`redlines/__init__.py` reads 0%); measure with `coverage run -m pytest`.
+# No CI job uses `--cov`.
 filterwarnings = [
     "error::redlines.RedlinesPendingDeprecationWarning",
     "error::redlines.RedlinesDeprecationWarning",

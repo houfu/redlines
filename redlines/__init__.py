@@ -93,6 +93,14 @@ for change in result.changes:
 * [Changes](redlines/changes.html) - `ChangeTree`, `Change`, `InlineOp`
 * [Alignment](redlines/alignment.html) - `AlignmentConfig` and the passes it configures
 
+## Deprecations
+
+Nothing in 1.0 warns. When something is deprecated it warns first with
+`RedlinesPendingDeprecationWarning` (Python hides it by default), then with
+`RedlinesDeprecationWarning`; nothing is removed before 2.0. Both classes are importable
+from `redlines`, so a project can filter or escalate them now. The schedule is in
+[ADR-0036](https://github.com/houfu/redlines/blob/main/docs/adr/0036-redlines-facade.md).
+
 """
 
 # `X as X` is the explicit re-export that type checkers honour (PEP 484). Without it,

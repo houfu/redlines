@@ -2,16 +2,15 @@
 
 Redlines 1.0 ships this mechanism and **no runtime deprecation warning**. Nothing in
 the package calls `warn_deprecated`, and `tests/test_deprecations.py` fails if
-something does. R46 asks for deprecation warnings, not removals, wherever something
-is superseded. The three names that will be deprecated (`Redlines.changes`,
+something does. R46, as ADR-0036 revises it, says: "No removals in 1.0. 1.0 ships the
+deprecation mechanism, a test tripwire and a written schedule; runtime warnings start
+in 1.1." The three names that will be deprecated (`Redlines.changes`,
 `Redlines.redlines` and `Redlines.get_changes`) are superseded by
 `Comparison.changes`, from `redlines.compare(...)`, which is block-addressed and
 counts characters, not tokens: it is not a drop-in replacement. The agent guide still
 teaches the old names, and most installs are a 2023 pin from the course environment,
 whose notebooks would show a `DeprecationWarning` on the page the reader is copying
-from. So 1.0 ships the machinery, a tripwire and a written schedule, and the warnings
-follow once the successor is documented (ADR-0036; ADR-0003; decision D11 of the M3
-plan).
+from. So the warnings follow once the successor is documented (ADR-0036; ADR-0003).
 
 The schedule:
 
@@ -37,8 +36,9 @@ holds it for everything that a 0.6 user copies, runs or types.
 
 The call-chain trap, for 1.1. `Redlines.redlines` and `Redlines.get_changes` read
 `self.changes`, `stats()` reads `self.changes`, `output_json()` calls `stats()`, and
-the `stats`, `text` and `json` commands of the CLI call `stats()`. A warning placed
-on `changes` would be raised by every one of them. Before the first call to
+every command of the CLI but `guide` reaches `stats()` through `_set_exit_code`
+(`compare` and `json` also call `output_json()`). A warning placed on `changes` would
+be raised by every one of them. Before the first call to
 `warn_deprecated`, each public name has to wrap a private `_changes()`: the public
 name warns and then returns `self._changes()`, and everything inside the package
 (`stats()`, `output_json()`, the CLI, the facade) calls `_changes()` and never a
@@ -111,7 +111,7 @@ def warn_deprecated(
     since: str,
     category: (
         type[RedlinesPendingDeprecationWarning] | type[RedlinesDeprecationWarning]
-    ) = RedlinesPendingDeprecationWarning,
+    ),
     stacklevel: int = 3,
 ) -> None:
     """Warn that `old` is deprecated in favour of `new`.
@@ -127,8 +127,10 @@ def warn_deprecated(
     :param new: What to use instead, e.g. `"Comparison.changes"`.
     :param since: The release that began warning about `old`, e.g. `"1.1"`.
     :param category: `RedlinesPendingDeprecationWarning` in 1.1, the phase that
-        pends, and `RedlinesDeprecationWarning` from 1.2. The type checker refuses any
-        other category, because the tripwire only knows these two.
+        pends, and `RedlinesDeprecationWarning` from 1.2. It has no default, so that
+        a call that moves on to 1.2 cannot go on raising the pending category, which
+        Python hides, by forgetting to change it. The type checker refuses any other
+        category, because the tripwire only knows these two.
     :param stacklevel: Which frame the warning names, counted as for
         `warnings.warn`. The default of 3 is the caller of the function that called
         this one.
