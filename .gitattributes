@@ -1,3 +1,5 @@
 # The regression corpus is compared byte-for-byte (tests/test_corpus.py), so
 # git must never translate its line endings on checkout.
 tests/corpus/** -text
+# The renderer cases are compared byte-for-byte against their goldens too.
+tests/renderer_cases/** -text
