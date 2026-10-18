@@ -304,6 +304,99 @@ def test_what_still_carries_no_role(input_name: str) -> None:
     assert unroled == expected
 
 
+# --- labels as written (D5) -------------------------------------------------
+
+# Every block tree the pair freezes: the four under ``expected/`` and the two
+# trees each change-tree golden embeds. (file under ``expected/``, the key the
+# tree sits under, or "" where the file is the tree.)
+FROZEN_TREES = (
+    ("source.contract.json", ""),
+    ("test.contract.json", ""),
+    ("source.markdown.json", ""),
+    ("test.markdown.json", ""),
+    ("change_tree.contract.json", "source"),
+    ("change_tree.contract.json", "test"),
+    ("change_tree.markdown.json", "source"),
+    ("change_tree.markdown.json", "test"),
+)
+
+
+def frozen_blocks(file_name: str, key: str) -> list[dict[str, Any]]:
+    """Every block of one frozen tree, as the dicts stored in ``expected/``."""
+    payload = json.loads((EXPECTED_DIR / file_name).read_text(encoding="utf-8"))
+    pending: list[dict[str, Any]] = [(payload[key] if key else payload)["root"]]
+    found: list[dict[str, Any]] = []
+    while pending:
+        block = pending.pop(0)
+        found.append(block)
+        pending[:0] = block["children"]
+    return found
+
+
+@pytest.mark.parametrize(("file_name", "key"), FROZEN_TREES)
+def test_label_raw_is_on_every_block_a_pattern_labelled_and_on_no_other(
+    file_name: str, key: str
+) -> None:
+    """``label_raw`` present iff ``label`` is set and it is not a list marker's.
+
+    The stored trees are the ones renderers will read, so this reads the JSON
+    rather than rebuilding the tree; ``test_the_pair_parses_into_the_expected_tree``
+    ties the JSON to the readers.
+    """
+    blocks = frozen_blocks(file_name, key)
+    patterned = marked = 0
+
+    for block in blocks:
+        attrs = block["attrs"]
+        by_marker = attrs.get("label_source") == "list_marker"
+        by_pattern = block["label"] is not None and not by_marker
+        assert ("label_raw" in attrs) is by_pattern, block["path"]
+        # The pattern that read the label is the one that read it as written.
+        assert ("label_raw" in attrs) is ("label_pattern" in attrs), block["path"]
+        if by_pattern:
+            patterned += 1
+            raw = attrs["label_raw"]
+            assert raw == block["label"] or raw == block["label"] + ".", block["path"]
+        elif by_marker:
+            marked += 1
+            assert block["label"] == attrs["list_marker"].rstrip(".)"), block["path"]
+
+    assert patterned > 0
+    # Only the markdown twin has ordered lists for markdown to number.
+    assert (marked > 0) is ("markdown" in file_name)
+
+
+@pytest.mark.parametrize("input_name", [name for name, _, _ in PAIRINGS])
+def test_the_headings_and_clauses_keep_the_full_stop_they_were_written_with(
+    input_name: str,
+) -> None:
+    """``## 1. Background`` is label ``1``, and ``label_raw`` still says ``1.``."""
+    tree = tree_for(input_name)
+    background = tree.block_at("/section[1]/section[1]/heading[1]")
+    schedule = tree.block_at("/section[3]/heading[1]")
+    definition = tree.block_at(CONFIDENTIAL_INFORMATION)
+
+    assert (background.label, background.attrs["label_raw"]) == ("1", "1.")
+    assert (schedule.label, schedule.attrs["label_raw"]) == (
+        "Schedule 1",
+        "Schedule 1.",
+    )
+    assert (definition.label, definition.attrs["label_raw"]) == ("2.4", "2.4")
+
+
+def test_a_text_clause_has_label_raw_where_its_markdown_twin_has_a_marker() -> None:
+    """Why a renderer reads ``label_raw``, then ``list_marker``, then ``label``."""
+    text_item = tree_for("test.txt").block_at("/section[3]/list_item[1]")
+    markdown_item = tree_for("test.md").block_at("/section[3]/list_item[1]")
+
+    assert text_item.label == markdown_item.label == "1"
+    assert text_item.attrs["label_raw"] == "1."
+    assert "list_marker" not in text_item.attrs
+    assert "label_raw" not in markdown_item.attrs
+    assert markdown_item.attrs["list_marker"] == "1."
+    assert markdown_item.attrs["label_source"] == "list_marker"
+
+
 # --- the eight changes ------------------------------------------------------
 
 

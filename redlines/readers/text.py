@@ -651,9 +651,18 @@ class PlainTextReader:
 
 
 def _label_attrs(placement: Placement) -> dict[str, Any]:
-    """Record what stages two and three decided about a label (PRD § 6b)."""
+    """Record what stages two and three decided about a label (PRD § 6b).
+
+    ``label_raw`` is the label as the document wrote it, trailing full stop and
+    all: ``"2."`` where `redlines.blocks.Block.label` is ``"2"``. A renderer
+    reads it to write the label back as it was. It is recorded wherever a label
+    *pattern* produced the block's label, and only there: a markdown list marker
+    that labels its item is ``attrs["list_marker"]`` instead, and that branch of
+    the markdown reader never calls this function.
+    """
     attrs: dict[str, Any] = {
         "label_pattern": placement.match.name,
+        "label_raw": placement.match.raw,
         "label_style": placement.match.style,
         "label_depth_mode": placement.match.depth_mode,
         "level_reason": placement.level_reason,
