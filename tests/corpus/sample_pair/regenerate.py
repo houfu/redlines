@@ -40,6 +40,16 @@ and the backend benchmark/REPORT.md quotes. The two backends agree on every
 node of this pair -- `tests/test_sample_pair_change_tree.py` asserts exactly
 that -- so naming one costs no coverage.
 
+**The HTML fragments** (#182, ADR-0038). Each twin's change list,
+`redlines.comparison.Comparison.output_html`, and its document view,
+``output_annotated(syntax="html")``, are written under ``expected/rendered/``
+as ``changes.<profile>.html`` and ``annotated.<profile>.html``, from the same
+`build_comparison` the change-tree goldens use, so the backend is
+`GOLDEN_BACKEND` and the profile is named. They are written with
+``newline=""``, as every rendered golden is read: a fragment keeps the
+newlines a document's text has, and a translated line ending would be a
+different fragment. `tests/test_render_html.py` checks them byte for byte.
+
 These are *not* the M0 golden outputs of `tests/corpus/regenerate_goldens.py`,
 which renders a redline for every case directory; ``sample_pair`` is listed in
 that test's ``NOT_GOLDEN_CASES``.
@@ -174,6 +184,33 @@ def dump_comparison(comparison: Comparison) -> str:
     )
 
 
+RENDERED_DIR = EXPECTED_DIR / "rendered"
+
+
+def html_golden_paths(profile_name: str) -> tuple[Path, Path]:
+    """Return the change-list and document-view golden paths for one twin (#182)."""
+    return (
+        RENDERED_DIR / f"changes.{profile_name}.html",
+        RENDERED_DIR / f"annotated.{profile_name}.html",
+    )
+
+
+def regenerate_html() -> None:
+    """Write both HTML fragments of each twin, with ``newline=""`` (#182)."""
+    RENDERED_DIR.mkdir(exist_ok=True)
+    for source_name, test_name, format, profile_name in CHANGE_PAIRINGS:
+        comparison = build_comparison(
+            source_name, test_name, format=format, profile_name=profile_name
+        )
+        changes, annotated = html_golden_paths(profile_name)
+        for target, text in (
+            (changes, comparison.output_html()),
+            (annotated, comparison.output_annotated(syntax="html")),
+        ):
+            target.write_text(text, encoding="utf-8", newline="")
+            print(f"wrote {target.relative_to(CASE_DIR.parent.parent)}")
+
+
 def regenerate() -> None:
     EXPECTED_DIR.mkdir(exist_ok=True)
     for input_name, format, profile_name in PAIRINGS:
@@ -193,6 +230,7 @@ def regenerate() -> None:
             f"wrote {target.relative_to(CASE_DIR.parent.parent)} "
             f"({len(comparison.changes.changes)} change nodes)"
         )
+    regenerate_html()
 
 
 if __name__ == "__main__":
