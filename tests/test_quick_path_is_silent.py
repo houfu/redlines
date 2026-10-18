@@ -16,11 +16,13 @@ is redlines' own, and fails the test, when
 1. its ``filename`` is under the installed ``redlines`` package: it was raised in
    our code; or
 2. its category is, or subclasses, a class defined in the ``redlines`` package.
-   None exists yet. The rule reads the module of every class in the category's
-   MRO, so it applies to the first one that is added without being told about
-   it. It matters because a deprecation warning is normally raised with
-   ``stacklevel`` aimed at the *caller*: its filename is the user's code, not
-   ours, and rule 1 alone would let it through; or
+   Redlines' own warning categories (``RedlinesPendingDeprecationWarning`` and
+   ``RedlinesDeprecationWarning``, added by the deprecation mechanism) are
+   matched by module and MRO, so this rule needs no list of names and applies to
+   any class added later without being told about it. It matters because a
+   deprecation warning is normally raised with ``stacklevel`` aimed at the
+   *caller*: its filename is the user's code, not ours, and rule 1 alone would
+   let it through; or
 3. its ``filename`` is code that calls the library on the quick path: this
    module, a README block it runs, or a script in ``examples/``. That is the
    same ``stacklevel`` effect when the caller is one of those. The baseline is
@@ -559,8 +561,8 @@ def test_every_example_script_is_run() -> None:
 
 # --- the rules and the harness, tried on warnings made on purpose ----------
 #
-# Nothing in redlines warns yet, so without these the tests above could not tell
-# a rule that works from one that never fires.
+# Nothing on the quick path warns, which is what the tests above assert, so
+# without these they could not tell a rule that works from one that never fires.
 
 
 def library_that_warns_at_its_caller() -> None:
@@ -586,8 +588,8 @@ def test_a_warning_raised_inside_the_package_is_counted() -> None:
 
 
 def test_a_warning_class_of_the_package_is_counted_wherever_it_points() -> None:
-    # No such class exists yet, so make one that claims to live in the package,
-    # and one that subclasses it from elsewhere.
+    # Stand-ins, so that the test needs no class from the package: one that
+    # claims to live in the package, and one that subclasses it from elsewhere.
     in_package = cast(
         "type[Warning]",
         type("PackageWarning", (DeprecationWarning,), {"__module__": "redlines.x"}),
