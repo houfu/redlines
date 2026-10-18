@@ -41,7 +41,6 @@ from rich.text import Text
 from ..blocks import BlockKind
 from ._inplace import Chunk, _filter_value, layout
 from ._marks import RICH
-from ._view import BlockStatus
 
 if TYPE_CHECKING:  # pragma: no cover - imported for annotations only
     from ..comparison import Comparison
@@ -91,25 +90,35 @@ def render_rich(comparison: Comparison) -> Text:
         docstring for the layout and the styles.
     """
     text = Text()
-    for run in _header(comparison):
-        _append(text, run)
+    for segment, style in _kept(_header(comparison)):
+        text.append(segment, style)
     for chunk in layout(comparison, RICH, syntax="text", roles=False):
         if chunk.block is None:
             continue  # a header note, written above in the HTML header's words
-        runs = _chunk_runs(chunk)
-        if not any(segment for segment, _ in runs):
+        runs = _kept(_chunk_runs(chunk))
+        if not runs:
             continue  # an empty chunk is left out, as in every in-place output
-        _append(text, ("\n\n", None))
-        for run in runs:
-            _append(text, run)
+        text.append("\n\n")
+        for segment, style in runs:
+            text.append(segment, style)
     return text
 
 
-def _append(text: Text, run: _Run) -> None:
-    """Append one run, skipping an empty one: rich versions differ on empty spans."""
-    segment, style = run
-    if segment:
-        text.append(segment, style)
+def _kept(runs: list[_Run]) -> list[_Run]:
+    """The runs as rich keeps them, without any that would come out empty.
+
+    `rich.text.Text` drops a few control characters (bell, backspace,
+    vertical tab, form feed, carriage return), and ``Text.append`` checks a
+    run's length before it drops them, so a run made only of those would leave
+    an empty span; rich versions also differ on whether an empty run makes one.
+    ``Text(segment).plain`` is what this rich keeps of a segment.
+    """
+    kept: list[_Run] = []
+    for segment, style in runs:
+        remaining = Text(segment).plain
+        if remaining:
+            kept.append((remaining, style))
+    return kept
 
 
 def _header(comparison: Comparison) -> list[_Run]:
@@ -154,13 +163,11 @@ def _notices(comparison: Comparison) -> list[str]:
 
 
 def _chunk_runs(chunk: Chunk) -> list[_Run]:
-    """One laid-out block or note line, as styled runs."""
-    block = chunk.block
-    heading = (
-        block is not None
-        and block.kind is BlockKind.HEADING
-        and chunk.status is not BlockStatus.ORIGIN
-    )
+    """One laid-out block or note line, as styled runs.
+
+    A tombstone holds only a note, so a heading's tombstone stays magenta.
+    """
+    heading = chunk.block is not None and chunk.block.kind is BlockKind.HEADING
 
     def styled(mark: str | None) -> str | None:
         if not heading:
@@ -173,11 +180,11 @@ def _chunk_runs(chunk: Chunk) -> list[_Run]:
             runs.append((piece.text, NOTE_STYLE))
         elif piece.kind in _MARK_STYLES:
             runs.append((piece.text, styled(_MARK_STYLES[piece.kind])))
-        elif piece.kind == "substitution":  # pragma: no cover - RICH has no substitution
-            runs.append((piece.text, styled(DELETE_STYLE)))
-            runs.append((piece.new, styled(INSERT_STYLE)))
         elif piece.kind == "text":
             runs.append((piece.text, styled(None)))
         else:
-            runs.append((piece.text, None))  # the renderer's own syntax: pipes, newlines
+            # The renderer's own syntax: a table's pipes and the newlines
+            # between its rows. RICH has no roles and no substitution, so the
+            # layout writes no other kind of piece.
+            runs.append((piece.text, None))
     return runs

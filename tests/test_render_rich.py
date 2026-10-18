@@ -255,11 +255,14 @@ def test_document_text_that_looks_like_markup_stays_literal() -> None:
 def test_headings_are_bold_and_no_role_is_shown() -> None:
     comparison = sample_markdown()
     text = comparison.output_rich()
-    bold = [covered for covered, style in runs(text) if style.startswith("bold")]
+    styles = [style for _, style in runs(text)]
     headings = [
         block for block in comparison.test.walk() if block.kind is BlockKind.HEADING
     ]
-    assert headings and len(bold) == len(headings) + 1  # and the total
+    # No heading of the sample pair is edited, so each is plain bold: one
+    # span apiece, and the total. A marked heading is "bold green" and so on.
+    assert not any(style.startswith("bold ") for style in styles)
+    assert headings and styles.count("bold") == len(headings) + 1
     assert "[clause]" not in text.plain and "[definition]" not in text.plain
     assert any(block.role for block in comparison.test.walk())
     assert not any(
@@ -294,6 +297,36 @@ def test_no_run_is_empty() -> None:
         "moved_neighbour",
     ):
         assert all(span.end > span.start for span in case(name).output_rich().spans)
+
+
+def test_a_run_of_control_characters_alone_writes_nothing() -> None:
+    """rich drops a few control characters after checking a run's length; no empty span is left.
+
+    The readers strip these characters themselves, so only a hand-built tree
+    or a round-tripped payload can carry them.
+    """
+    stray = compare(
+        tree(
+            Block(kind=BlockKind.PARAGRAPH, text="Kept."),
+            Block(kind=BlockKind.PARAGRAPH, text="\x0c"),
+        ),
+        tree(Block(kind=BlockKind.PARAGRAPH, text="Kept.")),
+    )
+    text = stray.output_rich()
+    assert (
+        text.plain
+        == "1 change: 0 inserted, 1 deleted, 0 modified, 0 moved, 0 renumbered\n\nKept."
+    )
+    assert runs(text) == [("1 change", "bold")]
+    mixed = compare(tree(), tree(Block(kind=BlockKind.PARAGRAPH, text="a\x07b")))
+    assert runs(mixed.output_rich())[1:] == [("ab", "green")]
+
+
+def test_the_rich_set_has_notes_and_nothing_to_spell() -> None:
+    """What the renderer relies on: no roles, no substitution, no whole moves, empty delimiters."""
+    assert RICH.notes and not RICH.roles and not RICH.whole_moves
+    assert RICH.substitution is None
+    assert RICH.insert == RICH.delete == RICH.note == ("", "")
 
 
 def test_the_document_is_the_rich_set_spelled_as_text() -> None:
