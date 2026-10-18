@@ -20,7 +20,8 @@ Beyond "does not raise", four things are held on every run:
   included. The renderers read a rebuilt comparison, so the order a delete
   sits in may depend only on fields that survive the trip (D15, rule 7);
 - `redlines.changes.Anchors` places every source block the same way from the
-  rebuilt comparison as from the original;
+  rebuilt comparison as from the original, and every anchor's ``after`` is a
+  child of its ``test_parent``;
 - two builds of the same run give identical payloads (N1): the change list,
   its order and the statistics are a function of the input and nothing else.
 
@@ -117,6 +118,31 @@ def test_anchors_place_every_block_alike_after_the_round_trip(name: str) -> None
     )
     for block in original.source.walk():
         assert after.place(block.path) == before.place(block.path), block.path
+
+
+@pytest.mark.parametrize("name", NAMES)
+def test_every_anchor_names_a_child_of_its_test_parent(name: str) -> None:
+    """``after`` is ``None`` or a child of ``test_parent``, for every source block.
+
+    A sibling counts as having stayed in place only if its counterpart sits
+    under the same test parent; a block that rode along inside a moved
+    clause into another limb must not be one. No committed run holds that
+    case (``tests/test_delete_anchor.py`` builds one by hand), so this holds
+    the shape of every anchor the corpus does produce.
+    """
+    comparison = compared(name)
+    test_parent = {
+        child.path: block.path
+        for block in comparison.test.walk()
+        for child in block.children
+    }
+    placed = Anchors(
+        source=comparison.source, test=comparison.test, alignment=comparison.alignment
+    )
+    for block in comparison.source.walk():
+        anchor = placed.place(block.path)
+        if anchor is not None and anchor.after is not None:
+            assert test_parent[anchor.after] == anchor.test_parent, block.path
 
 
 @pytest.mark.parametrize("name", NAMES)

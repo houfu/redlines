@@ -499,3 +499,39 @@ def test_a_section_deleted_whole_keeps_its_row_after_the_section_before_it() -> 
         ("/section[2]", "Price", 2, 0),
         ("/section[3]", "Insurance", 0, 1),
     ]
+
+
+INTRODUCTION_WITH_A_SUBSECTION = (
+    "## 1. Introduction\n\n### 1.1 Scope of services\n\n"
+    "1.1.1 The Supplier shall supply the Services described in Schedule One.\n\n"
+    "## 2. Fees\n\n2.1 The Client shall pay the Fees monthly in arrears.\n"
+)
+RETITLED_WITHOUT_THE_SUBSECTION = (
+    "## 1. Zebra Crossing\n\n"
+    "## 2. Fees\n\n2.1 The Client shall pay the Fees monthly in arrears.\n"
+)
+
+
+def test_a_deleted_first_subsection_is_listed_right_after_its_own_section() -> None:
+    """Section 1 was retitled and its only subsection, 1.1, deleted whole.
+
+    Nothing before 1.1 in section 1 stayed, since the old heading was
+    replaced, so the deleted subsection sits first in section 1: at section
+    1's own position, just after it. Its row comes straight after section
+    1's row, the way its ``delete`` node sorts after a node at the same
+    position, and before section 2's.
+    """
+    result = compare(
+        INTRODUCTION_WITH_A_SUBSECTION,
+        RETITLED_WITHOUT_THE_SUBSECTION,
+        format="markdown",
+        alignment=_DIFFLIB,
+    )
+
+    assert [
+        (s.address, s.heading, s.counts.deleted) for s in result.statistics().sections
+    ] == [
+        ("/section[1]", "Zebra Crossing", 1),
+        ("/section[1]/section[1]", "Scope of services", 1),
+        ("/section[2]", "Fees", 0),
+    ]
