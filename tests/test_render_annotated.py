@@ -534,6 +534,59 @@ def test_a_table_is_marked_one_cell_at_a_time_with_pipes_in_cells_escaped() -> N
             cm.parse(cell)
 
 
+TABLE_ONE = "| c | d |\n| --- | --- |\n| 3 | 4 |\n"
+TABLE_TWO = "| a | b |\n| --- | --- |\n| 1 | 2 |\n"
+
+
+@pytest.mark.parametrize(
+    "source, test",
+    [
+        pytest.param(
+            f"Intro.\n\n{TABLE_ONE}\n{TABLE_TWO}",
+            f"Intro.\n\n{TABLE_ONE}",
+            id="deleted_after",
+        ),
+        pytest.param(
+            f"Intro.\n\n{TABLE_TWO}\n{TABLE_ONE}",
+            f"Intro.\n\n{TABLE_ONE}",
+            id="deleted_before",
+        ),
+        pytest.param(
+            f"Intro.\n\n{TABLE_ONE}",
+            f"Intro.\n\n{TABLE_ONE}\n{TABLE_TWO}",
+            id="inserted_after",
+        ),
+        pytest.param(
+            f"Intro.\n\n{TABLE_ONE}",
+            f"Intro.\n\n{TABLE_TWO}\n{TABLE_ONE}",
+            id="inserted_before",
+        ),
+    ],
+)
+def test_a_whole_table_marked_beside_another_leaves_no_alignment_row_behind(
+    source: str, test: str
+) -> None:
+    """The removed table's alignment row is judged within its own block, so the
+    neighbouring table's last row does not keep it."""
+    annotated = md(source, test).output_annotated()
+    assert cm.accept_all(annotated) == cm.accept_all(md(test, test).output_annotated())
+    assert cm.multiset(
+        cm.reject_all(annotated), cm.reject_all(md(source, source).output_annotated())
+    )
+    # The rule itself, on what accepting a deleted second table leaves.
+    assert cm.residue(
+        [
+            "| c | d |",
+            "| --- | --- |",
+            "| 3 | 4 |",
+            "",
+            "|  |  |",
+            "| --- | --- |",
+            "|  |  |",
+        ]
+    ) == ["| c | d |", "| --- | --- |", "| 3 | 4 |"]
+
+
 def test_a_fence_carries_its_marks_inside_and_outgrows_its_longest_backtick_run() -> (
     None
 ):
