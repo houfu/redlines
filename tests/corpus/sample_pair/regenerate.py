@@ -57,7 +57,7 @@ keeps the same discipline for the change-tree goldens: it calls the public
 `redlines.comparison.compare` itself rather than this script's
 `build_comparison`.
 
-**The rendered goldens** (#179 to #181, ADR-0037 "Fixtures"), written with
+**The rendered goldens** (#179 to #182, ADR-0037 "Fixtures"), written with
 ``--rendered``, are what the renderers of `redlines.comparison.Comparison` draw for the
 two comparisons above, under the same `GOLDEN_BACKEND`. Each renderer appends
 its own rows to `RENDERINGS` and reorders none, because the renderers are
@@ -71,7 +71,11 @@ calling `RENDERINGS`, as the tests above do. Among the rows:
 - ``annotated.markdown.md`` and ``annotated.contract.txt`` are
   `redlines.comparison.Comparison.output_annotated` for the markdown and the
   plain-text twin; ``annotated.markdown.md`` is the golden houfu reads and
-  approves, and ``tests/test_sample_pair_annotated.py`` byte-checks both.
+  approves, and ``tests/test_sample_pair_annotated.py`` byte-checks both;
+- ``changes.<profile>.html`` and ``annotated.<profile>.html`` are each twin's
+  two HTML fragments (ADR-0038), `redlines.comparison.Comparison.output_html`
+  and ``output_annotated(syntax="html")``, which ``tests/test_render_html.py``
+  checks byte for byte.
 """
 
 from __future__ import annotations
@@ -258,6 +262,16 @@ def dump_rich(comparison: Comparison) -> str:
     return f'{{\n  "plain": {plain},\n  "spans": [\n{rows}  ]\n}}\n'
 
 
+def _changes_html(comparison: Comparison) -> str:
+    """The change list fragment, ``Comparison.output_html`` (#182)."""
+    return comparison.output_html()
+
+
+def _annotated_html(comparison: Comparison) -> str:
+    """The document view fragment, ``output_annotated(syntax="html")`` (#182)."""
+    return comparison.output_annotated(syntax="html")
+
+
 RENDERINGS: tuple[tuple[str, str, Callable[[Comparison], str]], ...] = (
     # Comparison.output_markdown (#179): every style, on the markdown twin as
     # markdown and on the text twin as text.
@@ -278,6 +292,13 @@ RENDERINGS: tuple[tuple[str, str, Callable[[Comparison], str]], ...] = (
         "annotated.contract.txt",
         "contract",
         lambda comparison: comparison.output_annotated(),
+    ),
+    # Comparison.output_html and output_annotated(syntax="html") (#182): both
+    # HTML fragments, on each twin.
+    *(
+        (f"{view}.{profile_name}.html", profile_name, render)
+        for profile_name in ("markdown", "contract")
+        for view, render in (("changes", _changes_html), ("annotated", _annotated_html))
     ),
 )
 """Every rendered golden: its file under `RENDERED_DIR`, the profile naming its

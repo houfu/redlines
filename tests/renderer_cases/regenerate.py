@@ -79,6 +79,16 @@ def dump_rich(comparison: Comparison) -> str:
     return f'{{\n  "plain": {plain},\n  "spans": [\n{rows}  ]\n}}\n'
 
 
+def _changes_html(comparison: Comparison) -> str:
+    """The change list fragment, ``Comparison.output_html`` (#182)."""
+    return comparison.output_html()
+
+
+def _annotated_html(comparison: Comparison) -> str:
+    """The document view fragment, ``output_annotated(syntax="html")`` (#182)."""
+    return comparison.output_annotated(syntax="html")
+
+
 GOLDENS: tuple[Golden, ...] = (
     # Comparison.output_markdown (#179): the none style on every case. Four of
     # them pin placement, the legacy picture of a nested move and the absence
@@ -93,6 +103,10 @@ GOLDENS: tuple[Golden, ...] = (
         "annotated.text.txt",
         lambda comparison: comparison.output_annotated(syntax="text"),
     ),
+    # Comparison.output_html and output_annotated(syntax="html") (#182): both
+    # HTML fragments of every case.
+    ("changes.html", _changes_html),
+    ("annotated.html", _annotated_html),
 )
 """The goldens every case has."""
 

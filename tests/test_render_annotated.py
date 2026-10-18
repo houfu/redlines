@@ -160,12 +160,10 @@ def test_syntax_none_is_text_for_a_comparison_of_two_block_trees() -> None:
     assert comparison.output_annotated(syntax="markdown") == "## 1. Delivery"
 
 
-def test_syntax_html_is_accepted_and_not_yet_rendered() -> None:
-    with pytest.raises(NotImplementedError) as raised:
-        case("four_kinds").output_annotated(syntax="html")
-    assert (
-        str(raised.value)
-        == "output_annotated(syntax='html') arrives with the HTML renderer"
+def test_syntax_html_is_accepted_and_renders_the_document_view() -> None:
+    rendered = case("four_kinds").output_annotated(syntax="html")
+    assert rendered.startswith(
+        '<section class="redlines" data-redlines-view="document"'
     )
 
 

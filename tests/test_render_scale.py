@@ -88,6 +88,8 @@ def _steps(comparison: Comparison) -> dict[str, Callable[[], object]]:
         "markdown render": lambda: comparison.output_markdown("none"),
         "rich render": comparison.output_rich,
         "annotated render": lambda: comparison.output_annotated(),
+        "html change list": comparison.output_html,
+        "html document": lambda: comparison.output_annotated(syntax="html"),
     }
 
 
@@ -124,3 +126,13 @@ def test_the_markdown_and_rich_renders_of_the_scale_pair_mark_every_deletion(
     assert half_deleted.output_rich().plain.startswith(
         f"{BLOCKS // 2} changes: 0 inserted, {BLOCKS // 2} deleted"
     )
+
+
+def test_both_html_fragments_of_the_scale_pair_draw_every_delete(
+    half_deleted: Comparison,
+) -> None:
+    """The change list has a row per delete, and the document view a ghost (#182)."""
+    changes = half_deleted.output_html()
+    assert changes.count('<li class="redlines-change"') == BLOCKS // 2
+    document = half_deleted.output_annotated(syntax="html")
+    assert document.split("</style>", 1)[1].count('data-kind="delete"') == BLOCKS // 2

@@ -42,6 +42,7 @@ __all__: tuple[str, ...] = (
     "DEFAULT_DEL_CLASS",
     "custom_css",
     "RICH",
+    "HTML",
 )
 
 Escape = Literal["none", "critic", "html"]
@@ -190,3 +191,23 @@ run with a style rather than with characters, so ``_rich`` appends each piece
 to a `rich.text.Text` with its own style -- an insertion ``green``, a deletion
 ``strike red``, a note ``magenta`` -- and this set spelled as a string is the
 rendering's plain text."""
+
+HTML: Final[MarkSet] = MarkSet(
+    name="html",
+    insert=("<ins>", "</ins>"),
+    delete=("<del>", "</del>"),
+    note=('<span class="redlines-note">', "</span>"),
+    role=('<span class="redlines-role">', "</span> "),
+    escape="html",
+    whole_moves=False,
+)
+"""The HTML document view's set (ADR-0037, ADR-0038): ``<ins>`` and ``<del>``,
+a replacement as a delete then an insert, notes and role prefixes as elements,
+moves drawn in place with notes, and every piece of document text through
+``html.escape`` (`redlines.renderers._escape.html_text`).
+
+The role prefix is the role span and then a space, as CriticMarkup's ``[ROLE]``
+is followed by one, so a block's text reads ``clause 1.1 The Supplier …``
+rather than running the role into the label. ``redlines.renderers._html``
+spells the label part and the tables itself, because a fragment needs
+elements where the layout has flat pieces."""

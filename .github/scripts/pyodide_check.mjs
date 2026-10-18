@@ -113,6 +113,19 @@ annotated = pair.output_annotated()
 assert annotated == annotated_expected, f"unexpected annotated view: {annotated!r}"
 annotated_text = pair.output_annotated(syntax="text")
 assert annotated_text == annotated_expected, f"unexpected text view: {annotated_text!r}"
+
+# The HTML fragments (ADR-0038): the change list and the document view.
+import redlines.renderers._html
+from redlines.renderers import FRAGMENT_VERSION, STYLESHEET
+
+assert FRAGMENT_VERSION == "1.0", FRAGMENT_VERSION
+changes = pair.output_html()
+assert changes.startswith('<section class="redlines" data-redlines-view="changes"'), changes[:120]
+assert changes.count("<style>" + STYLESHEET + "</style>") == 1, "the change list's stylesheet"
+assert '<li class="redlines-change" data-index="0" data-kind="modify"' in changes, changes[-600:]
+document = pair.output_annotated(syntax="html")
+assert document.startswith('<section class="redlines" data-redlines-view="document"'), document[:120]
+assert "<del>jumps over </del><ins>walks past </ins>" in document, document[-600:]
 f"redlines ok; profile {profile.name!r} loaded; renderer core ok"
 `;
 
