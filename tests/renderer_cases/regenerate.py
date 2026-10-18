@@ -85,8 +85,14 @@ GOLDENS: tuple[Golden, ...] = (
     # of escaping, not styling.
     ("markdown.none.md", _markdown("none")),
     # Comparison.output_annotated (#181): both CriticMarkup syntaxes on every case.
-    ("annotated.markdown.md", lambda comparison: comparison.output_annotated(syntax="markdown")),
-    ("annotated.text.txt", lambda comparison: comparison.output_annotated(syntax="text")),
+    (
+        "annotated.markdown.md",
+        lambda comparison: comparison.output_annotated(syntax="markdown"),
+    ),
+    (
+        "annotated.text.txt",
+        lambda comparison: comparison.output_annotated(syntax="text"),
+    ),
 )
 """The goldens every case has."""
 

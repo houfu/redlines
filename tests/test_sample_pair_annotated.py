@@ -104,7 +104,7 @@ def heading(twin: Twin, text: str) -> str:
     return ("## " if twin is MARKDOWN else "") + text
 
 
-# --- P1 to P6 ---------------------------------------------------------------------------
+# --- P1 to P6 -------------------------------------------------------------------------
 
 
 @pytest.mark.parametrize("twin", TWINS)
@@ -114,7 +114,9 @@ def test_p1_accept_all_equals_the_test_rendering_line_for_line(twin: Twin) -> No
 
 
 @pytest.mark.parametrize("twin", TWINS)
-def test_p2_reject_all_equals_the_source_rendering_as_a_strict_multiset(twin: Twin) -> None:
+def test_p2_reject_all_equals_the_source_rendering_as_a_strict_multiset(
+    twin: Twin,
+) -> None:
     source_rendering = compared(twin, "source", "source").output_annotated()
     assert cm.multiset(cm.reject_all(annotated(twin)), cm.reject_all(source_rendering))
 
@@ -124,20 +126,26 @@ def _bare_reject(text: str) -> Counter[str]:
     return Counter(line.strip() for line in cm.lines(text, "reject") if line.strip())
 
 
-def test_p2_without_the_residue_rule_only_the_markdown_inserted_row_is_left_over() -> None:
+def test_p2_without_the_residue_rule_only_the_markdown_row_is_left_over() -> None:
     for twin in (MARKDOWN, TEXT):
         rejected = _bare_reject(annotated(twin))
         source = _bare_reject(compared(twin, "source", "source").output_annotated())
         assert source - rejected == Counter()
         leftover = rejected - source
-        assert leftover == (Counter({"|  |  |  |": 1}) if twin is MARKDOWN else Counter()), twin
+        assert leftover == (
+            Counter({"|  |  |  |": 1}) if twin is MARKDOWN else Counter()
+        ), twin
 
 
 @pytest.mark.parametrize("twin", TWINS)
-def test_p3_exactly_eleven_lines_carry_a_mark_the_ten_nodes_and_one_tombstone(twin: Twin) -> None:
+def test_p3_exactly_eleven_lines_carry_a_mark_the_ten_nodes_and_one_tombstone(
+    twin: Twin,
+) -> None:
     carrying = [line for line in lines(twin) if marks(line)]
     assert len(carrying) == 11
-    tombstones = [line for line in carrying if line.startswith("{>>") and line.endswith("<<}")]
+    tombstones = [
+        line for line in carrying if line.startswith("{>>") and line.endswith("<<}")
+    ]
     assert tombstones == ["{>>7.5 moved to 9.6 /section[1]/section[9]/list_item[6]<<}"]
     drawn = [line for line in carrying if line not in tombstones]
     nodes = list(compared(twin).changes)
@@ -148,7 +156,11 @@ def test_p3_exactly_eleven_lines_carry_a_mark_the_ten_nodes_and_one_tombstone(tw
         side: cm.Side = "reject" if node.kind is ChangeKind.DELETE else "accept"
         text = _drawn_text(node, test_blocks)
         hits = [line for line in drawn if text in "\n".join(cm.lines(line, side))]
-        assert len(hits) == 1, (node.kind, node.test_address or node.source_address, hits)
+        assert len(hits) == 1, (
+            node.kind,
+            node.test_address or node.source_address,
+            hits,
+        )
         drawing.extend(hits)
     assert sorted(drawing) == sorted(drawn)
 
@@ -178,12 +190,16 @@ def test_p4_clause_11_5_appears_once_on_one_line_unmarked(twin: Twin) -> None:
 
 
 def _schedule_2_items(rendered: list[str], title: str) -> list[str]:
-    at = next(index for index, block in enumerate(rendered) if cm.strip_roles(block) == title)
+    at = next(
+        index for index, block in enumerate(rendered) if cm.strip_roles(block) == title
+    )
     return rendered[at + 1 :]
 
 
 @pytest.mark.parametrize("twin", TWINS)
-def test_p5_in_schedule_2_exactly_one_of_the_eight_items_carries_marks(twin: Twin) -> None:
+def test_p5_in_schedule_2_exactly_one_of_the_eight_items_carries_marks(
+    twin: Twin,
+) -> None:
     title = ("# " if twin is MARKDOWN else "") + "Schedule 2. Service Levels"
     items = _schedule_2_items(blocks(twin), title)
     assert len(items) == 8
@@ -199,7 +215,9 @@ def test_p5_in_schedule_2_exactly_one_of_the_eight_items_carries_marks(twin: Twi
 
 @pytest.mark.parametrize("side", ["source", "test"])
 @pytest.mark.parametrize("twin", TWINS)
-def test_p6_a_document_compared_with_itself_carries_no_mark(twin: Twin, side: str) -> None:
+def test_p6_a_document_compared_with_itself_carries_no_mark(
+    twin: Twin, side: str
+) -> None:
     same = compared(twin, side, side)
     assert list(same.changes) == []
     assert marks(same.output_annotated()) == []
@@ -236,18 +254,23 @@ sys.stdout.write(json.dumps(outputs))
             assert outputs[twin.profile] == handle.read()
 
 
-# --- rows 1 to 8: the eight changes of PRD § 3a -----------------------------------------
+# --- rows 1 to 8: the eight changes of PRD § 3a ---------------------------------------
 
 
 @pytest.mark.parametrize("twin", TWINS)
-def test_row_1_the_2_4_definition_carries_one_insertion_and_no_other_mark(twin: Twin) -> None:
+def test_row_1_the_2_4_definition_carries_one_insertion_and_no_other_mark(
+    twin: Twin,
+) -> None:
     line = the_line(twin, '2.4 "Confidential Information"')
     assert line.endswith(
         " marked as {++confidential, or that the receiving party ought reasonably to treat "
         "as ++}confidential."
     )
     assert marks(line) == [
-        cm.Token("insert", "confidential, or that the receiving party ought reasonably to treat as ")
+        cm.Token(
+            "insert",
+            "confidential, or that the receiving party ought reasonably to treat as ",
+        )
     ]
 
 
@@ -271,11 +294,15 @@ def test_row_2_clause_7_5_is_drawn_at_9_6_with_its_edit_and_a_tombstone_after_7_
     assert drawn[at + 1] == BODY
     assert drawn[at + 2] == heading(twin, "10. Liability")
     assert drawn.count(TOMBSTONE) == 1
-    assert cm.strip_roles(drawn[drawn.index(TOMBSTONE) - 1]).startswith("7.4 Neither party")
+    assert cm.strip_roles(drawn[drawn.index(TOMBSTONE) - 1]).startswith(
+        "7.4 Neither party"
+    )
     # No unmarked 7.5 anywhere: the label is only in the substitution and the
     # two notes, so accepting every mark leaves none.
     view = annotated(twin)
-    assert not any("7.5" in token.text for token in cm.parse(view) if token.kind == "text")
+    assert not any(
+        "7.5" in token.text for token in cm.parse(view) if token.kind == "text"
+    )
     assert not any("7.5" in line for line in cm.lines(view, "accept"))
 
 
@@ -306,7 +333,10 @@ def test_row_5_the_deleted_sub_clause_c_stands_between_b_and_5_5(twin: Twin) -> 
     at = drawn.index(
         "[sub_clause] {--(c) The Client pays the undisputed part of the invoice on the due date.--}"
     )
-    assert drawn[at - 1] == "[sub_clause] (b) The notice states the amount in dispute and the reason for it."
+    assert (
+        drawn[at - 1]
+        == "[sub_clause] (b) The notice states the amount in dispute and the reason for it."
+    )
     assert drawn[at + 1].startswith("[clause] 5.5 Interest runs")
 
 
@@ -321,9 +351,17 @@ def test_row_6_markdown_the_inserted_row_sits_between_test_report_and_go_live() 
 
 def test_row_6_text_the_inserted_deliverable_is_one_inserted_paragraph() -> None:
     drawn = blocks(TEXT)
-    at = drawn.index("[schedule] {++The training day is due by Week 9 and is owned by the Client.++}")
-    assert drawn[at - 1] == "[schedule] The test report is due by Week 8 and is owned by the Supplier."
-    assert drawn[at + 1] == "[schedule] The go-live sign-off is due by Week 10 and is owned by the Client."
+    at = drawn.index(
+        "[schedule] {++The training day is due by Week 9 and is owned by the Client.++}"
+    )
+    assert (
+        drawn[at - 1]
+        == "[schedule] The test report is due by Week 8 and is owned by the Supplier."
+    )
+    assert (
+        drawn[at + 1]
+        == "[schedule] The go-live sign-off is due by Week 10 and is owned by the Client."
+    )
 
 
 @pytest.mark.parametrize("twin", TWINS)
@@ -343,13 +381,15 @@ ROW_8 = (
 
 
 @pytest.mark.parametrize("twin", TWINS)
-def test_row_8_the_repetitive_schedule_marks_item_3_and_nothing_else(twin: Twin) -> None:
+def test_row_8_the_repetitive_schedule_marks_item_3_and_nothing_else(
+    twin: Twin,
+) -> None:
     prefix = "3. [schedule] " if twin is MARKDOWN else "[schedule] 3. "
     assert lines(twin).count(prefix + ROW_8) == 1
     assert [token.kind for token in marks(prefix + ROW_8)] == ["substitution"] * 3
 
 
-# --- the goldens ------------------------------------------------------------------------
+# --- the goldens ----------------------------------------------------------------------
 
 
 @pytest.mark.parametrize("twin", TWINS)

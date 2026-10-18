@@ -269,8 +269,16 @@ RENDERINGS: tuple[tuple[str, str, Callable[[Comparison], str]], ...] = (
     # Comparison.output_rich (#180): the markdown twin.
     ("rich.markdown.json", "markdown", dump_rich),
     # Comparison.output_annotated (#181): the CriticMarkup view of each twin.
-    ("annotated.markdown.md", "markdown", lambda comparison: comparison.output_annotated()),
-    ("annotated.contract.txt", "contract", lambda comparison: comparison.output_annotated()),
+    (
+        "annotated.markdown.md",
+        "markdown",
+        lambda comparison: comparison.output_annotated(),
+    ),
+    (
+        "annotated.contract.txt",
+        "contract",
+        lambda comparison: comparison.output_annotated(),
+    ),
 )
 """Every rendered golden: its file under `RENDERED_DIR`, the profile naming its
 twin in `CHANGE_PAIRINGS`, and what draws it. Each renderer appends its own
