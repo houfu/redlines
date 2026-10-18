@@ -65,10 +65,13 @@ from importlib.resources import files
 from pathlib import Path
 from typing import Any, Final, Literal
 
+from rich.text import Text
+
 from .alignment import DEFAULT_ALIGNMENT, Alignment, AlignmentConfig, align
 from .blocks import BlockTree, _reject_unknown_keys
 from .changes import ChangeKind, ChangeTree, build_change_tree
 from .document import Document
+from .enums import MarkdownStyle
 from .filters import ChangeFilter, filter_changes
 from .pipeline import _resolve_profile, read_document
 from .processor import RedlinesProcessor, WholeDocumentProcessor
@@ -77,7 +80,8 @@ from .readers import DEFAULT_MAX_CHARS
 from .readers.detect import detect_format
 from .renderers._html import render_change_list, render_document
 from .renderers._inplace import render_inplace
-from .renderers._marks import CRITIC
+from .renderers._marks import CRITIC, DEFAULT_DEL_CLASS, DEFAULT_INS_CLASS, LEGACY, custom_css
+from .renderers._rich import render_rich
 from .statistics import ComparisonStatistics, statistics as _statistics
 
 __all__: tuple[str, ...] = (
@@ -258,6 +262,13 @@ class Comparison:
     have. ``statistics()`` (#139) and ``filter()`` (#138) land the same way,
     on the object rather than as loose functions.
 
+    The renderers that have landed, by signature (ADR-0037):
+
+    - ``output_markdown(style=MarkdownStyle.RED_GREEN, *, ins_class=None, del_class=None) -> str``
+    - ``output_rich() -> rich.text.Text``
+    - ``output_annotated(*, syntax=None, roles=True) -> str``
+    - ``output_html() -> str``
+
     :param source: the earlier document's block tree.
     :param test: the later one's.
     :param alignment: every correspondence between them, unchanged pairs
@@ -333,6 +344,115 @@ class Comparison:
             changes=filter_changes(self.changes, spec),
             config=replace(self.config, filter=spec),
         )
+
+    def output_markdown(
+        self,
+        style: MarkdownStyle | str = MarkdownStyle.RED_GREEN,
+        *,
+        ins_class: str | None = None,
+        del_class: str | None = None,
+    ) -> str:
+        """Return the test document with this comparison's changes marked in a 0.6 style (ADR-0037).
+
+        The output is the *test* document, block by block with a blank line
+        between blocks, and every change marked where a reader looks for it:
+
+        - an inserted or deleted block is one mark around its label and text;
+          a deleted block stands where it stood, among the blocks that stayed
+          (ADR-0033's anchor);
+        - a modified block marks its own edits inline, a replacement as a
+          delete then an insert, every mark keeping its whitespace inside as
+          0.6's do;
+        - a renumbered label is the old label deleted and the new one
+          inserted, before the text;
+        - a move is drawn as 0.6 draws one, since these styles cannot say
+          "moved": the moved block's whole source subtree struck where it
+          was, and its whole test subtree inserted where it is now.
+
+        A markdown test document comes out as markdown -- headings, list
+        markers, quotes, fenced code with its marks inside the fence, and
+        pipe tables whose marks never span a ``|`` -- and any other as text
+        with no line syntax. Either way the output is a normalised document,
+        not the input bytes: hard wraps are re-joined, a setext heading comes
+        out as ATX, and a difference in whitespace alone is no change. A
+        filtered comparison draws the same document with only its own
+        changes marked.
+
+        This is not `redlines.redlines.Redlines.output_markdown`, a property
+        over 0.6's flat token diff that keeps 0.6's bytes. This method draws
+        the change tree, so the two can give different bytes for the same
+        inputs (ADR-0036).
+
+        The styles copy document text as it is, as 0.6 does, so the HTML ones
+        (``red_green``, ``none``, ``red`` and ``custom_css``) pass any markup
+        in either document through. Sanitise the output before rendering
+        untrusted input as HTML.
+
+        :param style: a `redlines.enums.MarkdownStyle`, its value
+            (``"red_green"``, ``"none"``, ``"red"``, ``"ghfm"``,
+            ``"bbcode"``, ``"streamlit"``), or ``"custom_css"`` for spans
+            that carry ``ins_class`` and ``del_class``.
+        :param ins_class: the CSS class of an insertion, with ``custom_css``
+            only; ``redline-inserted`` when left out.
+        :param del_class: the CSS class of a deletion, with ``custom_css``
+            only; ``redline-deleted`` when left out.
+        :return: the marked document, with no trailing newline.
+        :raises ValueError: if ``style`` is none of those, ``None`` included,
+            or ``ins_class`` or ``del_class`` is given with another style.
+        """
+        name = style.value if isinstance(style, MarkdownStyle) else style
+        if not isinstance(name, str) or name not in LEGACY:
+            accepted = ", ".join(repr(known) for known in LEGACY)
+            raise ValueError(
+                f"style must be a MarkdownStyle or one of {accepted}, not {style!r}"
+            )
+        if name == "custom_css":
+            marks = custom_css(
+                DEFAULT_INS_CLASS if ins_class is None else ins_class,
+                DEFAULT_DEL_CLASS if del_class is None else del_class,
+            )
+        elif ins_class is not None or del_class is not None:
+            raise ValueError(
+                f"ins_class and del_class apply only to the 'custom_css' style, not to {name!r}"
+            )
+        else:
+            marks = LEGACY[name]
+        return render_inplace(
+            self,
+            marks,
+            syntax="markdown" if self.config.test_format == "markdown" else "text",
+            roles=False,
+        )
+
+    def output_rich(self) -> Text:
+        """Return the test document with this comparison's changes marked in place, for a terminal (ADR-0037).
+
+        0.6's two colours over the change tree, plus the notes a tree can
+        give that a flat diff cannot. An insertion is ``green`` and a deletion
+        ``strike red``; a replacement is a deletion then an insertion, and a
+        renumbered label the old label struck and the new one green. A moved
+        block is drawn where it is now, its line ending in a magenta ``moved
+        from SRC_LABEL SRC_ADDRESS``, and a magenta line ``SRC_LABEL moved to
+        TEST_LABEL TEST_ADDRESS`` stands where it was. Headings are bold, roles
+        are not shown, and the text has no markdown syntax whatever the
+        documents' format.
+
+        Above the document is a header line, ``T changes: N inserted, N
+        deleted, N modified, N moved, N renumbered``, its counts those of
+        `statistics`, and below it, in yellow, a notice for each of a filter,
+        an exhausted alignment budget and each item a reader dropped. A
+        filtered comparison draws the same document with only its own changes
+        marked.
+
+        The text is built from plain runs and styles, never from markup, so
+        document text such as ``[bold]`` stays literal. On a terminal without
+        colour, deleted and inserted runs look alike, as they do in 0.6;
+        ``output_annotated(syntax="text")`` marks the same changes in
+        characters instead.
+
+        :return: a `rich.text.Text` to print with a `rich.console.Console`.
+        """
+        return render_rich(self)
 
     def output_annotated(
         self,

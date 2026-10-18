@@ -97,6 +97,8 @@ class Redlines:
     """
     For a structural comparison of the same inputs call `redlines.compare(self.source, self.test)`; it is a
     different, block-aligned diff.
+
+    `Comparison.output_markdown(...)` is a method, while `Redlines.output_markdown` stays a property.
     """
 
     _source: str | None = None

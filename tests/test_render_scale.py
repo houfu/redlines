@@ -113,6 +113,28 @@ def test_the_view_of_the_scale_pair_has_every_ghost_in_place(
     ]
 
 
+def _timed(seconds: list[float], call: object) -> object:
+    """One timing of ``call``, appended to ``seconds``; the call's result."""
+    assert callable(call)
+    started = time.perf_counter()
+    result = call()
+    seconds.append(time.perf_counter() - started)
+    return result
+
+
+@pytest.mark.slow
+def test_the_markdown_and_rich_renders_each_take_under_a_second(
+    half_deleted: Comparison,
+) -> None:
+    """``Comparison.output_markdown`` and ``Comparison.output_rich`` at N2's size (#179, #180)."""
+    seconds: list[float] = []
+    markdown = _timed(seconds, lambda: half_deleted.output_markdown("none"))
+    rich = _timed(seconds, half_deleted.output_rich)
+    assert all(elapsed < 1.0 for elapsed in seconds), seconds
+    assert isinstance(markdown, str) and markdown.count("<del>") == BLOCKS // 2
+    assert str(rich).startswith(f"{BLOCKS // 2} changes: 0 inserted, {BLOCKS // 2} deleted")
+
+
 def _html_renders(comparison: Comparison) -> dict[str, Callable[[], object]]:
     return {
         "change list": comparison.output_html,
