@@ -51,6 +51,7 @@ This directory records the decisions behind redlines 1.0 — the reasoning, the 
 | [0032](0032-alignment-passes.md) | How alignment passes are scoped, ordered and configured | Accepted |
 | [0033](0033-change-tree-wire-format.md) | The change-tree wire format | Accepted |
 | [0034](0034-benchmark-labels-and-metric.md) | The alignment label format and metric definitions | Accepted |
+| [0035](0035-hosted-demo-server.md) | A hosted demo server over streamable HTTP that retains nothing | Accepted |
 
 ## Evidence base
 

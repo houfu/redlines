@@ -34,6 +34,8 @@ Negative: the visible, shareable artefact arrives last, so there is a period wit
 
 If an opportunity makes a public demo urgent (a talk, a launch, a course), the order can be flipped — accepting the churn cost knowingly.
 
+*Exercised 18 October 2026, without flipping the order:* the public demo is the MCP server itself, hosted over streamable HTTP and rendered in Claude Desktop as an MCP App ([ADR-0035](0035-hosted-demo-server.md)). MCP still precedes the site; the site inherits the renderer the app view is built on.
+
 ## Related
 
 ADR-0002, ADR-0013, ADR-0017, ADR-0019.
