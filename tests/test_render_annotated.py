@@ -28,6 +28,7 @@ The test rendering and the source rendering are the same method over
 from __future__ import annotations
 
 import dataclasses
+import json
 import re
 from collections import Counter
 from pathlib import Path
@@ -716,12 +717,15 @@ def test_csa_misses_only_old_labels_that_live_in_notes_and_one_dot_only_relabel(
 
 
 def test_the_renderer_cases_render_the_same_bytes_under_every_hash_seed() -> None:
+    """Every output under five hash seeds, as ASCII-safe JSON: the hostile case is not ASCII."""
     script = """
+import json
 import sys
 from pathlib import Path
 from redlines.alignment import AlignmentConfig
 from redlines.comparison import compare
 cases = Path("tests/renderer_cases")
+outputs = {}
 for name in ("four_kinds", "hostile", "moved_neighbour", "nested_move", "trailing_insert"):
     with open(cases / name / "source.md", encoding="utf-8", newline="") as handle:
         source = handle.read()
@@ -730,8 +734,11 @@ for name in ("four_kinds", "hostile", "moved_neighbour", "nested_move", "trailin
     comparison = compare(source, test, format="markdown", alignment=AlignmentConfig(similarity="difflib"))
     for syntax in ("markdown", "text"):
         for roles in (True, False):
-            sys.stdout.write(comparison.output_annotated(syntax=syntax, roles=roles) + "\\n=====\\n")
+            outputs[f"{name}/{syntax}/{roles}"] = comparison.output_annotated(syntax=syntax, roles=roles)
+sys.stdout.write(json.dumps(outputs))
 """
-    output = assert_byte_identical_across_hash_seeds(script, cwd=REPO_ROOT)
-    assert output.count("=====") == len(CASE_NAMES) * 4
-    assert "{>>" in output and "\\{++" in output
+    outputs = json.loads(assert_byte_identical_across_hash_seeds(script, cwd=REPO_ROOT))
+    assert len(outputs) == len(CASE_NAMES) * 4
+    for name in CASE_NAMES:
+        for golden, syntax in GOLDENS:
+            assert outputs[f"{name}/{syntax}/True"] == read(CASES / name / golden), (name, golden)
