@@ -26,7 +26,7 @@ The server uses all three.
 
 Together these close a loop with no human in the middle and no model call inside the library: draft a profile, apply it with `preview_structure`, read the confidence and fallback counts, see that schedules did not reset numbering or that `(i)` was mis-nested, refine, repeat, then `compare`. That loop is documented as the canonical workflow in the skill text, with a worked transcript against the sample pair, and a golden test replays it with a fixed draft.
 
-Transport is stdio in 0.1 — what Claude Code, Claude Desktop and Cursor use. Streamable HTTP follows in 1.1 for hosted agents.
+Transport is stdio in 0.1 — what Claude Code, Claude Desktop and Cursor use. Streamable HTTP follows in 1.1 for hosted agents. *Amended 18 October 2026 ([ADR-0035](0035-hosted-demo-server.md)): both transports ship in 0.1, because a hosted demo in Claude Desktop is a custom connector; anything reachable from the internet is process-and-forget, and the public instance accepts built-in profiles only.*
 
 ## Alternatives considered
 

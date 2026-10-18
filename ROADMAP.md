@@ -1,6 +1,6 @@
 # Roadmap to redlines 1.0
 
-**Status:** adopted, 30 August 2026. M0 shipped as 0.6.2 (PyPI, docs site live); M1 complete, 4 September 2026 (block model, both 1.0 readers, profiles, semantic pass, sample pair). Milestones M0–M6 exist on GitHub mirroring this file. The ten calls in section 5 are recorded as accepted.
+**Status:** adopted, 30 August 2026. M0 shipped as 0.6.2 (PyPI, docs site live); M1 complete, 4 September 2026 (block model, both 1.0 readers, profiles, semantic pass, sample pair); M2 complete, 18 October 2026 (alignment, change tree, JSON v2 frozen at 2.0, benchmark and report), with the move gate carried, see the M2 closing note. Milestones M0–M6 exist on GitHub mirroring this file. The ten calls in section 5 are recorded as accepted.
 **Relationship to the other documents:** the `PRD` reference in each row is a requirement number (R*) or a decision number (D*). Decisions now live as ADRs in [`docs/adr/`](docs/adr/README.md); PRD section 6 maps every old D-number onto its ADR.
 
 **Relationship to the PRD:** [`docs/PRD.md`](docs/PRD.md) says what each feature is and why it exists. This file says which release it is in. Where the two disagree, this file wins on release assignment; the PRD's Must/Should tags were reconciled against the adopted plan in its revision 10 (30 August 2026).
@@ -88,13 +88,15 @@ The Pyodide check earned its place on its first run, which is the argument for h
 
 **Decisions, 5 September 2026.** The three design questions this milestone cannot start without are settled in [ADR-0032](docs/adr/0032-alignment-passes.md), [ADR-0033](docs/adr/0033-change-tree-wire-format.md) and [ADR-0034](docs/adr/0034-benchmark-labels-and-metric.md). ADR-0032 fixes alignment as six named passes — `exact`, `label`, `structural`, `fuzzy`, `move`, `positional` — run over an anchored sibling-scoped descent with the move pass as the only global work, and it records the guards ADR-0008 never named, the gap and window bounds that make its permitted quadratic fit N2's five seconds, the `[fuzzy]` rapidfuzz extra, and the deferral of a profile `alignment:` block to 1.1. ADR-0033 fixes the wire format M3, M4 and M5 all read: `compare()` in `redlines/comparison.py`, a flat document-ordered change list carrying both addresses on every node, the alignment public in Python but optional on the wire, and one draft-07 schema file at `schema_version` `"2.0"` whose `definitions` also give the block tree its citable identity. ADR-0034 fixes what the benchmark's numbers will mean before any of them are measured: an unpackaged top-level `benchmark/` directory, YAML labels anchored by text digest and checked for totality, links-only precision and recall with a spurious-match rate beside them, licensed hand-labelled sources committed with their NOTICEs, and fail-closed per-move verdicts to enforce ADR-0009's asymmetric move gate. The five packaging and CI chores they imply landed with them, including a narrowed `paths-ignore` that had been letting markdown fixture edits skip the test suite entirely.
 
+**Closed, 18 October 2026.** Landed as PRs #147 to #158, #164 and the landing merge #166. Three of the four exit criteria are met: the section 3a golden change tree passes on both profiles, `comparison-v2.json` is frozen at `2.0` with the block trees optional on the wire (ADR-0033, amendment of 2026-10-18), and `benchmark/REPORT.md` reports 0.6 and 1.0 on the same corpus, with synthetic correspondence F1 at 0.9750 against a 0.95 gate. The move gate is **not met and is carried**: synthetic move recall is 18 of 23 (0.7826) at precision 1.0000. The five misses are all in the two `repetitive-schedule` pairs, where the labelled move permutes byte-identical paragraphs and leaves no trace in the artifact, so no engine can recover them; the remedy is a corpus and metric revision (reject unobservable mutations at generation, score correspondences modulo digest and parent, grow the labelled-move denominator toward a hundred), recorded in ADR-0032's amendment and owed to the next benchmark revision, not to the alignment engine. The hand tier's labels are drafts until houfu's labelling pass, and three engine-reported moves on it await verdicts, so its gates read *not assessed*.
+
 ### M3 — Renderers and compatibility
 
 | Feature | PRD | Size | Notes |
 |---|---|---|---|
 | Markdown renderer over the tree, all six existing styles | R20 | M | Byte-identical to 0.6 on the golden files from M0 |
 | Rich terminal renderer over the tree | R20 | S | |
-| HTML renderer: block list with roles and addresses, expandable inline redlines | R20 | M | Minimal; the site builds on it, see section 5 |
+| HTML renderer: block list with roles and addresses, expandable inline redlines | R20 | M | Minimal; the site builds on it, see section 5. Also the MCP App view ([ADR-0035](docs/adr/0035-hosted-demo-server.md)): a self-contained fragment that takes its data by `postMessage`, supports fullscreen, and themes from the host's CSS variables |
 | Annotated-document renderer: CriticMarkup for text and markdown, tag variant for HTML | R21a, D10 | M | Promoted to 1.0 Must, see section 5 |
 | `Redlines` facade: existing class reimplemented as one-block-per-paragraph over the new core | R45, D3 | M | 0.6 suite passes unmodified |
 | Deprecation warnings, no removals | R46 | S | |
@@ -122,7 +124,9 @@ The Pyodide check earned its place on its first run, which is the argument for h
 
 | Feature | PRD | Size | Notes |
 |---|---|---|---|
-| Package skeleton depending on a compatible `redlines` range; console entry point; stdio transport | R31, D18 | S | HTTP transport moved to 1.1, see section 5 |
+| Package skeleton depending on a compatible `redlines` range; console entry point; stdio and streamable HTTP transports | R31, D18 | S | HTTP was 1.1; reversed 18 October 2026, see section 5.4 and [ADR-0035](docs/adr/0035-hosted-demo-server.md) |
+| Intake tool with a `ui://` drop-zone resource; app-only `compare` and `verify` variants whose full results go to the iframe, not the model; model-facing tools return the compact form (`include_trees=False`); no state survives a response | R31, ADR-0035 | M | The Claude Desktop journey: documents never pass through the model |
+| Public demo instance: no sign-in, built-in profiles only, size and rate limits, nothing stored or logged; container image and a self-hosting page for everyone else | ADR-0035 | S | Enterprise packaging (MCPB, plugin) is not the project's work |
 | Tools: `compare`, `summary`, `annotate`, `verify`, `read_blocks`, `preview_structure`, `validate_profile` | R32, D26 | M | Thin over the shared argument layer |
 | Prompts: `draft_profile`, `refine_profile` | R32a | M | The profile-authoring loop; `explain_changes` moved to 1.1, see section 5 |
 | Resources: profile schema, built-in profiles, change-tree schema, skill text | R32b | S | |
@@ -130,7 +134,7 @@ The Pyodide check earned its place on its first run, which is the argument for h
 | Skill text with the canonical loop and a worked transcript against the sample pair | R32c, R33 | M | |
 | Size guards and truncation with continuation hints | R34 | S | |
 | Golden tests over stdio for every tool and a replayed profile-authoring loop | R36, R32c | M | |
-| Registry listings and one-line installs for Claude Code, Claude Desktop, Cursor | R35 | S | Marketing, not code; do it on release day |
+| One Agent Plugin folder (skill plus `mcp.json`) installable in Codex and Claude Code from the same files; `codex mcp add` and `claude mcp add` one-liners; registry listings | R35 | S | Marketing, not code; do it on release day |
 
 **Exit:** a fresh Claude Code session can install the server, run the sample comparison, author a profile for a new document in the loop, and verify an edit, with no human intervention beyond the prompt.
 
@@ -181,7 +185,7 @@ All ten calls below are **accepted** as written. Nothing here has changed the mi
 1. **Accepted. `legislation` profile to 1.1.** The demo scenario is a contract and the primary persona's inputs are contracts and LLM drafts. PLUS Explorer and legislation work stay a 1.1 case; revisit only if a statute needs to be in the demo before then.
 2. **Accepted. Profile auto-selection to 1.1.** 1.0 defaults to `contract` for plain text and `markdown` for `.md`, with `--profile` to override. Auto-selection is scoring logic that can wait until there are more than three profiles.
 3. **Accepted. Verify text-anchor scope to 1.1.** Addresses, labels and roles cover the agent use case; free-text anchors bring the ambiguity problem adeu is fighting.
-4. **Accepted. MCP HTTP transport to 1.1.** Claude Code, Claude Desktop and Cursor all use stdio. HTTP matters for hosted agents, which are not the first audience.
+4. **Reversed, 18 October 2026.** Streamable HTTP joins M5. The original reasoning (Claude Code, Claude Desktop and Cursor all use stdio) still holds for local installs, but a hosted demo in Claude Desktop is a custom connector, and that is HTTP. [ADR-0035](docs/adr/0035-hosted-demo-server.md).
 5. **Accepted. MCP `explain_changes` prompt to 1.1.** Useful, but the profile loop is the distinctive thing and the summary tool already gives a model what it needs.
 6. **Accepted. Annotated renderer promoted to 1.0 Must.** The PRD hedged; the MCP `summary` and `annotate` tools need it, so it is in M3.
 7. **Accepted. HTML renderer kept minimal in 1.0.** Block list plus expandable redlines; the site adds interaction on top rather than a second renderer.
