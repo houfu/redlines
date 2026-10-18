@@ -85,6 +85,8 @@ def _steps(comparison: Comparison) -> dict[str, Callable[[], object]]:
         "critic render": lambda: render_inplace(
             comparison, CRITIC, syntax="markdown", roles=True
         ),
+        "html change list": comparison.output_html,
+        "html document": lambda: comparison.output_annotated(syntax="html"),
     }
 
 
@@ -145,23 +147,10 @@ def test_output_annotated_takes_under_a_second_in_either_syntax(half_deleted: Co
     assert all(elapsed < 1.0 for elapsed in seconds), seconds
 
 
-def _html_renders(comparison: Comparison) -> dict[str, Callable[[], object]]:
-    return {
-        "change list": comparison.output_html,
-        "document view": lambda: comparison.output_annotated(syntax="html"),
-    }
-
-
-@pytest.mark.slow
-def test_both_html_fragments_take_under_a_second_and_grow_linearly(
-    half_deleted: Comparison, twice_as_long: Comparison
+def test_both_html_fragments_of_the_scale_pair_draw_every_delete(
+    half_deleted: Comparison,
 ) -> None:
-    """The change list, a row per delete, and the document view, every block (#182)."""
-    short, long = _html_renders(half_deleted), _html_renders(twice_as_long)
-    for name in short:
-        once, twice = _best(short[name]), _best(long[name])
-        assert once < 1.0 and twice < 1.0, (name, once, twice)
-        assert twice / max(once, FLOOR) < 3.0, (name, once, twice)
+    """The change list has a row per delete, and the document view a ghost (#182)."""
     changes = half_deleted.output_html()
     assert changes.count('<li class="redlines-change"') == BLOCKS // 2
     document = half_deleted.output_annotated(syntax="html")
