@@ -29,7 +29,7 @@ Sizes are rough, for one experienced developer working with an agent: **S** is a
 | `autojunk=False` on the SequenceMatcher, exposed as an option | D8 | S | One argument; measure speed on the 1,050-token repetitive case |
 | Cleanup pass merging adjacent ops split only by punctuation or whitespace | D8, R15 | S | Fixes "thirty (30)" → two changes |
 | Sentence mode preserves paragraph boundaries | D9, R16 | S | |
-| Regression corpus including a repetitive schedule and the course examples as golden files | section 12 (compatibility risk) | S | These golden files are reused by M4 |
+| Regression corpus including a repetitive schedule and the course examples as golden files | section 12 (compatibility risk) | S | These golden files are reused by M3 |
 | Investigate the 18 `neurotic_docx_bench` failures | step 1 | S | Read-only investigation; fix only if trivial. **Resolved, #96:** none of the 18 are redlines failures — all die in the benchmark adapter's python-docx extraction before `Redlines` is ever constructed. Nothing to fix in 0.6.x. Carried forward as #110 (a preview of the 1.1 DOCX reader's failure modes) |
 | Documentation site on Astro Starlight in `site/`, replacing pdoc as the publishing surface | ADR-0026, N6 | M | Scaffold, migrate what already exists (quickstart from the README, agent guide, ADR index, contributing), build pdoc into `/api/`, rewrite the Pages workflow. The agent guide moves whole and marked as the 0.6 guide, per ADR-0027; `llms.txt`, the per-page markdown export and a `/schemas/` location are stood up here so M4 writes into slots that exist. Nothing in `site/` may block a release |
 
@@ -94,14 +94,25 @@ The Pyodide check earned its place on its first run, which is the argument for h
 
 | Feature | PRD | Size | Notes |
 |---|---|---|---|
-| Markdown renderer over the tree, all six existing styles | R20 | M | Byte-identical to 0.6 on the golden files from M0 |
-| Rich terminal renderer over the tree | R20 | S | |
-| HTML renderer: block list with roles and addresses, expandable inline redlines | R20 | M | Minimal; the site builds on it, see section 5. Also the MCP App view ([ADR-0035](docs/adr/0035-hosted-demo-server.md)): a self-contained fragment that takes its data by `postMessage`, supports fullscreen, and themes from the host's CSS variables |
-| Annotated-document renderer: CriticMarkup for text and markdown, tag variant for HTML | R21a, D10 | M | Promoted to 1.0 Must, see section 5 |
-| `Redlines` facade: existing class reimplemented as one-block-per-paragraph over the new core | R45, D3 | M | 0.6 suite passes unmodified |
-| Deprecation warnings, no removals | R46 | S | |
+| Markdown renderer over the tree, all six existing styles | R20 | M | `Comparison.output_markdown(style)`, on its own goldens. Byte identity with 0.6 is the facade's job ([ADR-0036](docs/adr/0036-redlines-facade.md)) |
+| Rich terminal renderer over the tree | R20 | S | `Comparison.output_rich()`: the in-place document in 0.6's two colours, with move notes |
+| HTML renderer: block list with roles and addresses, expandable inline redlines | R20 | M | Minimal; the site builds on it, see section 5. Also the MCP App view ([ADR-0035](docs/adr/0035-hosted-demo-server.md)): a self-contained, script-free fragment rendered in Python ([ADR-0038](docs/adr/0038-render-html-once-in-python.md) (proposed)), delivered inside the app-only tool result and injected by the M5 shell, with a fullscreen hook and `--redlines-*` theme properties |
+| Annotated-document renderer: CriticMarkup for text and markdown, tag variant for HTML | R21a, D10 | M | The test document with changes marked in place ([ADR-0037](docs/adr/0037-annotate-the-test-document.md)). Promoted to 1.0 Must, see section 5 |
+| `Redlines` facade over the new core | R45, D3 | M | [ADR-0036](docs/adr/0036-redlines-facade.md): 0.6's code over 0.6's opcodes, with a change tree derived from them. The 0.6 suite passes unmodified; byte-identical to 0.6.2 on every M0 golden |
+| Deprecation mechanism and schedule, no removals | R46 | S | Nothing warns in 1.0; `changes`, `redlines` and `get_changes` pending from 1.1 ([ADR-0036](docs/adr/0036-redlines-facade.md)) |
+| Deletions placed in their own parent, and counted there | R18, R22 | S | [ADR-0033](docs/adr/0033-change-tree-wire-format.md) amendment; fixes the M2 `statistics()` crash (#185) |
+| Readers keep each label as written | R4, R5 | S | `attrs["label_raw"]` |
 
-**Exit:** 0.6 test suite green unmodified; README and course example strings byte-identical; annotated view of the sample pair reads correctly.
+**Exit**, against the M3 base `e3b8e01795553ba47c80b2accba7835a3a1cd45e`:
+
+1. The 12 pinned 0.6.2 test modules are byte-identical to the M3 base and green on every matrix Python. The pristine `v0.6.2` tests-and-examples tree is green against the M3 tip with all extras.
+2. `Redlines` output is byte-identical to 0.6.2 on all 42 M0 golden files, which are pinned by SHA-256, and on the README and course strings.
+3. `Comparison.output_markdown` renders all six styles over the tree, matching goldens that houfu reviewed once: against the sample pair's `CHANGES.md`, and against the inputs for the small renderer cases.
+4. Both HTML fragments pass checks F1–F9 ([ADR-0038](docs/adr/0038-render-html-once-in-python.md)).
+5. The annotated view of the sample pair passes the checklist in [ADR-0037](docs/adr/0037-annotate-the-test-document.md), and houfu approves its golden in a review on the annotated renderer's pull request.
+6. Every M3 output renders under Pyodide.
+
+**Decisions, 18 October 2026.** The three design questions this milestone cannot start without are answered in [ADR-0036](docs/adr/0036-redlines-facade.md) and [ADR-0037](docs/adr/0037-annotate-the-test-document.md) and recommended in [ADR-0038](docs/adr/0038-render-html-once-in-python.md) (proposed). ADR-0036 fixes the `Redlines` facade as 0.6's own code over 0.6's opcodes, with a change tree derived from them on demand, because the one-block-per-paragraph facade that ADR-0003 named was byte-identical on only 16 of 54 realistic pairs; ADR-0037 fixes the in-place renderers as one walk over the test document, with an exact CriticMarkup grammar and a reversible escape; and ADR-0038 (proposed) records the recommendation to render HTML once, in Python, under a fragment contract that the M5 shell and the M6 island inject, a choice still under research. Two M2 defects found while researching them are specified in a second amendment to [ADR-0033](docs/adr/0033-change-tree-wire-format.md) and fixed in this milestone, before the 2.0 schema is published: a deletion that follows a block that moved away is listed after that block's destination ([#174](https://github.com/houfu/redlines/issues/174)), and `statistics()` counts a deletion under the wrong section and raises on one committed pair ([#185](https://github.com/houfu/redlines/issues/185)).
 
 ### M4 — Verify, CLI, docs: the 1.0 release
 
@@ -110,7 +121,7 @@ The Pyodide check earned its place on its first run, which is the argument for h
 | Verify: original, edited, allowed scope by address, label or role; pass/fail with out-of-scope changes and structural side effects | R24, D14 | M | Text-anchor scope moved to 1.1, see section 5 |
 | Verify exemptions: whitespace-only, label-only | R25 | S | |
 | Shared argument layer: path, stdin, inline; format hint; profile; size limit | R30a, D29 | S | Reused by the MCP package |
-| CLI subcommands `compare`, `summary`, `annotate`, `verify`; `--profile`, `--format` | R28, R29 | S | About a day in total |
+| CLI subcommands `compare`, `summary`, `annotate`, `verify`; `--profile`, `--format` | R28, R29 | S | About a day in total. `--format` is a new option on the existing `compare` command, which is also the command-less default. Its keys are the method names minus `output_`, plus `json`: `json` (always v2), `markdown`, `rich`, `html`, `annotated` and `summary` ([ADR-0037](docs/adr/0037-annotate-the-test-document.md)). `annotate` takes `--syntax text\|markdown\|html`. The input-format hint is `--input-format` |
 | Existing subcommands and command-less default unchanged | R30 | S | |
 | Agent guide decomposed into one contract page plus task pages included from `examples/` | N6, ADR-0027 | M | Not a rewrite of one document: the contract goes on a single fetchable page, the tasks become pages whose code CI executes |
 | JSON schema and profile schema published as pages, with a worked example each | N6, ADR-0026 | S | MDX, so the examples are real output rather than pasted |
@@ -125,7 +136,7 @@ The Pyodide check earned its place on its first run, which is the argument for h
 | Feature | PRD | Size | Notes |
 |---|---|---|---|
 | Package skeleton depending on a compatible `redlines` range; console entry point; stdio and streamable HTTP transports | R31, D18 | S | HTTP was 1.1; reversed 18 October 2026, see section 5.4 and [ADR-0035](docs/adr/0035-hosted-demo-server.md) |
-| Intake tool with a `ui://` drop-zone resource; app-only `compare` and `verify` variants whose full results go to the iframe, not the model; model-facing tools return the compact form (`include_trees=False`); no state survives a response | R31a, ADR-0035 | M | The Claude Desktop journey: documents never pass through the model |
+| Intake tool with a `ui://` drop-zone resource; app-only `compare` and `verify` variants whose full results go to the iframe, not the model, the `compare` result carrying the two M3 HTML fragments; model-facing tools return the compact form (`include_trees=False`); no state survives a response | R31a, ADR-0035 | M | The Claude Desktop journey: documents never pass through the model. The shell injects the fragments and renders no change data itself: it maps the host's CSS variables onto `--redlines-*`, wires the fullscreen button to `ui/request-display-mode`, filters rows by their `data-*` attributes, pushes `ui/update-model-context`, adds per-row actions and the drop zone, and carries `STYLESHEET` itself if a host blocks an injected `<style>` ([ADR-0038](docs/adr/0038-render-html-once-in-python.md)) |
 | Public demo instance: no sign-in, built-in profiles only, size and rate limits, nothing stored or logged; container image and a self-hosting page for everyone else | ADR-0035 | S | Enterprise packaging (MCPB, plugin) is not the project's work |
 | Tools: `compare`, `summary`, `annotate`, `verify`, `read_blocks`, `preview_structure`, `validate_profile` | R32, D26 | M | Thin over the shared argument layer |
 | Prompts: `draft_profile`, `refine_profile` | R32a | M | The profile-authoring loop; `explain_changes` moved to 1.1, see section 5 |
@@ -144,7 +155,7 @@ The Pyodide check earned its place on its first run, which is the argument for h
 |---|---|---|---|
 | Demo route in the docs site, Pyodide in a web worker, loads the published wheel | R37, D23, ADR-0026 | M | The site and its deployment already exist from M0; this adds a route and an island |
 | Two inputs: drop or upload txt/md, or paste; sample pair loaded by default; friendly "coming in 1.1" for other types | R38 | M | |
-| Views: block-change list with roles and addresses, expandable inline redlines; annotated document; summary; JSON with copy; `dropped` notice | R39 | M | Density view moved to 1.1, see section 5 |
+| Views: block-change list with roles and addresses, expandable inline redlines; annotated document; summary; JSON with copy; `dropped` notice | R39 | M | Density view moved to 1.1, see section 5. The block-change list and the annotated document are the M3 fragments, rendered in Pyodide ([ADR-0038](docs/adr/0038-render-html-once-in-python.md)) |
 | Profile selector with the built-ins and a paste box for a custom profile | R1e | S | |
 | Progress state; 2,000-block pair under ten seconds after load | R40 | S | |
 | Privacy statement; no upload endpoint; no content analytics | R41 | S | |
@@ -172,6 +183,7 @@ The Pyodide check earned its place on its first run, which is the argument for h
 | `[fuzzy]` threshold tuning from benchmark results | D6 review gate | M | Needs the benchmark to exist first |
 | markdown-it based reader | D16 | M | Only if the regex reader proves insufficient |
 | Expand hand-labelled benchmark set | D19 | M | Ongoing |
+| Pending-deprecation warnings on `changes`, `redlines` and `get_changes` | R46 | S | 1.0 ships the mechanism, a test tripwire and the schedule, with no runtime warning: the successor is not drop-in, and the guide teaches these names until M4 rewrites it ([ADR-0036](docs/adr/0036-redlines-facade.md)) |
 
 ## 4. Later, only with demand
 
