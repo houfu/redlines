@@ -96,7 +96,9 @@ def test_the_worked_examples_round_trip_as_a_whole_line(
     assert cm.lines(line, "accept") == [text]
 
 
-def test_a_third_party_stripper_would_mis_pair_what_the_reference_reader_reads() -> None:
+def test_a_third_party_stripper_would_mis_pair_what_the_reference_reader_reads() -> (
+    None
+):
     """The ADR's example: ``use \\{++ here {++new++}`` is one insertion, of ``new``."""
     tokens = cm.parse("use \\{++ here {++new++}")
     assert tokens == (cm.Token("text", "use {++ here "), cm.Token("insert", "new"))
@@ -174,7 +176,9 @@ def _e1(exhaustive_length: int, random_count: int) -> int:
             count += 1
     rng = random.Random(20261019)
     for _ in range(random_count):
-        _assert_e1("".join(rng.choice(RANDOM_ALPHABET) for _ in range(rng.randint(0, 14))))
+        _assert_e1(
+            "".join(rng.choice(RANDOM_ALPHABET) for _ in range(rng.randint(0, 14)))
+        )
         count += 1
     return count
 
@@ -192,7 +196,14 @@ def test_e1_at_the_design_counts() -> None:
 
 HEADS = ["", "## ", "- ", "1. ", "    - ", "> ", "> - "]
 ROLE_POOL: list[str | None] = [None, *HOSTILE_ROLES[:10]]
-ROLE_SHAPED_STARTS = ["[x] ", "\\[x] ", "\\\\[x] ", "[Party A] ", "[a.b-c_%] ", "[link](u) "]
+ROLE_SHAPED_STARTS = [
+    "[x] ",
+    "\\[x] ",
+    "\\\\[x] ",
+    "[Party A] ",
+    "[a.b-c_%] ",
+    "[link](u) ",
+]
 
 
 def _line(head: str, role: str | None, roles: bool, pieces: list[Piece]) -> str:
@@ -218,8 +229,12 @@ def _e2(count: int, seed: int) -> int:
         pieces = [Piece("text", content)] if content else []
         expected = content
         if rng.random() < 0.5:
-            inserted = "".join(rng.choice(RANDOM_ALPHABET) for _ in range(rng.randint(1, 6)))
-            tail = "".join(rng.choice(RANDOM_ALPHABET) for _ in range(rng.randint(0, 4)))
+            inserted = "".join(
+                rng.choice(RANDOM_ALPHABET) for _ in range(rng.randint(1, 6))
+            )
+            tail = "".join(
+                rng.choice(RANDOM_ALPHABET) for _ in range(rng.randint(0, 4))
+            )
             pieces.append(Piece("insert", inserted))
             if tail:
                 pieces.append(Piece("text", tail))
@@ -242,7 +257,9 @@ def test_e2_at_the_design_count() -> None:
 @pytest.mark.parametrize("head", HEADS)
 @pytest.mark.parametrize("start", ROLE_SHAPED_STARTS)
 @pytest.mark.parametrize("role", [None, "schedule", "a]b"])
-def test_e2_role_shaped_starts_read_back_exactly(head: str, start: str, role: str | None) -> None:
+def test_e2_role_shaped_starts_read_back_exactly(
+    head: str, start: str, role: str | None
+) -> None:
     content = start + "the rest"
     line = _line(head, role, True, [Piece("text", content)])
     assert cm.lines(line, "accept") == [head + content]
@@ -254,7 +271,11 @@ def test_e2_a_mark_at_the_content_start_keeps_the_accept_side_exact() -> None:
     """A role-shaped insertion or new label at the very start is escaped inside its mark."""
     for pieces, accepted, rejected in (
         ([Piece("insert", "[x]"), Piece("text", " task")], "[x] task", " task"),
-        ([Piece("substitution", "[ ]", "[x]"), Piece("text", " task")], "[x] task", "[ ] task"),
+        (
+            [Piece("substitution", "[ ]", "[x]"), Piece("text", " task")],
+            "[x] task",
+            "[ ] task",
+        ),
         ([Piece("delete", "[y] "), Piece("text", "task")], "task", "[y] task"),
     ):
         line = serialize([Chunk(tuple(pieces))], CRITIC, roles=True)
@@ -267,8 +288,15 @@ def test_e2_a_mark_at_the_content_start_keeps_the_accept_side_exact() -> None:
 COMPOSITES = [
     [Piece("text", "a\\"), Piece("insert", "x"), Piece("text", " b")],
     [Piece("text", "path C:\\dir\\"), Piece("delete", "old\\")],
-    [Piece("text", "use {++ literally "), Piece("insert", "and ++} too"), Piece("text", " end")],
-    [Piece("text", "x"), Piece("note", "moved from 7.5 /section[1]/section[7]/list_item[5]")],
+    [
+        Piece("text", "use {++ literally "),
+        Piece("insert", "and ++} too"),
+        Piece("text", " end"),
+    ],
+    [
+        Piece("text", "x"),
+        Piece("note", "moved from 7.5 /section[1]/section[7]/list_item[5]"),
+    ],
     [Piece("text", "a~"), Piece("substitution", "b~", "c\\"), Piece("text", "~>d")],
 ]
 
@@ -280,7 +308,9 @@ def _token(piece: Piece) -> cm.Token:
     return cm.Token(piece.kind, piece.text)  # type: ignore[arg-type]
 
 
-@pytest.mark.parametrize("pieces", COMPOSITES, ids=[str(i) for i in range(len(COMPOSITES))])
+@pytest.mark.parametrize(
+    "pieces", COMPOSITES, ids=[str(i) for i in range(len(COMPOSITES))]
+)
 def test_e3_backslash_runs_before_emitted_delimiters_parse_back_exactly(
     pieces: list[Piece],
 ) -> None:
@@ -297,7 +327,9 @@ def _e4(length: int) -> int:
         for letters in itertools.product("[]\\x ", repeat=size):
             content = "".join(letters)
             for roles in (True, False):
-                line = serialize([Chunk((Piece("text", content),))], CRITIC, roles=roles)
+                line = serialize(
+                    [Chunk((Piece("text", content),))], CRITIC, roles=roles
+                )
                 key = (roles, line)
                 assert seen.setdefault(key, content) == content, (key, content)
     return len(seen)
@@ -326,12 +358,22 @@ def test_hostile_text_through_the_real_traversal_reads_back(roles: bool) -> None
             for _ in range(3)
         ]
         role = rng.choice(ROLE_POOL)
-        source = _tree(*(Block(kind=BlockKind.PARAGRAPH, text=t, role=role) for t in texts))
+        source = _tree(
+            *(Block(kind=BlockKind.PARAGRAPH, text=t, role=role) for t in texts)
+        )
         edited = list(texts)
         edited[1] = edited[1] + " " + "".join(rng.choice(alphabet) for _ in range(4))
-        test = _tree(*(Block(kind=BlockKind.PARAGRAPH, text=t, role=role) for t in edited))
+        test = _tree(
+            *(Block(kind=BlockKind.PARAGRAPH, text=t, role=role) for t in edited)
+        )
         comparison = compare(source, test)
         annotated = render_inplace(comparison, CRITIC, syntax="text", roles=roles)
-        canonical = render_inplace(compare(test, test), CRITIC, syntax="text", roles=roles)
-        assert cm.accept_all(annotated, roles=roles) == cm.accept_all(canonical, roles=roles)
-        assert cm.accept_all(canonical, roles=roles) == [t.strip() for t in edited if t.strip()]
+        canonical = render_inplace(
+            compare(test, test), CRITIC, syntax="text", roles=roles
+        )
+        assert cm.accept_all(annotated, roles=roles) == cm.accept_all(
+            canonical, roles=roles
+        )
+        assert cm.accept_all(canonical, roles=roles) == [
+            t.strip() for t in edited if t.strip()
+        ]

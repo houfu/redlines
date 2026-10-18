@@ -12,7 +12,6 @@ from redlines.renderers._escape import LINE_START_SITE, SYNTAX_HEAD
 from tests.helpers import criticmarkup as cm
 from tests.helpers.criticmarkup import Token
 
-
 # --- step 1: parse ------------------------------------------------------------
 
 
@@ -128,7 +127,9 @@ def test_the_content_start_after_a_stripped_role_is_not_re_read_as_a_head() -> N
 
 
 def test_without_roles_nothing_is_stripped_or_unescaped() -> None:
-    assert cm.lines("[clause] \\[x] task", "accept", roles=False) == ["[clause] \\[x] task"]
+    assert cm.lines("[clause] \\[x] task", "accept", roles=False) == [
+        "[clause] \\[x] task"
+    ]
 
 
 # --- step 7: the residue rule ---------------------------------------------------
@@ -153,7 +154,10 @@ def test_residue_drops_what_a_removed_mark_leaves_behind() -> None:
 
 def test_residue_drops_an_alignment_row_with_no_table_row_beside_it() -> None:
     assert cm.residue(["| --- | :---: |", "text"]) == ["text"]
-    assert cm.residue(["| a | b |", "| --- | :---: |"]) == ["| a | b |", "| --- | :---: |"]
+    assert cm.residue(["| a | b |", "| --- | :---: |"]) == [
+        "| a | b |",
+        "| --- | :---: |",
+    ]
     assert cm.residue(["| --- |", "| x |"]) == ["| --- |", "| x |"]
 
 
@@ -171,7 +175,11 @@ def test_exact_multiset_and_loose() -> None:
     assert not cm.exact(["a", "b"], ["b", "a"])
     assert cm.multiset(["a", "b"], ["b", "a"])
     assert not cm.multiset(["a", "b"], ["a  ", "b"])
-    assert cm.loose(["## 1. A  heading", "3. 4. item", "- x y"]) == ["Aheading", "item", "xy"]
+    assert cm.loose(["## 1. A  heading", "3. 4. item", "- x y"]) == [
+        "Aheading",
+        "item",
+        "xy",
+    ]
     assert cm.loose_multiset(["1. foo (bar)"], ["2. foo(bar)"])
 
 

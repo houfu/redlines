@@ -536,9 +536,8 @@ def compare(
 
     Four stages: read the source, read the test, align the two trees, build
     the change tree. A side that arrives as a
-    `redlines.blocks.BlockTree` skips the first two -- which is how the M3
-    facade, the benchmark harness and the site hand in trees they built
-    themselves.
+    `redlines.blocks.BlockTree` skips the first two -- which is how the
+    benchmark harness and the site hand in trees they built themselves.
 
     :param source: the earlier document, as text, as UTF-8 bytes, as a
         `redlines.document.Document` (which is how a *file* gets in), or as a

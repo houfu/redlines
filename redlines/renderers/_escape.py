@@ -1,4 +1,4 @@
-r"""Escaping document text for CriticMarkup and HTML, and encoding roles (ADR-0037, ADR-0038).
+r"""Escaping for CriticMarkup and HTML, and encoding roles (ADR-0037, ADR-0038).
 
 **CriticMarkup defines no escape**, so this is a redlines convention: a
 backslash at *delimiter sites*, with a parity rule. It applies to every piece
@@ -175,10 +175,12 @@ def encode_role(role: str) -> str:
     :return: the encoded role, made only of ``A-Z a-z 0-9 _ . - %``.
     """
     return "".join(
-        character
-        if character in _ROLE_SAFE
-        else "".join(
-            f"%{byte:02X}" for byte in character.encode("utf-8", "surrogatepass")
+        (
+            character
+            if character in _ROLE_SAFE
+            else "".join(
+                f"%{byte:02X}" for byte in character.encode("utf-8", "surrogatepass")
+            )
         )
         for character in role
     )
