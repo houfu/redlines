@@ -123,12 +123,13 @@ class StaleDigestError(ValueError):
     whatever the address happens to point at today (ADR-0034).
     """
 
-    def __init__(self, mismatches: Sequence[str]):
+    def __init__(self, pair: str, mismatches: Sequence[str]):
+        self.pair = pair
         self.mismatches = list(mismatches)
         detail = "\n".join(f"  - {message}" for message in self.mismatches)
         super().__init__(
-            "Labels are stale -- digests no longer match the current tree; "
-            f"run benchmark/reanchor.py:\n{detail}"
+            f"Labels for '{pair}' are stale -- digests no longer match the "
+            f"current tree; run benchmark/reanchor.py:\n{detail}"
         )
 
 
@@ -743,7 +744,7 @@ def verify_digests(labels: LabelFile, *, source_tree: BlockTree, test_tree: Bloc
             check("source", source_addr, source_digest, source_tree)
 
     if mismatches:
-        raise StaleDigestError(mismatches)
+        raise StaleDigestError(labels.pair, mismatches)
 
 
 def check_totality(labels: LabelFile, *, source_tree: BlockTree, test_tree: BlockTree) -> None:
