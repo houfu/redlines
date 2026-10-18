@@ -352,6 +352,7 @@ def check_self_contained(root: Element) -> str:
                 raise FragmentError(
                     f"an attribute outside the allowlist: {name!r} on {element.where()}"
                 )
+        _check_pinned_values(element)
     styles = [element for element in root.walk() if element.tag == "style"]
     if len(styles) != 1:
         raise FragmentError(f"{len(styles)} <style> elements, not one")
@@ -364,11 +365,43 @@ def check_self_contained(root: Element) -> str:
     if style.attrs or not all(isinstance(child, str) for child in style.children):
         raise FragmentError("the <style> carries attributes or markup")
     css = style.text()
-    lowered = css.lower()
-    for banned in ("@import", "url("):
-        if banned in lowered:
-            raise FragmentError(f"the stylesheet contains {banned!r}")
+    if "@import" in css.lower():
+        raise FragmentError("the stylesheet contains '@import'")
+    fetch = _FETCH.search(css)
+    if fetch is not None:
+        raise FragmentError(f"the stylesheet contains {fetch.group(0)!r}")
     return css
+
+
+_FETCH: Final[re.Pattern[str]] = re.compile(
+    r"(?<![\w-])(?:url|src|image-set|-webkit-image-set|image|cross-fade"
+    r"|-webkit-cross-fade|element|-moz-element)\(",
+    re.IGNORECASE,
+)
+"""A CSS function that fetches or draws something from outside the fragment:
+``url()``, and the image functions that take a URL or a string without one,
+such as ``image-set("https://…")``."""
+
+
+def _check_pinned_values(element: Element) -> None:
+    """The allowed attributes whose values are fixed: ``role="heading"`` with an
+    ``aria-level`` of 1 to 6 on a ``<p>``, ``type="button"`` on the ``<button>``,
+    and a bare ``hidden``."""
+    role, level = element.get("role"), element.get("aria-level")
+    if role is not None and (role != "heading" or element.tag != "p"):
+        raise FragmentError(f"role={role!r} on {element.where()}")
+    if level is not None and (role != "heading" or level not in _ARIA_LEVELS):
+        raise FragmentError(f"aria-level={level!r} on {element.where()}")
+    if role == "heading" and level is None:
+        raise FragmentError(f"a heading with no aria-level: {element.where()}")
+    kind = element.get("type")
+    if kind is not None and (kind != "button" or element.tag != "button"):
+        raise FragmentError(f"type={kind!r} on {element.where()}")
+    if any(name == "hidden" and value is not None for name, value in element.attrs):
+        raise FragmentError(f"hidden carries a value on {element.where()}")
+
+
+_ARIA_LEVELS: Final[frozenset[str]] = frozenset(str(level) for level in range(1, 7))
 
 
 def check_hooks(root: Element) -> None:
@@ -662,6 +695,63 @@ def check_scoped(css: str) -> None:
             bare = re.sub(r"\[[^\]]*\]", "[]", selector)
             if _GLOBAL.search(bare):
                 raise FragmentError(f"a selector reaches the page: {selector!r}")
+            rest = selector[_root_compound_end(selector) :].lstrip()
+            if rest[:1] in ("+", "~"):
+                raise FragmentError(
+                    f"a selector reaches the page through a sibling of the root: "
+                    f"{selector!r}"
+                )
+
+
+def _root_compound_end(selector: str) -> int:
+    """Where the compound selector that starts with ``.redlines`` ends.
+
+    It is ``.redlines`` and every simple selector attached to it: classes,
+    ids, attribute selectors and pseudo-classes, with their brackets and
+    parentheses. What follows it is a combinator or the end. A descendant
+    (`` ``) or child (``>``) combinator keeps a rule inside the fragment; a
+    sibling one (``+``, ``~``) reaches the elements after it on the page.
+    """
+    position = len(".redlines")
+    while position < len(selector):
+        character = selector[position]
+        if character in ".#":
+            match = re.compile(r"[.#][\w-]+").match(selector, position)
+            if match is None:
+                break
+            position = match.end()
+        elif character == ":":
+            match = re.compile(r"::?[\w-]+").match(selector, position)
+            if match is None:
+                break
+            position = match.end()
+            if position < len(selector) and selector[position] == "(":
+                position = _balanced_end(selector, position, "(", ")")
+        elif character == "[":
+            position = _balanced_end(selector, position, "[", "]")
+        else:
+            break
+    return position
+
+
+def _balanced_end(text: str, start: int, opening: str, closing: str) -> int:
+    """The index past the bracket closing the one at ``start``, quotes respected."""
+    depth = 0
+    quote = ""
+    for index in range(start, len(text)):
+        character = text[index]
+        if quote:
+            if character == quote:
+                quote = ""
+        elif character in "\"'":
+            quote = character
+        elif character == opening:
+            depth += 1
+        elif character == closing:
+            depth -= 1
+            if depth == 0:
+                return index + 1
+    raise FragmentError(f"an unbalanced {opening!r} in {text!r}")
 
 
 # --------------------------------------------------------------------------
@@ -1112,11 +1202,13 @@ def check_row_texts(root: Element, comparison: Comparison) -> None:
             if len(marks) != 1 or marks[0].tag != tag or len(body.children) != 1:
                 raise FragmentError(f"{where}: the body is not one <{tag}>")
             side = "accept" if tag == "ins" else "reject"
-            read = _side_text(marks[0], side, skip=labels).split("\n")
-            if read != subtree_lines(comparison, change):
+            # Joined, not split: a block's own text can hold a newline (a
+            # fenced block), and no lines at all read as one empty string.
+            read = _side_text(marks[0], side, skip=labels)
+            expected = "\n".join(subtree_lines(comparison, change))
+            if read != expected:
                 raise FragmentError(
-                    f"{where}: the body reads {read!r}, "
-                    f"not {subtree_lines(comparison, change)!r}"
+                    f"{where}: the body reads {read!r}, not {expected!r}"
                 )
             continue
         accepted = _side_text(body, "accept", skip=labels)
@@ -1184,18 +1276,46 @@ def check_block_texts(root: Element, comparison: Comparison) -> None:
             raise FragmentError(f"{where}: aria-level {element.get('aria-level')!r}")
 
 
-def _cells(row: Element, side: str) -> list[str] | None:
-    """A row's cell texts on one side, or ``None`` when the side drops every cell."""
+def _row_reading(row: Element, side: str) -> tuple[list[str], bool]:
+    """A row's cell texts on one side, and whether the row may be one the side drops.
+
+    A row that reads as nothing but empty cells and carries a mark the side
+    drops may be a dropped row, deleted on the accept side or inserted on the
+    reject side, or a kept row that is blank. The markup alone cannot tell
+    them apart: the layout marks a deleted all-empty row on its first cell
+    only (``<td><del></del></td><td></td>``), and a kept row emptied of its
+    text reads blank too. `_rows_match` decides by the tree.
+    """
     dropped = "del" if side == "accept" else "ins"
-    cells = row.elements()
-    if all(
-        cell.elements()
-        and all(mark.tag == dropped for mark in cell.elements())
-        and not any(isinstance(child, str) and child for child in cell.children)
-        for cell in cells
-    ):
-        return None
-    return [_side_text(cell, side, skip=frozenset()) for cell in cells]
+    cells = [_side_text(cell, side, skip=frozenset()) for cell in row.elements()]
+    marked = any(
+        mark.tag == dropped
+        for cell in row.elements()
+        for mark in cell.walk()
+        if mark is not cell
+    )
+    return cells, marked and not any(cells)
+
+
+def _rows_match(
+    read: Sequence[tuple[list[str], bool]], expected: list[list[str]]
+) -> bool:
+    """Whether the rendered rows read as the tree's, each droppable one dropped or kept.
+
+    Every row that may be dropped is either left out or matched to the next
+    expected row; every other row must match it. Kept as the set of expected
+    rows reachable after each rendered row, so a table of any size is cheap.
+    """
+    reachable = {0}
+    for cells, droppable in read:
+        following: set[int] = set()
+        for position in reachable:
+            if droppable:
+                following.add(position)
+            if position < len(expected) and cells == expected[position]:
+                following.add(position + 1)
+        reachable = following
+    return len(expected) in reachable
 
 
 def _check_table_text(
@@ -1213,10 +1333,11 @@ def _check_table_text(
         block, side = source[source_address], "reject"
     else:
         raise FragmentError(f"{where}: a table with no address")
-    read = [cells for cells in (_cells(row, side) for row in rows) if cells is not None]
+    read = [_row_reading(row, side) for row in rows]
     expected = [[cell.text for cell in row.children] for row in block.children]
-    if read != expected:
-        raise FragmentError(f"{where}: rows read {read!r}, not {expected!r}")
+    if not _rows_match(read, expected):
+        shown = [cells for cells, _ in read]
+        raise FragmentError(f"{where}: rows read {shown!r}, not {expected!r}")
     parts = [part.tag for part in table.elements()]
     if parts not in (["thead"], ["thead", "tbody"]):
         raise FragmentError(f"{where}: table parts {parts}")

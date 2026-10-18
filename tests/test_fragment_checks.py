@@ -150,6 +150,14 @@ def test_f1_requires_the_root_and_its_three_attributes(root: str, message: str) 
         ('<p title="x">x</p>', "outside the allowlist"),
         ('<p class="a" class="b">x</p>', "a repeated attribute"),
         ("<style>.redlines{}</style>", "2 <style> elements"),
+        ('<span role="button">x</span>', "role='button'"),
+        ('<span role="heading" aria-level="2">x</span>', "role='heading'"),
+        ('<p role="heading">x</p>', "a heading with no aria-level"),
+        ('<p role="heading" aria-level="7">x</p>', "aria-level='7'"),
+        ('<p aria-level="2">x</p>', "aria-level='2'"),
+        ('<button type="submit">x</button>', "type='submit'"),
+        ('<span type="button">x</span>', "type='button'"),
+        ('<p hidden="false">x</p>', "hidden carries a value"),
     ],
 )
 def test_f2_rejects_what_the_allowlist_does_not_allow(body: str, message: str) -> None:
@@ -165,7 +173,17 @@ def test_f2_requires_the_style_to_be_the_first_child() -> None:
 
 
 @pytest.mark.parametrize(
-    "css", ['@import "x.css";', ".redlines{background:url(x.png)}"]
+    "css",
+    [
+        '@import "x.css";',
+        ".redlines{background:url(x.png)}",
+        '.redlines{background-image:image-set("https://example.com/x.png" 1x)}',
+        '.redlines{background-image:-webkit-image-set("x.png" 1x)}',
+        '.redlines{list-style-image:image("x.png")}',
+        '.redlines{cursor:src("x.cur"),auto}',
+        '.redlines{background:cross-fade("a.png","b.png",50%)}',
+        ".redlines{background:-moz-element(#page)}",
+    ],
 )
 def test_f2_rejects_an_external_reference_in_the_stylesheet(css: str) -> None:
     with pytest.raises(fc.FragmentError, match="the stylesheet contains"):
@@ -278,6 +296,11 @@ def test_f3_reads_only_a_flat_stylesheet(css: str) -> None:
         ".redlines body p",
         "html .redlines",
         "*",
+        ".redlines+p",
+        ".redlines~*",
+        ".redlines:not(.x) ~ div",
+        ".redlines:is(.a,.b)+p",
+        '.redlines[data-x="a"]~p',
     ],
 )
 def test_f4_rejects_a_selector_that_reaches_the_page(selector: str) -> None:
@@ -294,6 +317,9 @@ def test_f4_rejects_a_selector_that_reaches_the_page(selector: str) -> None:
         ".redlines>p",
         '.redlines [data-x="body"]',
         ".redlines .redlines-change+.redlines-change",
+        ".redlines:has(+ p) p",
+        '.redlines[data-x="~"] p',
+        ".redlines::before",
     ],
 )
 def test_f4_accepts_a_selector_scoped_under_the_root(selector: str) -> None:
@@ -410,6 +436,36 @@ def test_f7_rejects_a_body_that_does_not_read_its_node(
         altered = altered.replace("the order.</ins></div>", "the order.</del></div>", 1)
     with pytest.raises(fc.FragmentError, match=re.escape(message)):
         fc.check_row_texts(fc.check_well_formed(altered), comparison)
+
+
+def _markdown(source: str, test: str) -> Comparison:
+    return compare(
+        source, test, format="markdown", alignment=AlignmentConfig(similarity="difflib")
+    )
+
+
+def test_f7_still_fails_a_changed_fence_body() -> None:
+    comparison = _markdown("Intro.\n\n```\nline1\nline2\n```", "Intro.")
+    fragment = comparison.output_html()
+    fc.check_row_texts(fc.check_well_formed(fragment), comparison)
+    altered = fragment.replace("line1\nline2</del>", "line1\nline2\nline3</del>", 1)
+    assert altered != fragment
+    with pytest.raises(fc.FragmentError, match="the body reads"):
+        fc.check_row_texts(fc.check_well_formed(altered), comparison)
+
+
+def test_f7_reads_a_blank_ghost_row_as_deleted_but_not_one_without_its_mark() -> None:
+    table = "| A | B |\n| --- | --- |\n"
+    comparison = _markdown(table + "|  |  |\n| 1 | 2 |\n", table + "| 1 | 2 |\n")
+    fragment = comparison.output_annotated(syntax="html")
+    assert "<tr><td><del></del></td><td></td></tr>" in fragment
+    fc.check_block_texts(fc.check_well_formed(fragment), comparison)
+    unmarked = fragment.replace("<td><del></del></td>", "<td></td>", 1)
+    with pytest.raises(fc.FragmentError, match="rows read"):
+        fc.check_block_texts(fc.check_well_formed(unmarked), comparison)
+    renamed = fragment.replace("<td>1</td>", "<td>one</td>", 1)
+    with pytest.raises(fc.FragmentError, match="rows read"):
+        fc.check_block_texts(fc.check_well_formed(renamed), comparison)
 
 
 def test_f7_reads_the_document_view_block_by_block() -> None:
