@@ -551,6 +551,59 @@ def test_a_moved_numbered_item_is_named_by_its_number_in_both_variants() -> None
     assert text[-1].endswith("Gamma item text here {>>moved from 3. /list_item[3]<<}")
 
 
+FENCE = (
+    "```python\ndef check_the_supplier_invoice(total, limit):\n"
+    "    return total <= limit and total > 0\n```"
+)
+
+
+def test_a_moved_fence_says_so_on_a_line_of_its_own() -> None:
+    """A fence has no line to end with a note, so its note follows it."""
+    source = (
+        "## 1. Billing\n\nThe first section opens with this paragraph.\n\n"
+        f"{FENCE}\n\n## 2. Checks\n\nThe second section opens with another paragraph.\n"
+    )
+    test = (
+        "## 1. Billing\n\nThe first section opens with this paragraph.\n\n"
+        "## 2. Checks\n\nThe second section opens with another paragraph.\n\n"
+        f"{FENCE}\n"
+    )
+    comparison = md(source, test)
+    assert [change.kind for change in comparison.changes] == [ChangeKind.MOVE]
+    lines = critic(comparison).split("\n\n")
+    assert lines[2] == "{>>moved to /section[2]/paragraph[2]<<}"
+    assert lines[-2:] == [FENCE, "{>>moved from /section[1]/paragraph[2]<<}"]
+    round_trips(source, test)
+    legacy = none(comparison).split("\n\n")
+    assert legacy[2].startswith("```python\n<del>def check_the_supplier_invoice")
+    assert legacy[-1].startswith("```python\n<ins>def check_the_supplier_invoice")
+
+
+def test_the_legacy_origin_of_a_moved_clause_strikes_its_table_too() -> None:
+    table = "| Item | Due |\n| --- | --- |\n| Setup | Week 1 |"
+    source = (
+        "## 1. Delivery\n\n1.1 The Supplier shall deliver each item listed below.\n\n"
+        f"{table}\n\n1.2 Risk passes on delivery.\n\n## 2. Acceptance\n\n"
+        "2.1 The Buyer shall test each item.\n"
+    )
+    test = (
+        "## 1. Delivery\n\n1.1 Risk passes on delivery.\n\n## 2. Acceptance\n\n"
+        "2.1 The Buyer shall test each item.\n\n"
+        f"2.2 The Supplier shall deliver each item listed below.\n\n{table}\n"
+    )
+    legacy = none(md(source, test)).split("\n\n")
+    assert legacy[1:3] == [
+        "<del>1.1 The Supplier shall deliver each item listed below.</del>",
+        "| <del>Item</del> | <del>Due</del> |\n| --- | --- |\n"
+        "| <del>Setup</del> | <del>Week 1</del> |",
+    ]
+    assert legacy[-1] == (
+        "| <ins>Item</ins> | <ins>Due</ins> |\n| --- | --- |\n"
+        "| <ins>Setup</ins> | <ins>Week 1</ins> |"
+    )
+    assert critic(md(source, test), roles=False).split("\n\n")[-1] == table
+
+
 def test_the_legacy_sets_strike_a_moved_block_whole_at_its_origin() -> None:
     lines = none(md(*case_texts("nested_move"))).split("\n\n")
     body = [line for line in lines if not line.startswith("#")]
@@ -568,6 +621,48 @@ def test_the_legacy_sets_strike_a_moved_block_whole_at_its_origin() -> None:
 
 
 # --- escaping at a line's start ------------------------------------------------------
+
+
+def test_a_bracket_exposed_by_a_removed_note_is_escaped() -> None:
+    source = "1. Alpha item text\n2. [x] task item text\n"
+    test = "1. New first item\n2. Alpha item text\n3. [x] task item text\n"
+    annotated = critic(md(source, test))
+    assert annotated.split("\n\n")[-1] == (
+        "3. [clause] {>>renumbered from 2.<<} \\[x] task item text"
+    )
+    assert cm.accept_all(annotated) == cm.accept_all(critic(md(test, test)))
+
+
+def test_a_bracket_at_the_start_of_a_quoted_continuation_line_is_escaped() -> None:
+    quoted = tree(
+        Block(
+            kind=BlockKind.PARAGRAPH,
+            text="first line\n[x] second",
+            attrs={"quote": True},
+        )
+    )
+    rendered = critic(compare(quoted, quoted))
+    assert rendered == "> first line\n> \\[x] second"
+    assert cm.accept_all(rendered) == ["> first line", "> [x] second"]
+
+
+def test_when_one_string_cannot_serve_both_sides_the_accept_side_wins() -> None:
+    """A block that opens with an insertion or a deletion, then shared text like ``\\[x] ``.
+
+    Accept-all stays exact; reject-all is off by the escape on that line,
+    which is the known limit of the line-start site (ADR-0037, "Escaping").
+    """
+    for source, test, rejected in (
+        ("\\[x] y z w", "x \\[x] y z w", "[x] y z w"),
+        ("x \\[x] y z w", "\\[x] y z w", "x \\\\\\[x] y z w"),
+    ):
+        comparison = compare(
+            tree(Block(kind=BlockKind.PARAGRAPH, text=source)),
+            tree(Block(kind=BlockKind.PARAGRAPH, text=test)),
+        )
+        annotated = critic(comparison, syntax="text")
+        assert cm.accept_all(annotated) == [test]
+        assert cm.reject_all(annotated) == [rejected]
 
 
 def test_serialize_merges_adjacent_text_before_escaping() -> None:
