@@ -10,7 +10,8 @@ the whole package. So:
 - a renderer module imports ``Comparison`` only under ``TYPE_CHECKING``, or
   the two modules would import each other;
 - importing the package raises no warning, even with warnings as errors;
-- nothing in the package is public yet: ``redlines`` gains no name.
+- the package's only public names are the HTML fragment's version and
+  stylesheet (ADR-0038), and ``redlines`` itself gains no name.
 """
 
 from __future__ import annotations
@@ -64,6 +65,7 @@ def test_the_renderer_package_has_the_modules_this_milestone_adds() -> None:
         "_escape.py",
         "_view.py",
         "_inplace.py",
+        "_html.py",
     }
 
 
@@ -111,14 +113,28 @@ def test_importing_the_renderers_raises_no_warning() -> None:
             "error",
             "-c",
             "import redlines, redlines.cli, redlines.renderers, redlines.renderers._marks, "
-            "redlines.renderers._escape, redlines.renderers._view, redlines.renderers._inplace",
+            "redlines.renderers._escape, redlines.renderers._view, redlines.renderers._inplace, "
+            "redlines.renderers._html",
         ],
         check=True,
         cwd=REPO_ROOT,
     )
 
 
-def test_nothing_in_the_renderers_is_public_yet() -> None:
-    assert redlines.renderers.__all__ == ()
-    for name in ("MarkSet", "LEGACY", "CRITIC", "BlockStatus", "ViewNode", "build_view", "render_inplace"):
+def test_the_renderers_publish_only_the_fragment_version_and_stylesheet() -> None:
+    assert redlines.renderers.__all__ == ("FRAGMENT_VERSION", "STYLESHEET")
+    for name in (
+        "MarkSet",
+        "LEGACY",
+        "CRITIC",
+        "HTML",
+        "BlockStatus",
+        "ViewNode",
+        "build_view",
+        "render_inplace",
+        "render_change_list",
+        "render_document",
+        "FRAGMENT_VERSION",
+        "STYLESHEET",
+    ):
         assert not hasattr(redlines, name), name

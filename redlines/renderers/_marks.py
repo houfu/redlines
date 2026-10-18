@@ -41,6 +41,7 @@ __all__: tuple[str, ...] = (
     "DEFAULT_INS_CLASS",
     "DEFAULT_DEL_CLASS",
     "custom_css",
+    "HTML",
 )
 
 Escape = Literal["none", "critic", "html"]
@@ -175,3 +176,23 @@ CRITIC: Final[MarkSet] = MarkSet(
 """CriticMarkup as ADR-0037's grammar writes it: no spaces inside delimiters, a
 replacement as one substitution, notes for moves and renumbers, role prefixes,
 and the backslash escape of ``_escape``."""
+
+HTML: Final[MarkSet] = MarkSet(
+    name="html",
+    insert=("<ins>", "</ins>"),
+    delete=("<del>", "</del>"),
+    note=('<span class="redlines-note">', "</span>"),
+    role=('<span class="redlines-role">', "</span> "),
+    escape="html",
+    whole_moves=False,
+)
+"""The HTML document view's set (ADR-0037, ADR-0038): ``<ins>`` and ``<del>``,
+a replacement as a delete then an insert, notes and role prefixes as elements,
+moves drawn in place with notes, and every piece of document text through
+``html.escape`` (`redlines.renderers._escape.html_text`).
+
+The role prefix is the role span and then a space, as CriticMarkup's ``[ROLE]``
+is followed by one, so a block's text reads ``clause 1.1 The Supplier …``
+rather than running the role into the label. ``redlines.renderers._html``
+spells the label part and the tables itself, because a fragment needs
+elements where the layout has flat pieces."""
