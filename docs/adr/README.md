@@ -48,6 +48,9 @@ This directory records the decisions behind redlines 1.0 — the reasoning, the 
 | [0029](0029-address-syntax.md) | Spell block addresses as XPath-style kind paths, with the label and breadcrumb alongside | Accepted |
 | [0030](0030-matched-by-and-confidence.md) | Report how every block was recognised, with a reserved fallback and a bounded confidence | Accepted |
 | [0031](0031-role-rules-on-the-block-itself.md) | Let a role rule look at the block itself: `text` and `label` match kinds, with a `kind` filter | Accepted |
+| [0032](0032-alignment-passes.md) | How alignment passes are scoped, ordered and configured | Accepted |
+| [0033](0033-change-tree-wire-format.md) | The change-tree wire format | Accepted |
+| [0034](0034-benchmark-labels-and-metric.md) | The alignment label format and metric definitions | Accepted |
 
 ## Evidence base
 
