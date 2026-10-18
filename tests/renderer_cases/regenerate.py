@@ -99,8 +99,8 @@ GOLDENS: tuple[Golden, ...] = (
     ("annotated.text.txt", lambda comparison: comparison.output_annotated(syntax="text")),
     # Comparison.output_html and output_annotated(syntax="html") (#182): both
     # HTML fragments of every case.
-    ("expected/changes.html", _changes_html),
-    ("expected/annotated.html", _annotated_html),
+    ("changes.html", _changes_html),
+    ("annotated.html", _annotated_html),
 )
 """The goldens every case has."""
 

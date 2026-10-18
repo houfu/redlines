@@ -50,7 +50,7 @@ GOLDENS: tuple[tuple[str, Path, Path], ...] = (
     ("sample_pair.md", RENDERED / "changes.markdown.html", RENDERED / "annotated.markdown.html"),
     ("sample_pair.txt", RENDERED / "changes.contract.html", RENDERED / "annotated.contract.html"),
     *(
-        (name, CASES / name / "expected" / "changes.html", CASES / name / "expected" / "annotated.html")
+        (name, CASES / name / "changes.html", CASES / name / "annotated.html")
         for name in CASE_NAMES
     ),
 )
