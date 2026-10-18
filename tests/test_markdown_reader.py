@@ -415,6 +415,114 @@ def test_a_labelled_paragraph_is_a_list_item_as_it_is_in_plain_text(
     assert item.matched_by == "label:decimal"
 
 
+# --- labels as written (D5) -------------------------------------------------
+
+
+def test_a_heading_keeps_its_label_as_written(profile: Profile) -> None:
+    """``## 2. Definitions`` is label ``2``; ``label_raw`` remembers the full stop."""
+    tree = read("## 2. Definitions\n\n## 3 Charges\n", profile)
+    dotted, bare = of_kind(tree, BlockKind.HEADING)
+
+    assert (dotted.label, dotted.attrs["label_raw"], dotted.text) == (
+        "2",
+        "2.",
+        "Definitions",
+    )
+    assert (bare.label, bare.attrs["label_raw"], bare.text) == ("3", "3", "Charges")
+
+
+def test_a_labelled_paragraph_and_a_labelled_item_keep_their_labels(
+    profile: Profile,
+) -> None:
+    paragraph_tree = read("7.2. Termination is not retrospective.\n", profile)
+    item_tree = read("- (a) Invoices are sent by email.\n", profile)
+    paragraph = only(of_kind(paragraph_tree, BlockKind.LIST_ITEM))
+    item = only(of_kind(item_tree, BlockKind.LIST_ITEM))
+
+    assert (paragraph.label, paragraph.attrs["label_raw"]) == ("7.2", "7.2.")
+    assert (item.label, item.attrs["label_raw"]) == ("(a)", "(a)")
+    assert item.attrs["list_marker"] == "-"
+
+
+def test_a_heading_nobody_marked_up_keeps_its_label_as_written(
+    profile: Profile,
+) -> None:
+    heading = only(
+        of_kind(read("Schedule 1. The Services\n", profile), BlockKind.HEADING)
+    )
+
+    assert (heading.label, heading.attrs["label_raw"]) == ("Schedule 1", "Schedule 1.")
+
+
+def test_a_quoted_heading_keeps_its_label_as_written(profile: Profile) -> None:
+    """Quoted material is evidence rather than structure, and what it says is kept."""
+    quoted = only(
+        of_kind(read("> ## 4. Quoted heading\n", profile), BlockKind.PARAGRAPH)
+    )
+
+    assert quoted.attrs["quoted_heading"] is True
+    assert (quoted.label, quoted.attrs["label_raw"]) == ("4", "4.")
+
+
+def test_a_list_item_whose_text_carries_a_label_has_both_marker_and_label(
+    profile: Profile,
+) -> None:
+    """``1. 1.1 Access…``: ``1.`` is markdown's, ``1.1`` is the document's own."""
+    item = only(
+        of_kind(
+            read("1. 1.1 Access and Use of the Services.\n", profile),
+            BlockKind.LIST_ITEM,
+        )
+    )
+
+    assert item.label == "1.1"
+    assert item.attrs["label_raw"] == "1.1"
+    assert item.attrs["list_marker"] == "1."
+    assert "label_source" not in item.attrs
+
+
+def test_a_marker_that_labels_an_item_leaves_label_raw_out(profile: Profile) -> None:
+    """The marker as written is ``list_marker``: one record of it, not two."""
+    ordered = of_kind(read("1. First.\n2. Second.\n", profile), BlockKind.LIST_ITEM)
+    paren = only(of_kind(read("3) Third.\n", profile), BlockKind.LIST_ITEM))
+    bullet = only(of_kind(read("- A deliverable.\n", profile), BlockKind.LIST_ITEM))
+
+    assert [(item.label, item.attrs["list_marker"]) for item in ordered] == [
+        ("1", "1."),
+        ("2", "2."),
+    ]
+    assert {item.attrs["label_source"] for item in ordered} == {"list_marker"}
+    assert (paren.label, paren.attrs["list_marker"]) == ("3", "3)")
+    assert bullet.label is None
+    for item in (*ordered, paren, bullet):
+        assert "label_raw" not in item.attrs
+
+
+def test_label_raw_is_there_exactly_when_a_pattern_made_the_label(
+    profile: Profile,
+) -> None:
+    """On every fixture, a pattern's label has ``label_raw`` and nothing else does.
+
+    A label that came from a list marker has none, and neither does a block with
+    no label, so ``label_raw`` and ``label_source`` are never on one block.
+    """
+    seen: set[str] = set()
+    for fixture in sorted(CASES.glob("*.md")):
+        for block in case(fixture.name, profile).walk():
+            where = f"{fixture.name} {block.path}"
+            attrs = block.attrs
+            by_marker = attrs.get("label_source") == "list_marker"
+            by_pattern = block.label is not None and not by_marker
+            assert ("label_raw" in attrs) is by_pattern, where
+            if by_pattern:
+                assert block.label is not None
+                assert attrs["label_raw"] in (block.label, block.label + "."), where
+                seen.add("pattern")
+            elif by_marker:
+                seen.add("marker")
+    assert seen == {"pattern", "marker"}
+
+
 # --- paragraphs ------------------------------------------------------------
 
 

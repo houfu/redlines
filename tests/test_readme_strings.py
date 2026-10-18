@@ -8,7 +8,9 @@ This module closes both gaps.
 
 - Every ``python`` fenced block of ``README.md`` is run in a namespace of its
   own and must finish without an error. The blocks assert some output
-  themselves, so this also keeps the README honest about what it shows.
+  themselves, so this also keeps the README honest about what it shows. A fence
+  marked ``python no-run`` is the one way out, for an example that cannot run as
+  printed; ``tests/helpers/readme_fences.py`` has the rules for finding fences.
 - The expected strings of the quickstart's fox example, in the default style and
   in ``markdown_style="none"``, are written out below. They are the bytes 0.6.2
   produced, not a copy of what the code under test prints: the same strings come
@@ -25,14 +27,13 @@ a compatibility break (ADR-0003).
 
 from __future__ import annotations
 
-import contextlib
-import io
 from pathlib import Path
 
 import pytest
 
 from redlines import Redlines
-from redlines.processor import NUPUNKT_AVAILABLE
+from tests.helpers import readme_fences
+from tests.helpers.readme_fences import python_blocks, run_block, skip_reason
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 README = REPO_ROOT / "README.md"
@@ -43,38 +44,6 @@ def read_exact(path: Path) -> str:
     """Read a file without any newline translation."""
     with open(path, encoding="utf-8", newline="") as f:
         return f.read()
-
-
-def python_blocks(markdown: str) -> list[str]:
-    """The bodies of the ``python`` fenced blocks of a markdown document, in
-    order.
-
-    A fence opens and closes on a line that starts (after indentation) with
-    three backticks; only a fence whose info string starts with ``python``
-    counts, so the ``bash`` block of the Quick Start, which has Python-looking
-    lines in it, does not. A block still open at the end of the text is kept.
-    """
-    blocks: list[str] = []
-    in_fence = False
-    keep = False
-    lines: list[str] = []
-    for line in markdown.splitlines():
-        stripped = line.strip()
-        if stripped.startswith("```"):
-            if in_fence:
-                if keep:
-                    blocks.append("\n".join(lines) + "\n")
-                in_fence = False
-            else:
-                info = stripped[3:].split()
-                in_fence = True
-                keep = bool(info) and info[0] == "python"
-                lines = []
-        elif in_fence and keep:
-            lines.append(line)
-    if in_fence and keep:
-        blocks.append("\n".join(lines) + "\n")
-    return blocks
 
 
 BLOCKS = python_blocks(README.read_text(encoding="utf-8"))
@@ -104,17 +73,63 @@ def test_python_blocks_takes_python_fences_and_nothing_else() -> None:
 
     assert python_blocks(markdown) == [
         "first = 1\n",
-        "  second = 2\n",
+        "second = 2\n",
         "third = 3  # the fence is never closed\n",
     ]
+
+
+def test_python_blocks_dedents_a_fence_inside_a_list_item() -> None:
+    markdown = "\n".join(
+        [
+            "1. A step:",
+            "",
+            "   ```python",
+            "   if True:",
+            "       nested = 1",
+            "   ```",
+        ]
+    )
+
+    assert python_blocks(markdown) == ["if True:\n    nested = 1\n"]
+
+
+def test_python_blocks_follows_the_fence_rules_of_commonmark() -> None:
+    markdown = "\n".join(
+        [
+            "~~~python",
+            "tilde = 1",
+            "~~~",
+            "````markdown",
+            "```python",
+            "inside_a_longer_fence = 2",
+            "```",
+            "````",
+            "```python",
+            "after = 3",
+            "```",
+        ]
+    )
+
+    assert python_blocks(markdown) == ["tilde = 1\n", "after = 3\n"]
+
+
+def test_a_no_run_fence_is_skipped() -> None:
+    assert python_blocks("```python no-run\nundefined_name\n```\n") == []
+
+
+def test_skip_reason_names_a_missing_extra(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(readme_fences, "NUPUNKT_AVAILABLE", False)
+
+    assert skip_reason("processor = NupunktProcessor()") is not None
+    assert skip_reason("Redlines('a', 'b')") is None
 
 
 def test_readme_has_python_blocks() -> None:
     """If the README stops having runnable examples the tests below would
     parametrise over nothing and be skipped without a word."""
     assert BLOCKS, (
-        "README.md has no ```python fenced block. Its examples are what this "
-        "module runs; if that is deliberate, change this module with it."
+        "README.md has no runnable ```python fenced block. Its examples are what "
+        "this module runs; if that is deliberate, change this module with it."
     )
 
 
@@ -123,15 +138,11 @@ def test_readme_has_python_blocks() -> None:
 )
 def test_readme_python_block_runs(index: int) -> None:
     code = BLOCKS[index]
-    if "nupunkt" in code.lower() and not NUPUNKT_AVAILABLE:
-        pytest.skip("this README block needs the nupunkt extra, which is not installed")
+    reason = skip_reason(code)
+    if reason is not None:
+        pytest.skip(reason)
 
-    # A namespace of its own for each block: a README example has to work as
-    # written, not because an earlier one imported something for it.
-    namespace = {"__name__": "readme_block"}
-    compiled = compile(code, f"<README.md python block {index + 1}>", "exec")
-    with contextlib.redirect_stdout(io.StringIO()):
-        exec(compiled, namespace)
+    run_block(index, code)
 
 
 # The quickstart example (README.md, "Quick Start" and "Basic comparison"; also
