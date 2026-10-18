@@ -102,6 +102,17 @@ rich_plain = (chr(10) * 2).join(
 assert rich_text.plain == rich_plain, f"unexpected output_rich: {rich_text.plain!r}"
 styles = [str(span.style) for span in rich_text.spans]
 assert styles == ["bold", "strike red", "green"], f"unexpected output_rich styles: {styles!r}"
+
+# Comparison.output_annotated (#181, ADR-0037): the CriticMarkup view, by
+# default and with the text syntax named.
+annotated_expected = (
+    "The quick brown fox {~~jumps over~>walks past~~} the lazy dog."
+    "\\n\\nA second paragraph stays."
+)
+annotated = pair.output_annotated()
+assert annotated == annotated_expected, f"unexpected annotated view: {annotated!r}"
+annotated_text = pair.output_annotated(syntax="text")
+assert annotated_text == annotated_expected, f"unexpected text view: {annotated_text!r}"
 f"redlines ok; profile {profile.name!r} loaded; renderer core ok"
 `;
 

@@ -87,6 +87,7 @@ def _steps(comparison: Comparison) -> dict[str, Callable[[], object]]:
         ),
         "markdown render": lambda: comparison.output_markdown("none"),
         "rich render": comparison.output_rich,
+        "annotated render": lambda: comparison.output_annotated(),
     }
 
 

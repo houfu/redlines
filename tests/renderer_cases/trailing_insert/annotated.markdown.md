@@ -1,0 +1,11 @@
+## 3. Services
+
+[clause] 3.1 The Supplier shall supply the Services.
+
+[clause] 3.2 The Supplier shall meet the Service Levels.
+
+[clause] {++3.3 The Supplier may engage subcontractors with consent.++}
+
+## {--4. Fees--}
+
+[clause] {--4.1 The Client shall pay the Fees monthly.--}

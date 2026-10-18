@@ -5,7 +5,10 @@ Run this only when a change is intentional, then read the diff::
     uv run python tests/corpus/sample_pair/regenerate.py
 
 Six files are written under ``expected/``: four block trees and, since #144,
-the two change-tree goldens.
+the two change-tree goldens. With ``--rendered``, the script writes the
+renderers' goldens under ``expected/rendered/`` instead, and nothing else::
+
+    uv run python tests/corpus/sample_pair/regenerate.py --rendered
 
 **The four block trees.** The plain-text twins read by
 `redlines.readers.text.PlainTextReader` under the built-in ``contract``
@@ -54,12 +57,8 @@ keeps the same discipline for the change-tree goldens: it calls the public
 `redlines.comparison.compare` itself rather than this script's
 `build_comparison`.
 
-**The rendered goldens** (#179, then each renderer after it). With
-``--rendered`` the script writes these instead, under ``expected/rendered/``::
-
-    uv run python tests/corpus/sample_pair/regenerate.py --rendered
-
-They are what the renderers of `redlines.comparison.Comparison` draw for the
+**The rendered goldens** (#179 to #181, ADR-0037 "Fixtures"), written with
+``--rendered``, are what the renderers of `redlines.comparison.Comparison` draw for the
 two comparisons above, under the same `GOLDEN_BACKEND`. Each renderer appends
 its own rows to `RENDERINGS` and reorders none, because the renderers are
 developed in parallel. Every file is written with ``newline=""``, so the bytes
@@ -67,7 +66,12 @@ on disk are the bytes the renderer returned, and no trailing newline is added
 to a rendering that has none. What freezes them is not this script but houfu's
 reading of them against ``CHANGES.md``, once, so regenerate them only for a
 change he has agreed to. The tests render the pair themselves rather than
-calling `RENDERINGS`, as the tests above do.
+calling `RENDERINGS`, as the tests above do. Among the rows:
+
+- ``annotated.markdown.md`` and ``annotated.contract.txt`` are
+  `redlines.comparison.Comparison.output_annotated` for the markdown and the
+  plain-text twin; ``annotated.markdown.md`` is the golden houfu reads and
+  approves, and ``tests/test_sample_pair_annotated.py`` byte-checks both.
 """
 
 from __future__ import annotations
@@ -264,6 +268,17 @@ RENDERINGS: tuple[tuple[str, str, Callable[[Comparison], str]], ...] = (
     ),
     # Comparison.output_rich (#180): the markdown twin.
     ("rich.markdown.json", "markdown", dump_rich),
+    # Comparison.output_annotated (#181): the CriticMarkup view of each twin.
+    (
+        "annotated.markdown.md",
+        "markdown",
+        lambda comparison: comparison.output_annotated(),
+    ),
+    (
+        "annotated.contract.txt",
+        "contract",
+        lambda comparison: comparison.output_annotated(),
+    ),
 )
 """Every rendered golden: its file under `RENDERED_DIR`, the profile naming its
 twin in `CHANGE_PAIRINGS`, and what draws it. Each renderer appends its own
