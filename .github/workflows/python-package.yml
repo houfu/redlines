@@ -94,3 +94,46 @@ jobs:
         run: uv build --wheel --out-dir dist
       - name: Import redlines under Pyodide
         run: node .github/scripts/pyodide_check.mjs dist/redlines-*.whl
+
+  # The 0.6.2 compatibility contract (ADR-0003), checked from outside this
+  # repository's own tests. The pristine `tests/` and `examples/` trees of the
+  # v0.6.2 tag are extracted from git, not from the working tree, and run
+  # against the code as it stands, with every extra installed. Passing them
+  # unmodified is a hard release criterion for 1.0.
+  # `tests/test_v062_contract_frozen.py` proves that this repository's copies of
+  # those files have not been edited; this job proves that the behaviour they
+  # describe has not changed.
+  #
+  # Python 3.12, because nupunkt needs 3.11 or later. The archive is extracted
+  # outside the checkout, so pytest's rootdir lands there and the repository's
+  # own pytest configuration is not loaded: the old tests run as they did in
+  # 0.6.2. It shares this workflow's triggers (and so its `paths-ignore`).
+  #
+  # It only blocks a merge once it is a required status check. That is a
+  # repository setting, not workflow code: houfu can make `compat-v062`
+  # required under the branch protection (or ruleset) settings when ready.
+  compat-v062:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          # `git archive v0.6.2` needs the tag, and a shallow clone has none.
+          fetch-depth: 0
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - name: Install uv
+        uses: astral-sh/setup-uv@v10.3.0
+        with:
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
+      - name: Install the project (with nupunkt and the other extras)
+        run: uv sync --all-extras --dev
+      - name: Extract the pristine v0.6.2 tests and examples
+        run: |
+          mkdir -p "$RUNNER_TEMP/v062"
+          git archive v0.6.2 tests examples | tar -x -C "$RUNNER_TEMP/v062"
+      - name: Run them against the current code
+        run: uv run pytest "$RUNNER_TEMP/v062/tests" -p no:cacheprovider
