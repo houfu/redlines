@@ -83,6 +83,23 @@ expected = (
     "\\n\\nA second paragraph stays."
 )
 assert rendered == expected, f"unexpected in-place render: {rendered!r}"
+
+# Comparison.output_markdown (#179) and Comparison.output_rich (#180); rich
+# loads under Pyodide, and _rich.py is the only renderer module importing it.
+# No backslash escapes here: this is a JavaScript template literal.
+markdown = pair.output_markdown("none")
+assert markdown == expected, f"unexpected output_markdown: {markdown!r}"
+rich_text = pair.output_rich()
+rich_plain = (chr(10) * 2).join(
+    [
+        "1 change: 0 inserted, 0 deleted, 1 modified, 0 moved, 0 renumbered",
+        "The quick brown fox jumps over walks past the lazy dog.",
+        "A second paragraph stays.",
+    ]
+)
+assert rich_text.plain == rich_plain, f"unexpected output_rich: {rich_text.plain!r}"
+styles = [str(span.style) for span in rich_text.spans]
+assert styles == ["bold", "strike red", "green"], f"unexpected output_rich styles: {styles!r}"
 f"redlines ok; profile {profile.name!r} loaded; renderer core ok"
 `;
 
