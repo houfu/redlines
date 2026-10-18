@@ -43,9 +43,10 @@ three.
 **Labels** are written as the reader found them: ``attrs["label_raw"]``, else,
 for a label that came from a list marker, the marker (text variant only; in the
 markdown variant the marker is the syntax head and the label part is empty),
-else ``label``. The whitespace between a label and its text is one space, and a
-label-only block (``Schedule 1``, whose text is empty) ends at its label, with
-no space after it.
+else ``label``. A note names a block by its label text, so a numbered item's
+notes carry its number in both variants. The whitespace between a label and
+its text is one space, and a label-only block (``Schedule 1``, whose text is
+empty) ends at its label, with no space after it.
 
 **Tables** are one chunk: the header row, the alignment row (markdown variant
 only), then the data rows, each ``| c1 | c2 |``, joined by ``\n``. A mark never
@@ -105,6 +106,7 @@ __all__: tuple[str, ...] = (
     "Chunk",
     "Syntax",
     "label_text",
+    "label_part_text",
     "syntax_head",
     "layout",
     "serialize",
@@ -244,11 +246,12 @@ class Chunk:
 
 
 def label_text(block: Block, syntax: Syntax) -> str:
-    """The label as the document wrote it (ADR-0037, "Labels as written").
+    """The label text, as ADR-0037's notes write it ("Labels as written").
 
-    ``attrs["label_raw"]``, else, for a label that came from a list marker, the
-    marker in the text variant and nothing in the markdown variant (where the
-    marker is the syntax head), else ``label``.
+    ``attrs["label_raw"]``, else, for a label that came from a list marker,
+    the marker in the text variant, else ``label``. A note names a block by
+    this text in both variants; the line itself may leave it out
+    (`label_part_text`).
 
     :param block: the block.
     :param syntax: the variant being written.
@@ -260,13 +263,39 @@ def label_text(block: Block, syntax: Syntax) -> str:
     raw = attrs.get("label_raw")
     if isinstance(raw, str) and raw:
         return raw
-    if attrs.get("label_source") == "list_marker":
-        if syntax == "markdown":
-            return ""
+    if syntax == "text" and attrs.get("label_source") == "list_marker":
         marker = attrs.get("list_marker")
         if isinstance(marker, str) and marker:
             return marker
     return block.label
+
+
+def label_part_text(block: Block, syntax: Syntax) -> str:
+    """The label a block's own line writes before its text.
+
+    The `label_text`, except that in the markdown variant a label that came
+    from a list marker is the syntax head already, so the label part is empty.
+
+    :param block: the block.
+    :param syntax: the variant being written.
+    :return: the label part's text, without the space after it.
+    """
+    if syntax == "markdown" and block.attrs.get("label_source") == "list_marker":
+        return ""
+    return label_text(block, syntax)
+
+
+def _renumbered_from(block: Block) -> str:
+    """The OLD of ``{>>renumbered from OLD<<}``: label_raw, list_marker or label.
+
+    The grammar's chain has no variant qualifier, so a bullet that became a
+    numbered item reads ``renumbered from -``.
+    """
+    attrs = block.attrs
+    for value in (attrs.get("label_raw"), attrs.get("list_marker"), block.label):
+        if isinstance(value, str) and value:
+            return value
+    return ""
 
 
 def syntax_head(block: Block, syntax: Syntax) -> str:
@@ -433,9 +462,9 @@ class _Layout:
             pieces.append(Piece("syntax", head))
         if (
             self.roles
-            and block.role is not None
+            and block.role
             and block.kind not in _NO_ROLE
-            and not _is_fence(block, self.syntax)
+            and "fence" not in block.attrs
         ):
             pieces.append(Piece("role", self._role_prefix(block.role)))
         return pieces
@@ -452,7 +481,7 @@ class _Layout:
         if _is_fence(block, self.syntax):
             self._fence(block, [Piece(mark, block.text)], status)
             return
-        body = _labelled(label_text(block, self.syntax), block.text)
+        body = _labelled(label_part_text(block, self.syntax), block.text)
         pieces = self._head(block)
         pieces.append(Piece(mark, body))
         self._add(
@@ -506,11 +535,11 @@ class _Layout:
         block = node.block
         change = node.change
         source = node.counterpart
-        new = label_text(block, self.syntax)
+        new = label_part_text(block, self.syntax)
         space = " " if block.text else ""
         relabelled = change is not None and (
             (change.source_label or None) != (change.test_label or None)
-            or (source is not None and label_text(source, self.syntax) != new)
+            or (source is not None and label_part_text(source, self.syntax) != new)
         )
         if not relabelled:
             return [Piece("text", new + space)] if new else []
@@ -519,9 +548,9 @@ class _Layout:
             and self.syntax == "markdown"
             and block.attrs.get("label_source") == "list_marker"
         ):
-            old = "" if source is None else label_text(source, "text")
+            old = "" if source is None else _renumbered_from(source)
             return [Piece("note", "renumbered from " + old), Piece("text", " ")]
-        old = "" if source is None else label_text(source, self.syntax)
+        old = "" if source is None else label_part_text(source, self.syntax)
         if old == new:
             return [Piece("text", new + space)] if new else []
         if self.marks.substitution is not None:
@@ -976,7 +1005,7 @@ def _escape_line_starts(pieces: tuple[Piece, ...], quote: bool) -> tuple[Piece, 
 
 def _spell(chunk: Chunk, marks: MarkSet, roles: bool) -> str:
     """Write one chunk with a set's delimiters and escape."""
-    pieces = chunk.pieces
+    pieces = _merge_text(chunk.pieces)
     if marks.escape == "critic" and roles:
         pieces = _escape_line_starts(pieces, chunk.quote)
     if marks.escape == "critic":

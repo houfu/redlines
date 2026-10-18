@@ -40,10 +40,14 @@ from redlines.comparison import Comparison, compare
 from redlines.enums import MarkdownStyle
 from redlines.renderers._inplace import (
     Segment,
+    Chunk,
+    Piece,
     inline_segments,
+    label_part_text,
     label_text,
     layout,
     render_inplace,
+    serialize,
 )
 from redlines.renderers._marks import CRITIC, LEGACY, MarkSet, custom_css
 from tests.helpers import criticmarkup as cm
@@ -328,7 +332,9 @@ def test_labels_are_written_as_the_document_wrote_them() -> None:
         attrs={"list_marker": "3.", "label_source": "list_marker", "list_depth": 1},
     )
     assert label_text(marker, "text") == "3."
-    assert label_text(marker, "markdown") == ""
+    assert label_text(marker, "markdown") == "3"
+    assert label_part_text(marker, "text") == "3."
+    assert label_part_text(marker, "markdown") == ""
     both = Block(
         kind=BlockKind.LIST_ITEM,
         label="1.1",
@@ -444,6 +450,45 @@ def test_a_role_goes_after_the_syntax_head_and_never_on_a_table_or_fence() -> No
     )
 
 
+def test_a_bullet_that_became_a_numbered_item_was_renumbered_from_its_marker() -> None:
+    source = "- Alpha item text\n- Beta item text\n"
+    test = "1. New first item\n2. Alpha item text\n3. Beta item text\n"
+    assert critic(md(source, test), roles=False).split("\n\n")[1:] == [
+        "2. {>>renumbered from -<<} Alpha item text",
+        "3. {>>renumbered from -<<} Beta item text",
+    ]
+
+
+def test_a_legacy_renumber_of_a_list_marker_label_is_unmarked_in_markdown() -> None:
+    """The marker is the syntax head, so the label part is empty and has nothing to mark.
+
+    Writing ``DEL("1. ")INS("2. ")`` after the head would read back ``2. 2. Alpha``
+    and break the none style's accept-all; the text variant marks it.
+    """
+    source = "1. Alpha item text\n2. Beta item text\n"
+    test = "1. New first item\n2. Alpha item text\n3. Beta item text\n"
+    assert none(md(source, test)).split("\n\n") == [
+        "1. <ins>New first item</ins>",
+        "2. Alpha item text",
+        "3. Beta item text",
+    ]
+    assert none(md(source, test), syntax="text").split("\n\n")[1] == (
+        "<del>1. </del><ins>2. </ins>Alpha item text"
+    )
+
+
+def test_a_role_is_never_written_on_a_fence_and_never_empty() -> None:
+    fence = tree(
+        Block(
+            kind=BlockKind.PARAGRAPH, text="x = 1", role="code", attrs={"fence": "py"}
+        )
+    )
+    assert critic(compare(fence, fence), syntax="text") == "x = 1"
+    assert critic(compare(fence, fence)) == "```py\nx = 1\n```"
+    empty = tree(Block(kind=BlockKind.PARAGRAPH, text="text", role=""))
+    assert critic(compare(empty, empty), syntax="text") == "text"
+
+
 # --- moves ------------------------------------------------------------------------
 
 
@@ -486,6 +531,26 @@ def test_a_nested_move_draws_the_inner_tombstone_inside_the_destination() -> Non
     ]
 
 
+def test_a_moved_numbered_item_is_named_by_its_number_in_both_variants() -> None:
+    source = (
+        "## A\n\n1. Alpha item text here\n2. Beta item text here\n"
+        "3. Gamma item text here\n\n## B\n\nIntro paragraph for B.\n"
+    )
+    test = (
+        "## A\n\n1. Alpha item text here\n2. Beta item text here\n\n"
+        "## B\n\nIntro paragraph for B.\n\n1. Gamma item text here\n"
+    )
+    comparison = md(source, test)
+    markdown = critic(comparison, roles=False).split("\n\n")
+    assert "{>>3 moved to 1 /list_item[3]<<}" in markdown
+    assert markdown[-1] == (
+        "1. {>>renumbered from 3.<<} Gamma item text here {>>moved from 3 /list_item[3]<<}"
+    )
+    text = critic(comparison, syntax="text", roles=False).split("\n\n")
+    assert "{>>3. moved to 1. /list_item[3]<<}" in text
+    assert text[-1].endswith("Gamma item text here {>>moved from 3. /list_item[3]<<}")
+
+
 def test_the_legacy_sets_strike_a_moved_block_whole_at_its_origin() -> None:
     lines = none(md(*case_texts("nested_move"))).split("\n\n")
     body = [line for line in lines if not line.startswith("#")]
@@ -500,6 +565,16 @@ def test_the_legacy_sets_strike_a_moved_block_whole_at_its_origin() -> None:
         "9.1 The Supplier shall keep complete records of the Services for six years after the end of the Term.",
         "<ins>9.2 The receiving party may keep one archival copy of the information for legal purposes only.</ins>",
     ]
+
+
+# --- escaping at a line's start ------------------------------------------------------
+
+
+def test_serialize_merges_adjacent_text_before_escaping() -> None:
+    """A backslash ending one text piece and an opener starting the next stay literal."""
+    chunk = Chunk((Piece("text", "\\"), Piece("text", "{++x")))
+    spelled = serialize([chunk], CRITIC, roles=False)
+    assert cm.parse(spelled) == (cm.Token("text", "\\{++x"),)
 
 
 # --- tables -----------------------------------------------------------------------
