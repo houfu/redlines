@@ -44,11 +44,13 @@ async function main() {
 
   // Import every module M1 adds under redlines.* plus the profile loader,
   // and confirm a minimal profile actually loads. Then import the M3
-  // renderer package -- nothing star-imports it from redlines/__init__
-  // until the Comparison render methods arrive -- and run its core once:
-  // build the view of a two-paragraph pair and render it in place with the
-  // legacy "none" set (ADR-0037). Each renderer adds its own method's call
-  // below. Left uncaught so a failure propagates as a PythonError carrying
+  // renderer package -- `import redlines` reaches it already, because
+  // redlines.comparison imports the renderers for the Comparison render
+  // methods -- and run its core once: build the view of a two-paragraph pair
+  // and render it in place with the legacy "none" set (ADR-0037). Each
+  // renderer adds its own method's call below. A backslash escape in the
+  // Python must be doubled, because this is a JavaScript template literal.
+  // Left uncaught so a failure propagates as a PythonError carrying
   // the formatted CPython traceback, which we print before exiting non-zero.
   const checkScript = `
 import redlines
@@ -83,6 +85,23 @@ expected = (
     "\\n\\nA second paragraph stays."
 )
 assert rendered == expected, f"unexpected in-place render: {rendered!r}"
+
+# Comparison.output_markdown (#179) and Comparison.output_rich (#180); rich
+# loads under Pyodide, and _rich.py is the only renderer module importing it.
+# The newlines are chr(10), which needs no escape in the template literal.
+markdown = pair.output_markdown("none")
+assert markdown == expected, f"unexpected output_markdown: {markdown!r}"
+rich_text = pair.output_rich()
+rich_plain = (chr(10) * 2).join(
+    [
+        "1 change: 0 inserted, 0 deleted, 1 modified, 0 moved, 0 renumbered",
+        "The quick brown fox jumps over walks past the lazy dog.",
+        "A second paragraph stays.",
+    ]
+)
+assert rich_text.plain == rich_plain, f"unexpected output_rich: {rich_text.plain!r}"
+styles = [str(span.style) for span in rich_text.spans]
+assert styles == ["bold", "strike red", "green"], f"unexpected output_rich styles: {styles!r}"
 
 # Comparison.output_annotated (ADR-0037): the CriticMarkup view, by default and
 # with the text syntax named. chr(10) rather than a backslash escape, which

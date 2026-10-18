@@ -43,15 +43,6 @@ and the backend benchmark/REPORT.md quotes. The two backends agree on every
 node of this pair -- `tests/test_sample_pair_change_tree.py` asserts exactly
 that -- so naming one costs no coverage.
 
-**The rendered goldens** (ADR-0037, "Fixtures") are one renderer's output
-for one twin, the twin compared exactly as for its change-tree golden, written
-with ``newline=""`` so the bytes are the renderer's own on every platform.
-`RENDERINGS` lists them: ``annotated.markdown.md`` and
-``annotated.contract.txt`` are `redlines.comparison.Comparison.output_annotated`
-for the markdown and the plain-text twin, and ``annotated.markdown.md`` is the
-golden houfu reads and approves. ``tests/test_sample_pair_annotated.py``
-byte-checks them.
-
 These are *not* the M0 golden outputs of `tests/corpus/regenerate_goldens.py`,
 which renders a redline for every case directory; ``sample_pair`` is listed in
 that test's ``NOT_GOLDEN_CASES``.
@@ -65,6 +56,22 @@ than a silently regenerated golden. `tests/test_sample_pair_change_tree.py`
 keeps the same discipline for the change-tree goldens: it calls the public
 `redlines.comparison.compare` itself rather than this script's
 `build_comparison`.
+
+**The rendered goldens** (#179 to #181, ADR-0037 "Fixtures"), written with
+``--rendered``, are what the renderers of `redlines.comparison.Comparison` draw for the
+two comparisons above, under the same `GOLDEN_BACKEND`. Each renderer appends
+its own rows to `RENDERINGS` and reorders none, because the renderers are
+developed in parallel. Every file is written with ``newline=""``, so the bytes
+on disk are the bytes the renderer returned, and no trailing newline is added
+to a rendering that has none. What freezes them is not this script but houfu's
+reading of them against ``CHANGES.md``, once, so regenerate them only for a
+change he has agreed to. The tests render the pair themselves rather than
+calling `RENDERINGS`, as the tests above do. Among the rows:
+
+- ``annotated.markdown.md`` and ``annotated.contract.txt`` are
+  `redlines.comparison.Comparison.output_annotated` for the markdown and the
+  plain-text twin; ``annotated.markdown.md`` is the golden houfu reads and
+  approves, and ``tests/test_sample_pair_annotated.py`` byte-checks both.
 """
 
 from __future__ import annotations
@@ -77,11 +84,11 @@ from pathlib import Path
 from redlines.alignment import AlignmentConfig
 from redlines.blocks import BlockTree
 from redlines.comparison import Comparison, compare
+from redlines.enums import MarkdownStyle
 from redlines.pipeline import read_document
 
 CASE_DIR = Path(__file__).parent
 EXPECTED_DIR = CASE_DIR / "expected"
-RENDERED_DIR = EXPECTED_DIR / "rendered"
 
 # (input file, format, profile name) -> expected/<stem>.<profile>.json
 PAIRINGS: tuple[tuple[str, str, str], ...] = (
@@ -210,17 +217,69 @@ def regenerate() -> None:
         )
 
 
-# expected/rendered/<file> <- (the profile naming the twin in CHANGE_PAIRINGS,
-#                               the renderer applied to its comparison)
+RENDERED_DIR: Path = EXPECTED_DIR / "rendered"
+"""Where the rendered goldens go, apart from the trees they are drawn from."""
+
+MARKDOWN_STYLES: tuple[str, ...] = (
+    *(style.value for style in MarkdownStyle),
+    "custom_css",
+)
+"""Every style `redlines.comparison.Comparison.output_markdown` draws, in
+`redlines.enums.MarkdownStyle` order, then ``custom_css`` with its default
+classes."""
+
+
+def _markdown(style: str) -> Callable[[Comparison], str]:
+    """The ``output_markdown`` rendering in one style, as a `RENDERINGS` callable."""
+
+    def render(comparison: Comparison) -> str:
+        return comparison.output_markdown(style)
+
+    return render
+
+
+def dump_rich(comparison: Comparison) -> str:
+    """The ``output_rich`` golden: ``{"plain": …, "spans": [[start, end, style], …]}``.
+
+    ``(plain, spans)`` rather than ``Text.markup``, which churns on rich
+    upgrades (ADR-0037). JSON with one span to a line, so a diff shows which
+    run changed, and a trailing newline.
+
+    :param comparison: the comparison to render.
+    :return: the JSON text.
+    """
+    text = comparison.output_rich()
+    spans = [[span.start, span.end, str(span.style)] for span in text.spans]
+    rows = "".join(
+        f"    {json.dumps(span, ensure_ascii=False)}{',' if index < len(spans) - 1 else ''}\n"
+        for index, span in enumerate(spans)
+    )
+    plain = json.dumps(text.plain, ensure_ascii=False)
+    return f'{{\n  "plain": {plain},\n  "spans": [\n{rows}  ]\n}}\n'
+
+
 RENDERINGS: tuple[tuple[str, str, Callable[[Comparison], str]], ...] = (
+    # Comparison.output_markdown (#179): every style, on the markdown twin as
+    # markdown and on the text twin as text.
+    *(
+        (f"markdown.{style}.{extension}", profile_name, _markdown(style))
+        for style in MARKDOWN_STYLES
+        for extension, profile_name in (("md", "markdown"), ("txt", "contract"))
+    ),
+    # Comparison.output_rich (#180): the markdown twin.
+    ("rich.markdown.json", "markdown", dump_rich),
+    # Comparison.output_annotated (#181): the CriticMarkup view of each twin.
     ("annotated.markdown.md", "markdown", lambda comparison: comparison.output_annotated()),
     ("annotated.contract.txt", "contract", lambda comparison: comparison.output_annotated()),
 )
+"""Every rendered golden: its file under `RENDERED_DIR`, the profile naming its
+twin in `CHANGE_PAIRINGS`, and what draws it. Each renderer appends its own
+rows; none reorders another's."""
 
 
 def regenerate_rendered() -> None:
-    """Write every golden in `RENDERINGS` under ``expected/rendered/``."""
-    RENDERED_DIR.mkdir(exist_ok=True)
+    """Write every row of `RENDERINGS` under `RENDERED_DIR`, byte for byte."""
+    RENDERED_DIR.mkdir(parents=True, exist_ok=True)
     twins = {
         profile_name: build_comparison(
             source_name, test_name, format=format, profile_name=profile_name
@@ -229,8 +288,7 @@ def regenerate_rendered() -> None:
     }
     for name, profile_name, render in RENDERINGS:
         target = RENDERED_DIR / name
-        with open(target, "w", encoding="utf-8", newline="") as handle:
-            handle.write(render(twins[profile_name]))
+        target.write_text(render(twins[profile_name]), encoding="utf-8", newline="")
         print(f"wrote {target.relative_to(CASE_DIR.parent.parent)}")
 
 

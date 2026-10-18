@@ -10,7 +10,8 @@ publishes every public module:
   and a note (`MarkSet`);
 - ``_escape``: the CriticMarkup escape, role encoding, and the HTML escapers;
 - ``_view``: the view itself;
-- ``_inplace``: the inline splice, the line syntax and the in-place traversal.
+- ``_inplace``: the inline splice, the line syntax and the in-place traversal;
+- ``_rich``: the rich renderer, the only module here that imports rich.
 
 The 0.6 rendering loops stay in `redlines.redlines`, untouched: a renderer over
 a block tree cannot be byte-identical to them (ADR-0036), so these are new

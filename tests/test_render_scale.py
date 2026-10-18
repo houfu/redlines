@@ -85,6 +85,8 @@ def _steps(comparison: Comparison) -> dict[str, Callable[[], object]]:
         "critic render": lambda: render_inplace(
             comparison, CRITIC, syntax="markdown", roles=True
         ),
+        "markdown render": lambda: comparison.output_markdown("none"),
+        "rich render": comparison.output_rich,
         "annotated render": lambda: comparison.output_annotated(),
     }
 
@@ -112,3 +114,13 @@ def test_the_view_of_the_scale_pair_has_every_ghost_in_place(
         BlockStatus.UNCHANGED,
         BlockStatus.DELETE,
     ]
+
+
+def test_the_markdown_and_rich_renders_of_the_scale_pair_mark_every_deletion(
+    half_deleted: Comparison,
+) -> None:
+    """``Comparison.output_markdown`` and ``Comparison.output_rich`` are timed in `_steps` (#179, #180)."""
+    assert half_deleted.output_markdown("none").count("<del>") == BLOCKS // 2
+    assert half_deleted.output_rich().plain.startswith(
+        f"{BLOCKS // 2} changes: 0 inserted, {BLOCKS // 2} deleted"
+    )

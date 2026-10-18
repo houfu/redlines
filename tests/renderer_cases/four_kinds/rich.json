@@ -1,0 +1,16 @@
+{
+  "plain": "4 changes: 1 inserted, 1 deleted, 1 modified, 1 moved, 0 renumbered\n\n1. Delivery\n\n1.1 The Supplier shall deliver the goods within thirty (30sixty (60) days of each order.\n\n1.2 moved to 2.2 /section[2]/list_item[2]\n\n1.2 The Buyer may reject goods that do not match the order.\n\n2. Payment\n\n2.1 The Buyer shall pay each invoice within fourteen days of receiving it.\n\n2.2 Late payments carry interest at two per cent a month.\n\n1.2 2.2 Risk in the goods passes to the Buyer when the goods are unloaded at the Buyer's warehouse. moved from 1.2 /section[1]/list_item[2]",
+  "spans": [
+    [0, 9, "bold"],
+    [69, 80, "bold"],
+    [130, 140, "strike red"],
+    [140, 149, "green"],
+    [172, 213, "magenta"],
+    [215, 274, "green"],
+    [276, 286, "bold"],
+    [364, 421, "strike red"],
+    [423, 427, "strike red"],
+    [427, 431, "green"],
+    [523, 562, "magenta"]
+  ]
+}
