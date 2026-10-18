@@ -377,6 +377,31 @@ def test_a_list_marker_renumber_is_a_note_in_markdown_and_a_substitution_in_text
     assert cm.loose_multiset(rejected, source_rendering)
 
 
+NUMBERED = "## 4. Fees\n\n4.1 The Client shall pay the Fees.\n"
+UNNUMBERED = "## Fees\n\n4.1 The Client shall pay the Fees.\n"
+
+
+@pytest.mark.parametrize(
+    "source, test, head",
+    [
+        pytest.param(NUMBERED, UNNUMBERED, "{--4. --}Fees", id="loses_its_number"),
+        pytest.param(UNNUMBERED, NUMBERED, "{++4. ++}Fees", id="gains_a_number"),
+    ],
+)
+@pytest.mark.parametrize("syntax", ["markdown", "text"])
+def test_a_label_that_appears_or_disappears_is_inserted_or_deleted_with_its_space(
+    source: str, test: str, head: str, syntax: Syntax
+) -> None:
+    """A substitution with an empty side would leave the label's space outside
+    the mark, and a markdown heading would accept to ``##  Fees``."""
+    annotated = md(source, test).output_annotated(syntax=syntax)
+    assert blocks(annotated)[0] == ("## " if syntax == "markdown" else "") + head
+    test_rendering = md(test, test).output_annotated(syntax=syntax)
+    source_rendering = md(source, source).output_annotated(syntax=syntax)
+    assert cm.accept_all(annotated) == cm.accept_all(test_rendering)
+    assert cm.reject_all(annotated) == cm.reject_all(source_rendering)
+
+
 def test_a_role_prefix_follows_the_syntax_head_in_markdown_and_opens_the_line_in_text() -> (
     None
 ):
