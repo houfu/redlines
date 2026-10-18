@@ -86,7 +86,7 @@ def warn_deprecated(old: str, new: str, *, since: str,
 - Nothing calls `warn_deprecated` in 1.0. 1.1 passes the pending category; 1.2 passes the deprecation category.
 - `pyproject.toml` gains `filterwarnings = ["error::redlines.RedlinesPendingDeprecationWarning", "error::redlines.RedlinesDeprecationWarning"]`. Never `error::DeprecationWarning`: click 8.5 emits one.
 - `tests/test_quick_path_is_silent.py` records warnings, with `simplefilter("always")`, over the README, the course example, `examples/` and every CLI command. It fails on any recorded warning whose `filename` is under `redlines/`, or whose category is either of ours. The second clause catches a warning attributed to the user's code by `stacklevel=3`.
-- The docstrings of `changes`, `redlines` and `get_changes` gain: "Superseded by `redlines.compare(...).changes` (block-addressed, character offsets; not a drop-in replacement). Not deprecated in 1.0; not removed before 2.0."
+- The docstrings of `changes`, `redlines` and `get_changes` gain: "Superseded by `Comparison.changes`, from `redlines.compare(...)` (block-addressed, character offsets; not a drop-in replacement). Not deprecated in 1.0; not removed before 2.0." The successor is spelt that way because pdoc reads a dot after a call as a reference to a sibling module.
 - Before the first warning in 1.1, the public names wrap a private `_changes()`, so that `stats()` and `output_json()`, which reach `changes` internally, stay silent.
 
 ### What "unmodified" and "byte-identical" are checked against
