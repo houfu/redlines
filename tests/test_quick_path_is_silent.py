@@ -16,14 +16,18 @@ is redlines' own, and fails the test, when
 1. its ``filename`` is under the installed ``redlines`` package: it was raised in
    our code; or
 2. its category is, or subclasses, a class defined in the ``redlines`` package.
-   None exists yet. The rule reads the module of every class in the category's
-   MRO, so it applies to the first one that is added without being told about
-   it. It matters because a deprecation warning is normally raised with
-   ``stacklevel`` aimed at the *caller*: its filename is the user's code, not
-   ours, and rule 1 alone would let it through; or
-3. its ``filename`` is code this module wrote or compiled: itself, or a README
-   block it runs. That is the same ``stacklevel`` effect when the caller is the
-   test.
+   Redlines' own warning categories (``RedlinesPendingDeprecationWarning`` and
+   ``RedlinesDeprecationWarning``, added by the deprecation mechanism) are
+   matched by module and MRO, so this rule needs no list of names and applies to
+   any class added later without being told about it. It matters because a
+   deprecation warning is normally raised with ``stacklevel`` aimed at the
+   *caller*: its filename is the user's code, not ours, and rule 1 alone would
+   let it through; or
+3. its ``filename`` is code that calls the library on the quick path: this
+   module, a README block it runs, or a script in ``examples/``. That is the
+   same ``stacklevel`` effect when the caller is one of those. The baseline is
+   empty and the examples are what users copy, so a stdlib or third-party warning
+   that points at a line of one of them is counted too.
 
 Everything else belongs to somebody else. click, rich-click, rich and pytest warn
 about themselves from time to time (click 8.5 deprecates ``click.__version__``,
@@ -38,16 +42,16 @@ process, where ``redlines`` was imported long before; an import-time warning is
 outside them. The scripts in ``examples/`` run in a fresh interpreter, so a warning
 on ``import redlines`` shows up there. ``tests/test_examples.py`` is pinned and
 checks the scripts' output, not their warnings, so they are run again here. A
-warning of a built-in category that ``stacklevel`` aims at an example script is
-not counted (the scripts are not code this module wrote, and rules 1 and 2 do not
-match it); redlines' own warning classes, which rule 2 catches, are how the
+warning of a built-in category that a function called from a CLI command raises
+with a ``stacklevel`` reaching past the command itself is attributed to click's
+file, since click calls the command, and is not counted. Redlines' own warning
+classes, which rule 2 catches wherever the warning is attributed, are how the
 library will warn.
 """
 
 from __future__ import annotations
 
 import contextlib
-import io
 import json
 import os
 import shutil
@@ -67,7 +71,12 @@ import redlines
 from redlines import Redlines
 from redlines.cli import cli
 from redlines.enums import MarkdownStyle
-from redlines.processor import NUPUNKT_AVAILABLE
+from tests.helpers.readme_fences import (
+    BLOCK_FILENAME_PREFIX,
+    python_blocks,
+    run_block,
+    skip_reason,
+)
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 README = REPO_ROOT / "README.md"
@@ -76,7 +85,6 @@ COURSE_DIR = Path(__file__).resolve().parent / "corpus" / "course_lesson6"
 
 REDLINES_DIR = Path(redlines.__file__).resolve().parent
 THIS_FILE = Path(__file__).resolve()
-README_BLOCK = "<README.md python block "
 
 SOURCE_TEXT = "The quick brown fox jumps over the lazy dog."
 CHANGED_TEXT = "The quick brown fox walks past the lazy dog."
@@ -146,7 +154,11 @@ def blame(raised: Raised) -> str | None:
         return "raised inside the redlines package"
     if any(_defined_in_redlines(name) for name in raised.categories):
         return "its category is defined in the redlines package"
-    if raised.filename.startswith(README_BLOCK) or _is_this_file(raised.filename):
+    if (
+        raised.filename.startswith(BLOCK_FILENAME_PREFIX)
+        or _is_this_file(raised.filename)
+        or _is_under(raised.filename, EXAMPLES)
+    ):
         return "attributed to the calling code by stacklevel"
     return None
 
@@ -174,48 +186,18 @@ def recording() -> Iterator[list[warnings.WarningMessage]]:
 # --- the README blocks and the course example (in this process) ------------
 
 
-def python_blocks(markdown: str) -> list[str]:
-    """The bodies of the ``python`` fenced blocks of a markdown document.
-
-    A copy of the function of the same name in ``tests/test_readme_strings.py``,
-    which tests it; the two test modules do not import each other.
-    """
-    blocks: list[str] = []
-    in_fence = False
-    keep = False
-    lines: list[str] = []
-    for line in markdown.splitlines():
-        stripped = line.strip()
-        if stripped.startswith("```"):
-            if in_fence:
-                if keep:
-                    blocks.append("\n".join(lines) + "\n")
-                in_fence = False
-            else:
-                info = stripped[3:].split()
-                in_fence = True
-                keep = bool(info) and info[0] == "python"
-                lines = []
-        elif in_fence and keep:
-            lines.append(line)
-    if in_fence and keep:
-        blocks.append("\n".join(lines) + "\n")
-    return blocks
-
-
 BLOCKS = python_blocks(README.read_text(encoding="utf-8"))
 
 
 def run_readme_block(index: int, code: str) -> list[Raised]:
     """Run one README block in a namespace of its own; what it warned about."""
-    compiled = compile(code, f"{README_BLOCK}{index + 1}>", "exec")
-    with recording() as caught, contextlib.redirect_stdout(io.StringIO()):
-        exec(compiled, {"__name__": "readme_block"})
+    with recording() as caught:
+        run_block(index, code)
     return [Raised.of(warning) for warning in caught]
 
 
 def test_readme_has_python_blocks() -> None:
-    assert BLOCKS, "README.md has no ```python fenced block to run"
+    assert BLOCKS, "README.md has no runnable ```python fenced block"
 
 
 @pytest.mark.parametrize(
@@ -223,8 +205,9 @@ def test_readme_has_python_blocks() -> None:
 )
 def test_readme_python_block_is_silent(index: int) -> None:
     code = BLOCKS[index]
-    if "nupunkt" in code.lower() and not NUPUNKT_AVAILABLE:
-        pytest.skip("this README block needs the nupunkt extra, which is not installed")
+    reason = skip_reason(code)
+    if reason is not None:
+        pytest.skip(reason)
 
     assert_silent(f"README.md python block {index + 1}", run_readme_block(index, code))
 
@@ -295,9 +278,10 @@ CLI_INPUTS = {
 )
 def test_cli_command_is_silent(arguments: tuple[str, ...], form: str) -> None:
     source, test = CLI_INPUTS[form]
+    runner = CliRunner()  # built outside the recording: click's, not ours
 
     with recording() as caught:
-        result = CliRunner().invoke(cli, [*arguments, source, test])
+        result = runner.invoke(cli, [*arguments, source, test])
 
     # Exit code 0 is "changes found": the command ran to its end. 1 would mean
     # "no changes" and 2 an error, and a run that stopped early proves nothing.
@@ -309,8 +293,10 @@ def test_cli_command_is_silent(arguments: tuple[str, ...], form: str) -> None:
 
 
 def test_cli_guide_is_silent() -> None:
+    runner = CliRunner()
+
     with recording() as caught:
-        result = CliRunner().invoke(cli, ["guide"])
+        result = runner.invoke(cli, ["guide"])
 
     assert result.exit_code == 0, result.output
     assert_silent("`redlines guide`", [Raised.of(warning) for warning in caught])
@@ -337,7 +323,8 @@ import json, os, runpy, sys, warnings
 
 report, script, *arguments = sys.argv[1:]
 sys.argv = [script, *arguments]
-sys.path[0] = os.path.dirname(os.path.abspath(script))
+here = os.path.dirname(os.path.abspath(script))
+sys.path[:] = [here] + [entry for entry in sys.path if entry != ""]
 status = 0
 with warnings.catch_warnings(record=True) as caught:
     warnings.simplefilter("always")
@@ -367,10 +354,21 @@ class ScriptRun:
 
 
 def child_env(**extra: str) -> dict[str, str]:
-    """The environment of a child: UTF-8 whatever the locale (the examples print
-    symbols), and no GITHUB_STEP_SUMMARY unless a test sets one, so that a run
-    inside GitHub Actions does not overwrite the job's own summary."""
-    env = {k: v for k, v in os.environ.items() if k != "GITHUB_STEP_SUMMARY"}
+    """The environment of a child.
+
+    UTF-8 whatever the locale (the examples print symbols). No GITHUB_STEP_SUMMARY
+    unless a test sets one, so that a run inside GitHub Actions does not overwrite
+    the job's own summary. No GIT_* variable: GIT_DIR, GIT_WORK_TREE or
+    GIT_INDEX_FILE, as a git hook exports them, would point the commands that
+    build the throwaway repository (and ``ci_check.py``'s) at the repository the
+    tests are running in. What a test passes in ``extra`` is added after the
+    stripping and survives it.
+    """
+    env = {
+        name: value
+        for name, value in os.environ.items()
+        if name != "GITHUB_STEP_SUMMARY" and not name.startswith("GIT_")
+    }
     env["PYTHONUTF8"] = "1"
     env.update(extra)
     return env
@@ -390,6 +388,7 @@ def run_script(
         encoding="utf-8",
         cwd=cwd,
         env=dict(env) if env is not None else child_env(),
+        timeout=60,
     )
     assert (
         completed.returncode == 0
@@ -483,19 +482,29 @@ def git(*arguments: str, cwd: Path) -> None:
         "GIT_COMMITTER_NAME": "redlines tests",
         "GIT_COMMITTER_EMAIL": "tests@example.invalid",
     }
-    subprocess.run(
+    completed = subprocess.run(
         ["git", "-c", "commit.gpgsign=false", *arguments],
         cwd=cwd,
         env=child_env(**identity),
         capture_output=True,
         text=True,
-        check=True,
+        timeout=60,
     )
+    if completed.returncode != 0:
+        raise AssertionError(
+            f"`git {' '.join(arguments)}` failed in {cwd}:\n{completed.stderr}"
+        )
 
 
-def test_ci_check_example_is_silent(tmp_path: Path) -> None:
+def test_ci_check_example_is_silent(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     if shutil.which("git") is None:
         pytest.skip("git is not available")
+
+    # As a git hook exports it. A child that inherited it would run its git
+    # commands against this decoy and not against the repository built below.
+    monkeypatch.setenv("GIT_DIR", str(tmp_path / "decoy" / ".git"))
 
     # The way tests/test_examples.py sets it up: a documentation change on a
     # branch off main, in a repository of its own.
@@ -552,8 +561,8 @@ def test_every_example_script_is_run() -> None:
 
 # --- the rules and the harness, tried on warnings made on purpose ----------
 #
-# Nothing in redlines warns yet, so without these the tests above could not tell
-# a rule that works from one that never fires.
+# Nothing on the quick path warns, which is what the tests above assert, so
+# without these they could not tell a rule that works from one that never fires.
 
 
 def library_that_warns_at_its_caller() -> None:
@@ -579,8 +588,8 @@ def test_a_warning_raised_inside_the_package_is_counted() -> None:
 
 
 def test_a_warning_class_of_the_package_is_counted_wherever_it_points() -> None:
-    # No such class exists yet, so make one that claims to live in the package,
-    # and one that subclasses it from elsewhere.
+    # Stand-ins, so that the test needs no class from the package: one that
+    # claims to live in the package, and one that subclasses it from elsewhere.
     in_package = cast(
         "type[Warning]",
         type("PackageWarning", (DeprecationWarning,), {"__module__": "redlines.x"}),
@@ -610,6 +619,46 @@ def test_a_warning_aimed_at_a_readme_block_is_counted() -> None:
 
     assert raised.filename == "<README.md python block 1>"
     assert blame(raised) == "attributed to the calling code by stacklevel"
+
+
+def test_a_warning_aimed_at_an_example_script_is_counted() -> None:
+    # What a library warning of a built-in category, raised with stacklevel=2,
+    # looks like when the caller is examples/compare_files.py.
+    with recording() as caught:
+        warnings.warn_explicit(
+            "m",
+            DeprecationWarning,
+            filename=str(EXAMPLES / "compare_files.py"),
+            lineno=51,
+        )
+        # Another test module is not the quick path: it is not counted.
+        warnings.warn_explicit(
+            "m",
+            DeprecationWarning,
+            filename=str(REPO_ROOT / "tests" / "test_cli.py"),
+            lineno=1,
+        )
+    example, other_test = [Raised.of(warning) for warning in caught]
+
+    assert blame(example) == "attributed to the calling code by stacklevel"
+    assert blame(other_test) is None
+
+
+def test_child_env_drops_git_variables_and_keeps_what_a_test_sets(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("GIT_DIR", "/elsewhere/.git")
+    monkeypatch.setenv("GIT_WORK_TREE", "/elsewhere")
+    monkeypatch.setenv("GITHUB_STEP_SUMMARY", "/elsewhere/summary.md")
+
+    bare = child_env()
+    assert not [name for name in bare if name.startswith("GIT_")]
+    assert "GITHUB_STEP_SUMMARY" not in bare
+    assert bare["PYTHONUTF8"] == "1"
+
+    chosen = child_env(GIT_AUTHOR_NAME="someone", GITHUB_STEP_SUMMARY="/mine.md")
+    assert chosen["GIT_AUTHOR_NAME"] == "someone"
+    assert chosen["GITHUB_STEP_SUMMARY"] == "/mine.md"
 
 
 @pytest.mark.parametrize(
