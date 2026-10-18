@@ -44,11 +44,13 @@ async function main() {
 
   // Import every module M1 adds under redlines.* plus the profile loader,
   // and confirm a minimal profile actually loads. Then import the M3
-  // renderer package -- nothing star-imports it from redlines/__init__
-  // until the Comparison render methods arrive -- and run its core once:
-  // build the view of a two-paragraph pair and render it in place with the
-  // legacy "none" set (ADR-0037). Each renderer adds its own method's call
-  // below. Left uncaught so a failure propagates as a PythonError carrying
+  // renderer package -- `import redlines` reaches it already, because
+  // redlines.comparison imports the renderers for the Comparison render
+  // methods -- and run its core once: build the view of a two-paragraph pair
+  // and render it in place with the legacy "none" set (ADR-0037). Each
+  // renderer adds its own method's call below. A backslash escape in the
+  // Python must be doubled, because this is a JavaScript template literal.
+  // Left uncaught so a failure propagates as a PythonError carrying
   // the formatted CPython traceback, which we print before exiting non-zero.
   const checkScript = `
 import redlines
@@ -86,7 +88,7 @@ assert rendered == expected, f"unexpected in-place render: {rendered!r}"
 
 # Comparison.output_markdown (#179) and Comparison.output_rich (#180); rich
 # loads under Pyodide, and _rich.py is the only renderer module importing it.
-# No backslash escapes here: this is a JavaScript template literal.
+# The newlines are chr(10), which needs no escape in the template literal.
 markdown = pair.output_markdown("none")
 assert markdown == expected, f"unexpected output_markdown: {markdown!r}"
 rich_text = pair.output_rich()
