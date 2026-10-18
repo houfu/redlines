@@ -63,7 +63,7 @@ from collections.abc import Mapping
 from dataclasses import dataclass, replace
 from importlib.resources import files
 from pathlib import Path
-from typing import Any, Final
+from typing import Any, Final, Literal
 
 from .alignment import DEFAULT_ALIGNMENT, Alignment, AlignmentConfig, align
 from .blocks import BlockTree, _reject_unknown_keys
@@ -75,6 +75,9 @@ from .processor import RedlinesProcessor, WholeDocumentProcessor
 from .profiles import Profile
 from .readers import DEFAULT_MAX_CHARS
 from .readers.detect import detect_format
+from .renderers._html import render_change_list, render_document
+from .renderers._inplace import render_inplace
+from .renderers._marks import CRITIC
 from .statistics import ComparisonStatistics, statistics as _statistics
 
 __all__: tuple[str, ...] = (
@@ -250,7 +253,7 @@ class Comparison:
     tree and the configuration that produced all of it.
 
     The M3 renderers arrive as methods on this class -- ``output_markdown()``,
-    ``output_rich()``, ``output_html()``, ``output_annotated()`` and
+    ``output_rich()``, `output_html`, ``output_annotated()`` and
     ``output_summary()`` -- and are named here so M3 has no naming argument to
     have. ``statistics()`` (#139) and ``filter()`` (#138) land the same way,
     on the object rather than as loose functions.
@@ -330,6 +333,69 @@ class Comparison:
             changes=filter_changes(self.changes, spec),
             config=replace(self.config, filter=spec),
         )
+
+    def output_annotated(
+        self,
+        *,
+        syntax: Literal["text", "markdown", "html"] | None = None,
+        roles: bool = True,
+    ) -> str:
+        """Render the test document with its changes marked in place (ADR-0037).
+
+        Deletions and the origins of moves sit where they stood, and a
+        filtered comparison draws the same test document with only its own
+        nodes marked. ``"text"`` and ``"markdown"`` write CriticMarkup.
+        ``"html"`` writes the document view: one script-free HTML fragment, the
+        same one the MCP App and the documentation site inject, with a block
+        element per entry, headings as ``role="heading"`` rather than
+        ``<h1>``–``<h6>``, and the fragment contract of ADR-0038 (see
+        `redlines.renderers.STYLESHEET`).
+
+        :param syntax: ``"text"``, ``"markdown"`` or ``"html"``, matched
+            case-sensitively. ``None`` means ``"markdown"`` when the test side
+            was read as markdown, and ``"text"`` otherwise; never ``"html"``.
+        :param roles: show each block's role: a ``[ROLE] `` prefix in
+            CriticMarkup, a role span in HTML. The HTML's ``data-role``
+            attributes are written either way.
+        :return: the rendering, with no trailing newline.
+        :raises ValueError: if ``syntax`` is anything else.
+        """
+        if syntax is None:
+            syntax = "markdown" if self.config.test_format == "markdown" else "text"
+        if syntax == "html":
+            return render_document(self, schema_version=SCHEMA_VERSION, roles=roles)
+        if syntax == "text" or syntax == "markdown":
+            return render_inplace(self, CRITIC, syntax=syntax, roles=roles)
+        raise ValueError(
+            f"syntax must be 'text', 'markdown', 'html' or None, got {syntax!r}"
+        )
+
+    def output_html(self) -> str:
+        """Render the change list as one script-free HTML fragment (ADR-0038).
+
+        One row per change node, in change-list order, each a native
+        ``<details>`` whose summary gives the kind, the label (``OLD → NEW``
+        on a move or a renumber), an excerpt, the breadcrumb, the role, the
+        address and the alignment's match, and whose body is the edit marked
+        with ``<ins>`` and ``<del>``. Above the rows, a header with the
+        counts, the configuration, the structure line and a notice for a
+        filter, an exhausted budget and each thing a reader dropped.
+
+        The fragment is self-contained and safe to inject: one ``<section
+        class="redlines">`` root with its own ``<style>``
+        (`redlines.renderers.STYLESHEET`), no script, no inline style or
+        handler, no external reference and no ``id``, every document string
+        escaped, and every selector scoped under ``.redlines``. Colours and
+        fonts come from the ``--redlines-*`` custom properties, falling back
+        to the MCP Apps standard variables and then to light and dark
+        defaults. Each row carries its change's fields as ``data-*``
+        attributes, so a shell can filter rows the way
+        `redlines.filters.ChangeFilter` does without re-rendering. The
+        version is ``data-redlines-fragment`` (`redlines.renderers.FRAGMENT_VERSION`).
+
+        :return: the fragment, with no trailing newline.
+        """
+        return render_change_list(self, schema_version=SCHEMA_VERSION)
 
     def to_dict(
         self, *, include_alignment: bool = False, include_trees: bool = True
