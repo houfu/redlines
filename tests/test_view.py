@@ -24,7 +24,7 @@ from pathlib import Path
 import pytest
 
 from redlines.alignment import AlignmentConfig
-from redlines.changes import ChangeKind, _under_a_move
+from redlines.changes import Change, ChangeKind, _under_a_move
 from redlines.comparison import Comparison, compare
 from redlines.renderers._inplace import inline_segments, render_inplace
 from redlines.renderers._marks import CRITIC, LEGACY
@@ -239,6 +239,82 @@ def test_an_inserted_subtree_marks_its_unmatched_descendants_without_a_change() 
     assert inserted[0].change is not None
     assert [node.change for node in inserted[1:]] == [None, None, None]
     assert len(inserted) == len(comparison.alignment.inserted)
+
+
+FILTERS: list[tuple[str, ...]] = [
+    ("delete",),
+    ("move",),
+    ("insert",),
+    ("modify",),
+    ("renumber",),
+    ("insert", "delete"),
+    ("move", "delete"),
+]
+
+_Entry = tuple[str, str, str, tuple[str, str | None, str | None] | None]
+
+
+def _key(change: Change | None) -> tuple[str, str | None, str | None] | None:
+    if change is None:
+        return None
+    return (change.kind.value, change.source_address, change.test_address)
+
+
+def _entries(node: ViewNode) -> list[_Entry]:
+    """A view flattened to (status, tree, path, change), in pre-order."""
+    side = "source" if node.status in (D, O) else "test"
+    out: list[_Entry] = [(node.status.value, side, node.block.path, _key(node.change))]
+    for child in node.children:
+        out.extend(_entries(child))
+    return out
+
+
+def _filtered(node: ViewNode, kept: set[tuple[str, str | None, str | None]],
+              owner: Change | None = None) -> list[_Entry]:
+    """What filtering should do to an unfiltered view: the same placements, fewer marks.
+
+    A ghost or a tombstone whose node is filtered away disappears with
+    everything inside it; a test block whose node, or whose inserted
+    ancestor's node, is filtered away is drawn unchanged.
+    """
+    own = node.change if node.change is not None else owner
+    if node.status in (D, O):
+        if own is None or _key(own) not in kept:
+            return []
+        out: list[_Entry] = [(node.status.value, "source", node.block.path, _key(node.change))]
+        for child in node.children:
+            out.extend(_filtered(child, kept, own if node.status is D else None))
+        return out
+    if node.status is U or own is None or _key(own) not in kept:
+        entry: _Entry = ("unchanged", "test", node.block.path, None)
+        inherited = None
+    else:
+        entry = (node.status.value, "test", node.block.path, _key(node.change))
+        inherited = own if node.status is I else None
+    out = [entry]
+    for child in node.children:
+        out.extend(_filtered(child, kept, inherited))
+    return out
+
+
+def test_a_filtered_view_places_every_ghost_and_tombstone_as_the_unfiltered_one() -> None:
+    """Rule 1 on the 60 runs: a filter removes marks, never moves a block."""
+    checked = moved_marks = 0
+    for run in committed_runs():
+        source, test = run.texts()
+        comparison = compare(source, test, format=run.format)
+        unfiltered = build_view(comparison)
+        for kinds in FILTERS:
+            filtered = comparison.filter(kinds=kinds)
+            kept = {
+                key for change in filtered.changes if (key := _key(change)) is not None
+            }
+            expected = _filtered(unfiltered, kept)
+            assert _entries(build_view(filtered)) == expected, (run.name, kinds)
+            checked += 1
+            moved_marks += expected != _entries(unfiltered)
+    assert checked == 60 * len(FILTERS) == 420
+    assert moved_marks > 300  # the filters do change what is marked
 
 
 # --- rule 7: only what survives the wire ----------------------------------------
