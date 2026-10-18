@@ -83,6 +83,19 @@ expected = (
     "\\n\\nA second paragraph stays."
 )
 assert rendered == expected, f"unexpected in-place render: {rendered!r}"
+
+# Comparison.output_annotated (ADR-0037): the CriticMarkup view, by default and
+# with the text syntax named. chr(10) rather than a backslash escape, which
+# this template literal would turn into a newline inside the Python string.
+annotated_expected = (
+    "The quick brown fox {~~jumps over~>walks past~~} the lazy dog."
+    + chr(10) * 2
+    + "A second paragraph stays."
+)
+annotated = pair.output_annotated()
+assert annotated == annotated_expected, f"unexpected annotated view: {annotated!r}"
+annotated_text = pair.output_annotated(syntax="text")
+assert annotated_text == annotated_expected, f"unexpected text view: {annotated_text!r}"
 f"redlines ok; profile {profile.name!r} loaded; renderer core ok"
 `;
 
