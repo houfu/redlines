@@ -135,7 +135,9 @@ substitution          {~~OLD~>NEW~~}
 note                  {>>NOTE<<}
 line                  SYNTAX-HEAD ROLE-PREFIX? LABEL-PART TEXT [" " MOVE-NOTE]
 ROLE-PREFIX           "[" ENCODED-ROLE "] "                                       (see Role prefixes)
-LABEL-PART            LABEL " "  |  "{~~" OLD "~>" NEW "~~} "  |  ""             (label text: see Labels as written)
+LABEL-PART            LABEL " "  |  "{~~" OLD "~>" NEW "~~} "  |  "{--" OLD " --}"  |  "{++" NEW " ++}"  |  ""
+                      (label text: see Labels as written; the substitution only when both sides have a label,
+                      the delete or insert form when one side gained or lost its label)
 MOVE-NOTE             "{>>moved from " [SRC_LABEL " "] SRC_ADDRESS "<<}"
 origin line           "{>>" [SRC_LABEL " "] "moved to " [TEST_LABEL " "] TEST_ADDRESS "<<}"   (own line; no head, no role)
 inserted block        SYNTAX-HEAD ROLE-PREFIX? "{++" [LABEL " "] TEXT "++}"
@@ -249,11 +251,11 @@ The readers keep each label exactly as matched, in `attrs["label_raw"]`, and ren
 4. **Lines.** Split on `\n`.
 5. **`strip_roles`.** After the syntax head (`#{1,6} `, `( {4})*marker `, `> `), remove `[ENCODED-ROLE] `, where `ENCODED-ROLE` matches `[A-Za-z0-9_.%-]+` and no backslash precedes the `[`.
 6. **Line-start unescape.** At the content start, an odd run before a role-shaped `[` is halved.
-7. **Residue**, applied to both sides of every comparison:
+7. **Residue**, applied to both sides of every comparison, in this order:
    - strip each line of outer whitespace;
-   - drop a line that is empty, or that holds only a syntax head (ATX hashes, a list marker, `>`);
    - drop a table row whose cells are all empty;
-   - drop an alignment row with no table row next to it;
+   - drop an alignment row with no table row directly above or below it, judged after those empty rows are dropped and before any blank line is, so that a row of another table never counts as next to it;
+   - drop a line that is empty, or that holds only a syntax head (ATX hashes, a list marker, `>`);
    - drop a fence whose body is empty.
 
 The *test rendering* and the *source rendering* are the same renderer over `compare(test, test)` and `compare(source, source)`, put through the same steps. Comparisons are *exact* (list equality), *multiset* (`Counter` equality) or *loose* (multiset, after also removing all whitespace and a leading syntax head or list marker from each line).
@@ -361,6 +363,8 @@ Output is deterministic, as N1 requires:
 - fixed orders: blocks in view order; ghosts that share an anchor in source order; header notes in the grammar's order; counts in `ChangeCounts` order; CSS as a constant;
 - prohibited: iterating a `set` for output, timestamps, random or `id()`-based ids, locale formatting, and formatting an enum other than through `.value`;
 - floats are written as `repr(round(x, 4))`, the digits the JSON uses.
+
+With `roles=True` there is one more exception: where an edit at the very start of a block leaves only one side's text beginning like a role prefix, such as `[2020] SGCA 5`, the escape serves the accept side, so reject-all may read `[2020]` as a role and drop it, or keep a stray backslash before it. A strict expected-failure test pins the limit.
 
 ## Alternatives considered
 
