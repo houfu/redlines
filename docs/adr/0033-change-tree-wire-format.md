@@ -3,6 +3,7 @@
 **Status:** Accepted
 **Date:** 2026-09-05
 **Amended:** 2026-10-18 -- the block trees are optional on the wire. See *Amendment* below.
+**Amended:** 2026-10-18 -- a deletion is placed, and counted, in its own parent. See the second *Amendment* below.
 **Deciders:** houfu
 
 ## Context
@@ -116,7 +117,75 @@ On the section 3a sample pair — two 9 KB documents, 102 and 103 blocks, ten ch
 
 So: **`source` and `test` leave the schema's `required` list.** `to_dict()` still emits them by default — nothing a current consumer reads changes — and `to_dict(include_trees=False)` writes the **compact form**: `schema_version`, `config`, `changes`, `statistics`, and `alignment` if asked for. The compact form validates against the same file. The two keys are present together or absent together. `from_dict` refuses the compact form with a message naming `include_trees=True`, as it already refuses a payload without its alignment. `statistics.source_blocks` and `statistics.test_blocks` already carry the block counts, so the sentence in the Decision about walking the subtree for block counts holds when the trees are present and degrades to the statistics when they are not.
 
-Why now and not as a 2.1: loosening `required` is a breaking change for a consumer that validates strictly and assumes the keys, which is exactly what ADR-0011 says a minor bump may not do. Done before the schema is published anywhere, it is part of the 2.0 freeze; done after, it is a 3.0. The model-facing consumers that need the compact form — the M5 tools as read by Claude Code and Codex, and the MCP App that pulls the full document through its own channel — are the reason the freeze happens against a real client, which is ADR-0020's argument for building the server before the site.
+Why now and not as a 2.1: loosening `required` is a breaking change for a consumer that validates strictly and assumes the keys, which is exactly what ADR-0011 says a minor bump may not do. Done before the schema is published anywhere, it is part of the 2.0 freeze; done after, it is a 3.0. The model-facing consumers that need the compact form — the M5 tools as read by Claude Code and Codex, and the MCP App that pulls the full document through its own channel (since [ADR-0038](0038-render-html-once-in-python.md), the compact list plus the rendered views) — are the reason the freeze happens against a real client, which is ADR-0020's argument for building the server before the site.
+
+## Amendment, 2026-10-18: a deletion sits in its own parent, and is counted there
+
+*The topology* says the change list is in document order, with a sort key whose first element is a node's "test address or predecessor". It never defined the predecessor of a delete. M2's builder took the last source block before the delete, in pre-order, that has a counterpart, and a block that has moved away counts. So a deletion that follows a moved block is listed after that block's *destination*, in another section. Across the 60 committed runs (every source and test pair in the repository, 59 distinct pairs with the sample pair's text twin run twice), that misplaces 1 of the 69 delete nodes, in `govinfo-hr7385-ih-to-eh`.
+
+`statistics()` has a defect of the same family. It looks up a delete's nearest enclosing *source* section address in rows keyed by *test* section addresses. On `govinfo-hr4668-ih-to-rh`, `statistics()` and `to_dict()` raise `KeyError: '/section[6]/section[1]'`. Where the address happens to exist, the answer is silently wrong: with `## 1A. Extra` inserted above `## 2. Terms`, the deletion of clause 2.2 is counted under "1A. Extra".
+
+Both are produced values in a format frozen at 2.0, where only additive changes are allowed. They are corrected now for the reason the first amendment gives. 0.6.2 is the latest release and the latest tag, so no v2 output exists outside the repository, and the window closes when M4 publishes `/schemas/`. Done before publication, the correction is part of the 2.0 freeze; done after, it would be a breaking change. `schema_version` stays `"2.0"`.
+
+Measured on the 60 runs:
+
+- **Placement** reorders one run. In `govinfo-hr7385-ih-to-eh`, delete index 6 moves from after node 5 to after node 20. No golden changes, the order of `statistics.sections` is unchanged, and no benchmark number moves, because `benchmark/score.py` reads only moves and renumbers.
+- **Attribution** stops `statistics()` and `to_dict()` raising on `govinfo-hr4668-ih-to-rh`, and changes one other run: in `govinfo-hr7385-ih-to-eh`, one delete moves from the "2d Session" row to "AN ACT", where its parent's counterpart is and where the renderers draw it. The other 58 runs are identical, the sample pair included.
+
+**Placement.** A delete sits in its own parent, after its nearest preceding sibling that stayed in place. The anchor, in `redlines/changes.py`:
+
+```python
+@dataclass(frozen=True, slots=True)
+class Anchor:
+    test_parent: str        # test counterpart of the block's source parent
+    after: str | None       # a child of test_parent; None means "first in test_parent"
+
+class Anchors:
+    def __init__(self, *, source: BlockTree, test: BlockTree, alignment: Alignment) -> None: ...
+    def place(self, source_path: str) -> Anchor | None: ...
+```
+
+1. `moved = {p.source_path: p.test_path for p in alignment.pairs if p.moved}`.
+2. An *own move* is a source path `s` in `moved` for which `_under_a_move(s, moved[s])` is false.
+   - `_under_a_move(s, t)` walks `s`'s source ancestors `a`, and is true when `a` is in `moved` and `t` is at or under `moved[a]`.
+   - This is `_Builder._under_a_move`, lifted to a module-level function of the same name that both use.
+   - The own moves are exactly the sources of the change list's `move` nodes: 24 of 24 on the 60 runs.
+3. For each source block `P`, with `TP = alignment.test_for(P.path)`, set `last = None`. Then, for each child `X` of `P`, in order:
+   - `anchor[X] = None if TP is None else Anchor(TP, last)`;
+   - then, if `TP is not None`, and `T = alignment.test_for(X.path)` is not `None` ("X has a counterpart"), and `X` is not an own move, and `parent(T) == TP`: set `last = T`.
+4. `place(X) = anchor[X]`. This is one pass over every parent's children, O(N): 1.1 ms for 2,000 blocks with 1,000 deletes.
+5. A topmost delete's parent is always matched, so its anchor is never `None`. A move origin's anchor is `None` only inside a deleted ancestor.
+6. **Meaning.** X sits immediately after the whole test subtree of `after`. When `after` is `None`, X sits immediately after TP's own block and before TP's first child; when TP is `/`, that means before the first block.
+7. **The sort key, rewritten.** This replaces the key given in *The topology*. Each node's key is `(rank, after, source_rank, kind_rank)`.
+   - A node with a test address: `rank` is that address's test pre-order index, and `after` is 0.
+   - A delete: `(rank, after) = (t_last(Anchor.after), 1)`, or `(t_order(Anchor.test_parent), 1)` when `Anchor.after` is `None`. Here `t_order(b)` is `b`'s own test pre-order index, and `t_last(b)` is the pre-order index of the last block in `b`'s test subtree.
+   - `source_rank` is the source pre-order index (−1 for an insert). `kind_rank` is the index in `CHANGE_KINDS`.
+   - No two nodes share a key.
+8. `statistics._section_order` orders whole-section deletes with the same anchor. `Anchor`, `Anchors` and the lifted `_under_a_move` stay out of `changes.__all__`.
+
+Five rules were tried on the 60 runs and on constructed cases. In *trailing insert*, section 3 gains a last clause and section 4 is deleted. In *moved predecessor*, clause 7.3 moves to section 8 and 7.4 is deleted. In *mirrored swap*, siblings A M D Z become A Z M.
+
+| Rule | 60 runs | Trailing insert | Moved predecessor | Mirrored swap |
+|---|---|---|---|---|
+| **own parent, skipping own moves** (above) | 1 reordered | ✓ | ✓ | ✓, beside the siblings that stayed |
+| nearest preceding block in the same move scope | 1 | ✗ §4 inside §3 | ✓ | ✓ |
+| own parent, without the skip | 1 | ✓ | ✓ | ✗ follows the moved block |
+| latest sibling in test order | 1 | ✓ | ✓ | ✗ after the arrival |
+| M2's rule | 0 | ✗ | ✗ | ✗ |
+
+A deleted child of a moved clause passes under every rule. It differs from M2's rule only in where a renderer draws it, inside the destination, and not in the order of the change list.
+
+**Attribution,** in `redlines/statistics.py`:
+
+- A delete whose own block is a section unit keeps its own row, and the row says so. Every section row carries `side`: `"test"` for a section of the test document, `"source"` for a deleted section. Before this, a deleted section whose address a later section shifted into (deleting section 2 of 3 with the numbering kept) was merged into the survivor's row, which was charged the deletion while the deleted section never appeared; it happens on none of the 60 committed runs. With `side`, two rows whose `address` strings coincide stay distinguishable. (Added 18 October 2026, after the review of the implementation.)
+- Any other delete counts under `_nearest_enclosing(Anchors.place(d).test_parent, test_parents, test_units)`: the test section that shows it.
+- Every other node keeps its test-address attribution.
+
+**Schema.** The `changes` property's `description` in `comparison-v2.json` gains "a delete sits in its own parent, after its nearest preceding sibling that stayed in place (ADR-0033, amendment)". The section-row definition under `statistics` gains the required field `side`, an enum of `"source"` and `"test"`, always emitted and defaulting to `"test"` when a payload written before it is read back. `schema_version` stays `"2.0"` for the same reason as the ordering change: 0.6.2 is the latest release and no 2.0 payload has been published; M4 publishes the schema.
+
+**Tests.** `tests/test_delete_anchor.py` covers the moved predecessor, a deleted child of a moved clause, a clause moved out of a moved clause, the trailing insert, a swap and the mirrored swap, first-child and before-first-block deletes, and the node order of `govinfo-hr7385-ih-to-eh`. `tests/test_statistics.py` gains `govinfo-hr4668-ih-to-rh`, which must not raise, and the constructed "1A" pair, whose deletion must count under "Terms". `tests/test_corpus_roundtrip.py` runs `statistics()`, `to_dict(include_alignment=True)` and `from_dict` over all 60 runs. The sample pair's change trees stay byte-unchanged, and `tests/test_benchmark_gates.py` stays green.
+
+The renderers place deletions and move origins with the same anchor ([ADR-0037](0037-annotate-the-test-document.md)), so the annotated view and the change list agree on where every deletion sits.
 
 ## Alternatives considered
 

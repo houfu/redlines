@@ -20,7 +20,7 @@ On what actually helps a model: Anthropic's guidance favouring XML tags is about
 
 JSON is the canonical serialisation, with a published JSON Schema, a top-level `schema_version`, and a stated compatibility policy: additive changes bump the minor, breaking changes bump the major and the previous version stays producible.
 
-Alongside it, an **annotated-document renderer** is a first-class output: the source document with changes marked in place, using CriticMarkup for text and markdown and a tag variant (`<ins>`, `<del>`, `<moved from="…">`) for HTML. This is what the MCP summary and annotate tools lean on when a model needs surrounding context.
+Alongside it, an **annotated-document renderer** is a first-class output: the source document with changes marked in place, using CriticMarkup for text and markdown and a tag variant (`<ins>`, `<del>`, `<moved from="…">`) for HTML. This is what the MCP summary and annotate tools lean on when a model needs surrounding context. *Amended 18 October 2026 ([ADR-0037](0037-annotate-the-test-document.md)): the renderer walks the test document, not the source, with deletions and move origins where they stood; a replacement is written `{~~old~>new~~}`, not as the delete-then-insert pair the Context illustrates; and the HTML variant marks a move with `data-kind="move"` and a visible note, because `<moved from>` is not an HTML element. The HTML is rendered once, in Python ([ADR-0038](0038-render-html-once-in-python.md)).*
 
 The v1 flat JSON stays unchanged and remains what `output_json()` produces, per ADR-0003.
 
@@ -34,7 +34,7 @@ The v1 flat JSON stays unchanged and remains what `output_json()` produces, per 
 
 Positive: one canonical format that every consumer already parses, plus a second representation tuned for reading. An XML renderer over the same tree remains about a day's work if an enterprise integration ever needs one, and it would not disturb the canonical format.
 
-Negative: two representations to keep consistent, and the annotated renderer needs a defined escaping story for documents that already contain CriticMarkup-like syntax. Schema versioning is a commitment: once published, breaking it is expensive.
+Negative: two representations to keep consistent, and the annotated renderer needs a defined escaping story for documents that already contain CriticMarkup-like syntax. Schema versioning is a commitment: once published, breaking it is expensive. *The escaping story was settled on 18 October 2026 in [ADR-0037](0037-annotate-the-test-document.md): a backslash at delimiter sites with a parity rule, round-tripping 1,311,111 fuzzed strings with no failure, and `tests/helpers/criticmarkup.py` as the reference reader.*
 
 ## Revisit when
 
