@@ -18,10 +18,18 @@ section of the body.
 The addresses are the same in the plain-text tree and the markdown tree —
 that is the point of the twins — with one documented exception, change 6,
 where the plain text has no table to put a row in. `expected/` holds the four
-trees; regenerate them with `uv run python tests/corpus/sample_pair/regenerate.py`.
+trees, and since #144 the two change-tree goldens as well; regenerate all six
+with `uv run python tests/corpus/sample_pair/regenerate.py`.
 
-The change tree for this pair is M2's golden, not this directory's. What is
-frozen here is the two documents and the four trees they parse into.
+What is frozen here is the two documents, the four trees they parse into, and
+what M2 makes of the difference between them: `expected/change_tree.contract.json`
+and `expected/change_tree.markdown.json` are the whole JSON v2 document
+(ADR-0033) — both block trees, the change tree, the alignment and the
+statistics. The eight changes below come out as **ten change nodes**, because
+change 3 is an insert plus the two renumbers it causes and change 2 is a move
+plus the edit that rode along in its body, while changes 7 and 8 are visible
+by *absence*. `tests/test_sample_pair_change_tree.py` states each row of the
+table below as its own named test, so a failure says which promise broke.
 
 ## The eight changes
 

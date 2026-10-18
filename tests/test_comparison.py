@@ -294,6 +294,39 @@ def test_the_alignment_is_off_the_wire_unless_it_is_asked_for() -> None:
     assert with_alignment["alignment"] == result.alignment.to_dict()
 
 
+def test_the_trees_are_on_the_wire_by_default_and_off_on_request() -> None:
+    """ADR-0033's 2026-10-18 amendment: ``include_trees=False`` is the compact form.
+
+    The two trees are the bulk of a payload and a consumer that only needs to
+    know what changed -- a model reading a tool result -- does not need them,
+    because every change node carries both addresses and both texts. The rest
+    of the document is unchanged, in the same order, with the same values.
+    """
+    result = compare(SOURCE_TEXT, TEST_TEXT, format="text")
+    full = result.to_dict()
+    compact = result.to_dict(include_trees=False)
+    assert list(compact) == ["schema_version", "config", "changes", "statistics"]
+    assert "source" not in compact and "test" not in compact
+    for key in compact:
+        assert compact[key] == full[key]
+    with_both = result.to_dict(include_alignment=True, include_trees=False)
+    assert list(with_both) == [
+        "schema_version",
+        "config",
+        "changes",
+        "statistics",
+        "alignment",
+    ]
+    assert json.loads(result.to_json(include_trees=False)) == compact
+
+
+def test_the_compact_form_cannot_be_rebuilt() -> None:
+    """No trees, nothing to rebuild them from -- refused by name, like a missing alignment."""
+    result = compare(SOURCE_TEXT, TEST_TEXT, format="text")
+    with pytest.raises(ValueError, match="include_trees=True"):
+        Comparison.from_dict(result.to_dict(include_alignment=True, include_trees=False))
+
+
 def test_a_comparison_round_trips_through_from_dict() -> None:
     """With its alignment, which is a field of the class and not optional in Python."""
     result = compare(SOURCE_TEXT, TEST_TEXT, format="text")

@@ -2,6 +2,7 @@
 
 **Status:** Accepted
 **Date:** 2026-09-05
+**Amended:** 2026-10-18 -- the block trees are optional on the wire. See *Amendment* below.
 **Deciders:** houfu
 
 ## Context
@@ -106,6 +107,16 @@ The `source` and `test` sections are **byte-for-byte `BlockTree.to_dict()`**. M1
 **R27a ships as a test, not an export.** [#140](https://github.com/houfu/redlines/issues/140) says so in as many words: not an export, proof that one is possible. The recovery is one small readable function in `tests/test_recoverability.py` that 1.1's applier lifts into `redlines/apply.py` when R26 arrives. A public helper now would freeze a surface before the consumer that shapes it exists.
 
 **An M4 obligation, recorded here.** ROADMAP § M0 claims a `/schemas/` location was stood up on the site. It was not: `site/public/` holds only `api/` and `favicon.svg`. M2 ships the in-package file with `$id` set to the URL M4 will publish it at, and **M4 must create `site/public/schemas/` and copy `comparison-v2.json` (and `profiles/schema.json`) into it.** The two older schemas use a GitHub blob URL as `$id`, which is not a resolvable schema URL; they are left frozen rather than retrofitted.
+
+## Amendment, 2026-10-18: the block trees are optional on the wire
+
+The *Revisit when* section below said that if payload size ever became the constraint, the first thing to reconsider was carrying both full block trees by default, not the change list. It became the constraint before M5 started, and the measurement is the reason to act before the freeze lands rather than after.
+
+On the section 3a sample pair — two 9 KB documents, 102 and 103 blocks, ten change nodes — `to_dict()` without the alignment is about 137 KB compact. The `source` and `test` trees are 62 KB and 63 KB of that; `changes` is under 7 KB and `statistics` 5 KB. Claude Code writes any MCP tool result over 50,000 characters to a file and hands the model a path instead; Codex truncates tool output to a per-tool token budget. A model-facing `compare` tool returning the default document would therefore never be read inline, even on a two-page contract. The change list, which carries both addresses and both texts on every node by the decision above, is self-sufficient for that reader.
+
+So: **`source` and `test` leave the schema's `required` list.** `to_dict()` still emits them by default — nothing a current consumer reads changes — and `to_dict(include_trees=False)` writes the **compact form**: `schema_version`, `config`, `changes`, `statistics`, and `alignment` if asked for. The compact form validates against the same file. The two keys are present together or absent together. `from_dict` refuses the compact form with a message naming `include_trees=True`, as it already refuses a payload without its alignment. `statistics.source_blocks` and `statistics.test_blocks` already carry the block counts, so the sentence in the Decision about walking the subtree for block counts holds when the trees are present and degrades to the statistics when they are not.
+
+Why now and not as a 2.1: loosening `required` is a breaking change for a consumer that validates strictly and assumes the keys, which is exactly what ADR-0011 says a minor bump may not do. Done before the schema is published anywhere, it is part of the 2.0 freeze; done after, it is a 3.0. The model-facing consumers that need the compact form — the M5 tools as read by Claude Code and Codex, and the MCP App that pulls the full document through its own channel — are the reason the freeze happens against a real client, which is ADR-0020's argument for building the server before the site.
 
 ## Alternatives considered
 

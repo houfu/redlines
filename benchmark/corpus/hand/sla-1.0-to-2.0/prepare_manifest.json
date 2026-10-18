@@ -1,0 +1,16 @@
+{
+  "attribution": "Common Paper Service Level Agreement, copyright Common Paper, Inc., CC BY 4.0",
+  "format": "markdown",
+  "kind": "hand",
+  "licence": "CC-BY-4.0",
+  "normalisations": [
+    "strip_inline_html",
+    "promote_span_ids_to_labels"
+  ],
+  "origin": "CommonPaper/SLA tags 1.0 and 2.0",
+  "pair": "sla-1.0-to-2.0",
+  "prepared_by": "benchmark/prepare.py",
+  "profile": "markdown",
+  "source_file": "source.md",
+  "test_file": "test.md"
+}

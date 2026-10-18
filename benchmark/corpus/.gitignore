@@ -1,0 +1,5 @@
+# benchmark/corpus/external/ holds fetched, third-party material (e.g. neurotic_docx_bench's
+# AGPL-licensed text) used only as a mutation source for the synthetic generator. It is never
+# committed and never redistributed -- see benchmark/README.md and
+# docs/adr/0034-benchmark-labels-and-metric.md.
+external/

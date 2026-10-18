@@ -22,7 +22,9 @@ the whitespace-only change left no trace, and that the two twins agree block
 by block. A whole-tree diff is unreadable when it fails; these say which
 promise broke.
 
-The change tree for this pair is M2's golden, not this file's.
+The change tree for this pair is M2's golden, frozen under `expected/` by
+`tests/corpus/sample_pair/regenerate.py` and checked by
+`tests/test_sample_pair_change_tree.py`, not this file's.
 """
 
 from __future__ import annotations

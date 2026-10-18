@@ -1,0 +1,15 @@
+{
+  "attribution": "Common Paper Cloud Service Agreement, copyright Common Paper, Inc., CC BY 4.0",
+  "format": "markdown",
+  "kind": "hand",
+  "licence": "CC-BY-4.0",
+  "normalisations": [
+    "strip_inline_html"
+  ],
+  "origin": "CommonPaper/CSA tags 1.0 and 1.1",
+  "pair": "csa-1.0-to-1.1",
+  "prepared_by": "benchmark/prepare.py",
+  "profile": "markdown",
+  "source_file": "source.md",
+  "test_file": "test.md"
+}

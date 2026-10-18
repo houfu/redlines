@@ -1,0 +1,204 @@
+# The committed synthetic mutation plan (#141, ADR-0021, ADR-0034).
+#
+# `benchmark/generate.py` reads this file and writes `benchmark/corpus/synthetic/<pair>/`.
+# Everything about a pair is fixed here plus `GENERATOR_VERSION` in generate.py: the seed is
+# derived with blake2b from (generator version, document id, plan id), so adding a document or a
+# plan below leaves every other pair -- and every number already published from it -- untouched.
+#
+# Editing this file changes the committed corpus. `tests/test_benchmark_corpus.py` regenerates
+# the tier and byte-compares, so the change has to be committed alongside, and a reviewer sees
+# exactly which documents moved.
+#
+# Source documents are the repository's own corpus and prose. That is deliberate:
+# ADR-0034 keeps the repository's documents *out* of the hand-labelled tier ("labelling one's own
+# edits is the softest possible test") and puts them here instead, where what is being scored is
+# the mutation, not the edit history. The `open` and `external` source tiers ADR-0034 also names
+# are not here: the Common Paper pairs belong to the hand-labelled tier (#142), and
+# neurotic_docx_bench text is fetched into gitignored `corpus/external/` and never committed.
+
+documents:
+  - id: msa-markdown
+    path: tests/corpus/sample_pair/source.md
+    format: markdown
+    profile: markdown
+    origin: tests/corpus/sample_pair/source.md
+  - id: msa-text
+    path: tests/corpus/sample_pair/source.txt
+    format: text
+    profile: contract
+    origin: tests/corpus/sample_pair/source.txt
+  - id: twin-markdown
+    path: tests/corpus/markdown_cases/twin_contract.md
+    format: markdown
+    profile: markdown
+    origin: tests/corpus/markdown_cases/twin_contract.md
+  - id: twin-text
+    path: tests/corpus/markdown_cases/twin_contract.txt
+    format: text
+    profile: contract
+    origin: tests/corpus/markdown_cases/twin_contract.txt
+  - id: repetitive-schedule
+    path: tests/corpus/repetitive_schedule/source.txt
+    format: text
+    profile: contract
+    origin: tests/corpus/repetitive_schedule/source.txt
+  - id: alpha-roman
+    path: tests/corpus/hard_cases/alpha_roman_ambiguity.txt
+    format: text
+    profile: contract
+    origin: tests/corpus/hard_cases/alpha_roman_ambiguity.txt
+  - id: schedule-restart
+    path: tests/corpus/hard_cases/schedule_numbering_restart.txt
+    format: text
+    profile: contract
+    origin: tests/corpus/hard_cases/schedule_numbering_restart.txt
+  - id: cross-references
+    path: tests/corpus/hard_cases/cross_references_in_prose.txt
+    format: text
+    profile: contract
+    origin: tests/corpus/hard_cases/cross_references_in_prose.txt
+  - id: mixed-labels
+    path: tests/corpus/hard_cases/mixed_label_styles.txt
+    format: text
+    profile: contract
+    origin: tests/corpus/hard_cases/mixed_label_styles.txt
+  - id: adr-moves
+    path: docs/adr/0009-moves-before-splits.md
+    format: markdown
+    profile: markdown
+    origin: docs/adr/0009-moves-before-splits.md
+
+plans:
+  - id: light
+    description: >-
+      One or two inline edits and a re-wrap. Nearly every block is unchanged, so this is where a
+      precision failure shows up: an engine that reports the re-wrapped block as changed loses
+      precision against a pair that is almost entirely `same`.
+    steps:
+      - {op: edit_text, style: word_substitute, count: 2}
+      - {op: whitespace_only, count: 1}
+
+  - id: heavy
+    description: >-
+      Ten to fifteen edits across six styles, with two insertions and two deletions. Enough
+      change that fuzzy matching, not exact matching, is doing the work.
+    steps:
+      - {op: edit_text, count: 12}
+      - {op: insert_clause, count: 2}
+      - {op: delete_block, count: 2}
+      - {op: whitespace_only, count: 2}
+
+  - id: move-heavy
+    description: >-
+      Four relocations plus two edits, which is the ADR-0009 release gate's own material: move
+      recall is measured here, and a move that is also edited must still come back as one move
+      node and one modify node rather than an insert and a delete.
+    steps:
+      - {op: move_block, count: 4}
+      - {op: edit_text, count: 2}
+
+  - id: renumber-storm
+    description: >-
+      Two insertions high in a numbered run, a deletion and a wholesale relabel, so a long run of
+      labels shifts and every cross-reference that cited one has to follow it (#133).
+    steps:
+      - {op: insert_clause, count: 2}
+      - {op: delete_block, count: 1}
+      - {op: relabel_run, style: shift, count: 1}
+      - {op: edit_text, style: number_pair, count: 1}
+
+  - id: structure
+    description: >-
+      Splits and merges only. Labelled into `splits`/`merges` and excluded from every 1.0
+      denominator, so this pair exists to give the 1.1 metric data rather than to be scored now
+      (#141, ADR-0009).
+    steps:
+      - {op: split_block, count: 2}
+      - {op: merge_blocks, count: 2}
+      - {op: edit_text, style: duration, count: 1}
+
+  - id: table
+    description: >-
+      A cell edit, a row insertion and a row deletion, for #134: rows align exactly or
+      positionally, cells strictly by sibling index, and no column operations exist.
+    steps:
+      - {op: table_edit, style: cell_edit, count: 1}
+      - {op: table_edit, style: row_insert, count: 1}
+      - {op: table_edit, style: row_delete, count: 1}
+      - {op: edit_text, style: sentence_insert, count: 1}
+
+  - id: mixed
+    description: >-
+      One application of every operator, in one pair, on every source document. This is what
+      makes "every operator on every source" true: an operator with nothing to work on in a
+      given document -- a table edit where there is no table, a relabel where nothing is
+      numbered -- is a recorded no-op, not a failure, so the plan is uniform even though the
+      documents are not.
+    steps:
+      - {op: move_block, count: 1}
+      - {op: insert_clause, count: 1}
+      - {op: delete_block, count: 1}
+      - {op: relabel_run, style: shift, count: 1}
+      - {op: edit_text, style: number_pair, count: 1}
+      - {op: edit_text, style: duration, count: 1}
+      - {op: edit_text, style: party_swap, count: 1}
+      - {op: edit_text, style: sentence_insert, count: 1}
+      - {op: edit_text, style: sentence_drop, count: 1}
+      - {op: edit_text, style: word_substitute, count: 1}
+      - {op: split_block, count: 1}
+      - {op: merge_blocks, count: 1}
+      - {op: table_edit, style: cell_edit, count: 1}
+      - {op: table_edit, style: row_insert, count: 1}
+      - {op: whitespace_only, count: 1}
+
+pairs:
+  # msa-markdown
+  - {document: msa-markdown, plan: light}
+  - {document: msa-markdown, plan: heavy}
+  - {document: msa-markdown, plan: move-heavy}
+  - {document: msa-markdown, plan: renumber-storm}
+  - {document: msa-markdown, plan: structure}
+  - {document: msa-markdown, plan: table}
+  - {document: msa-markdown, plan: mixed}
+  # msa-text
+  - {document: msa-text, plan: light}
+  - {document: msa-text, plan: heavy}
+  - {document: msa-text, plan: move-heavy}
+  - {document: msa-text, plan: renumber-storm}
+  - {document: msa-text, plan: structure}
+  - {document: msa-text, plan: mixed}
+  # twin-markdown
+  - {document: twin-markdown, plan: light}
+  - {document: twin-markdown, plan: heavy}
+  - {document: twin-markdown, plan: move-heavy}
+  - {document: twin-markdown, plan: mixed}
+  # twin-text
+  - {document: twin-text, plan: light}
+  - {document: twin-text, plan: move-heavy}
+  - {document: twin-text, plan: mixed}
+  # repetitive-schedule
+  - {document: repetitive-schedule, plan: light}
+  - {document: repetitive-schedule, plan: heavy}
+  - {document: repetitive-schedule, plan: move-heavy}
+  - {document: repetitive-schedule, plan: mixed}
+  # alpha-roman
+  - {document: alpha-roman, plan: light}
+  - {document: alpha-roman, plan: heavy}
+  - {document: alpha-roman, plan: renumber-storm}
+  - {document: alpha-roman, plan: structure}
+  - {document: alpha-roman, plan: mixed}
+  # schedule-restart
+  - {document: schedule-restart, plan: light}
+  - {document: schedule-restart, plan: heavy}
+  - {document: schedule-restart, plan: mixed}
+  # cross-references
+  - {document: cross-references, plan: light}
+  - {document: cross-references, plan: heavy}
+  - {document: cross-references, plan: renumber-storm}
+  - {document: cross-references, plan: mixed}
+  # mixed-labels
+  - {document: mixed-labels, plan: light}
+  - {document: mixed-labels, plan: mixed}
+  # adr-moves
+  - {document: adr-moves, plan: move-heavy}
+  - {document: adr-moves, plan: mixed}
