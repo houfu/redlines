@@ -361,7 +361,10 @@ class Comparison:
           delete then an insert, every mark keeping its whitespace inside as
           0.6's do;
         - a renumbered label is the old label deleted and the new one
-          inserted, before the text;
+          inserted, before the text, except on a markdown list item numbered
+          by its own marker: the marker is the line's syntax head, so the
+          new number shows and the old one is not marked (ADR-0037, "Labels
+          as written");
         - a move is drawn as 0.6 draws one, since these styles cannot say
           "moved": the moved block's whole source subtree struck where it
           was, and its whole test subtree inserted where it is now.
@@ -382,8 +385,9 @@ class Comparison:
 
         The styles copy document text as it is, as 0.6 does, so the HTML ones
         (``red_green``, ``none``, ``red`` and ``custom_css``) pass any markup
-        in either document through. Sanitise the output before rendering
-        untrusted input as HTML.
+        in either document through, and ``custom_css`` writes its classes
+        into ``class='…'`` unescaped. Sanitise the output before rendering
+        untrusted input, or classes, as HTML.
 
         :param style: a `redlines.enums.MarkdownStyle`, its value
             (``"red_green"``, ``"none"``, ``"red"``, ``"ghfm"``,

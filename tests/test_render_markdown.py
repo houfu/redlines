@@ -4,10 +4,11 @@ A renderer over a block tree cannot be byte-identical to 0.6's token stream
 (ADR-0036), so the method has goldens of its own, and three checks keep the
 goldens from being their own oracle:
 
-- houfu read the sample pair's goldens against ``CHANGES.md``, and the small
-  cases' against their inputs, once; that reading froze them. Every golden is
-  checked byte for byte here, one test per file, rendered by this module
-  itself rather than by the script that wrote it;
+- the maintainer's reading: the goldens await houfu's read at PR review,
+  the sample pair's against ``CHANGES.md`` and the small cases' against
+  their inputs, once, and are frozen after it. Every golden is checked byte
+  for byte here, one test per file, rendered by this module itself rather
+  than by the script that wrote it;
 - a drift test against 0.6 on the README fox pair, for every style;
 - the ``none`` style's invariant on the 60 committed runs: accepting every
   mark gives the test rendering exactly, and rejecting every mark gives the
@@ -279,12 +280,14 @@ def test_rejecting_every_mark_gives_the_source_exactly_on_49_of_60_runs(
 ) -> None:
     """The 11 strict failures, all loose matches but csa-1.1-to-2.0, have two causes.
 
-    An unchanged run carries the test's whitespace at a change boundary
-    (``course_lesson6``, ``whitespace_after_equal``, ``msa-text-heavy``, the
-    table cells of ``msa-markdown-table`` and ``msa-markdown-mixed``), or a
+    An unchanged run carries the test's whitespace at a change boundary, or a
     line's syntax head comes from the test block: an ordered list whose numbers
-    shifted, or numbered paragraphs that became list items (``csa`` and
-    ``sla``).
+    shifted, or numbered paragraphs that became list items. Whitespace alone:
+    ``course_lesson6``, ``whitespace_after_equal``, ``adr-moves-mixed``,
+    ``msa-markdown-table`` and ``msa-text-heavy``. Syntax heads alone:
+    ``msa-markdown-move-heavy``, ``msa-markdown-renumber-storm`` and
+    ``msa-markdown-structure``. Both: ``msa-markdown-mixed`` and ``sla``. And
+    ``csa`` has syntax heads as well as its dot-only relabel.
     """
     assert none_oracle["order_strict"] == [
         "tests/corpus/course_lesson6",
@@ -375,6 +378,37 @@ FOUR_KINDS_TEST = (
     "2.1 The Buyer shall pay each invoice within fourteen days of receiving it.\n\n"
     "2.2 Risk in the goods passes to the Buyer when the goods are unloaded at the Buyer's warehouse."
 )
+
+
+def test_a_list_item_numbered_by_its_marker_shows_its_new_number_unmarked() -> None:
+    """The marker is the line's syntax head, so a legacy style cannot mark it.
+
+    The two renumbers still count, and rich, which has no syntax heads, marks
+    them; the annotated view says so in a note (ADR-0037, "Labels as
+    written").
+    """
+    comparison = compare(
+        "1. Alpha item text\n2. Beta item text\n",
+        "1. New first item\n2. Alpha item text\n3. Beta item text\n",
+        format="markdown",
+    )
+    assert [change.kind.value for change in comparison.changes] == [
+        "insert",
+        "renumber",
+        "renumber",
+    ]
+    assert comparison.output_markdown("none") == (
+        "1. <ins>New first item</ins>\n\n2. Alpha item text\n\n3. Beta item text"
+    )
+    numbered = compare(
+        "1.1 Alpha clause text.\n\n1.2 Beta clause text.\n",
+        "1.1 New clause text.\n\n1.2 Alpha clause text.\n\n1.3 Beta clause text.\n",
+        format="markdown",
+    )
+    assert numbered.output_markdown("none").split("\n\n")[1:] == [
+        "<del>1.1 </del><ins>1.2 </ins>Alpha clause text.",
+        "<del>1.2 </del><ins>1.3 </ins>Beta clause text.",
+    ]
 
 
 def test_a_filtered_comparison_marks_only_its_own_nodes(four_kinds: Comparison) -> None:
