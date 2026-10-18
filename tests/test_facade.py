@@ -13,13 +13,17 @@ is derived from those same opcodes on demand by the private
   published schema, round-trips through ``to_dict(include_alignment=True)``
   and `Comparison.from_dict`, and holds either no node or one ``modify`` node
   whose inline ops are `inline_ops_from_opcodes` of the very opcodes the 0.6
-  outputs render.
+  outputs render. Each side's one block holds the text exactly as given, and
+  the ops index that text, including where one of 0.6's edits runs across a
+  paragraph break, which no pair of paragraph blocks could hold.
 - **The 0.6 path is still 0.6's.** The processor runs once per assignment and
   never for the derived comparison, which replays what the processor returned.
   The quick path still runs with every import failing, as the pinned
-  ``test_advanced_stats_levenshtein_fallback`` requires, and the only
-  function-local imports in the core are the three 0.6 already had.
-- **The derived comparison is cached** until a setter assigns new opcodes.
+  ``test_advanced_stats_levenshtein_fallback`` requires. Inside a function,
+  `redlines/redlines.py` imports only what 0.6 did, and the core modules
+  `_comparison()` runs through import nothing at all.
+- **The derived comparison is cached** against the identity of the opcode
+  list and the two texts, on the instance.
 """
 
 from __future__ import annotations
@@ -41,7 +45,7 @@ from redlines import Redlines
 from redlines import redlines as facade_module
 from redlines.alignment import DEFAULT_ALIGNMENT
 from redlines.blocks import BlockKind
-from redlines.changes import ChangeKind, inline_ops_from_opcodes
+from redlines.changes import ChangeKind, InlineKind, InlineOp, inline_ops_from_opcodes
 from redlines.comparison import Comparison, ComparisonConfig, comparison_schema_text
 from redlines.document import Document
 from redlines.processor import (
@@ -52,7 +56,9 @@ from redlines.processor import (
 )
 
 PACKAGE_DIR = Path(redlines.__file__).resolve().parent
-CORPUS = Path(__file__).resolve().parent / "corpus"
+TESTS_DIR = Path(__file__).resolve().parent
+CORPUS = TESTS_DIR / "corpus"
+CSA_DIR = TESTS_DIR.parent / "benchmark" / "corpus" / "hand" / "csa-1.1-to-2.0"
 
 # `{n for n in dir(Redlines) if not n.startswith("_")}` for the class in
 # `git show v0.6.2:redlines/redlines.py`, computed once against the tag and
@@ -118,22 +124,37 @@ CORE_MODULES = sorted(
             "filters",
         )
     ]
-    + list((PACKAGE_DIR / "renderers").glob("*.py"))
+    + list((PACKAGE_DIR / "renderers").rglob("*.py"))
 )
 
 
-def _read(case: str, side: str) -> str:
-    """One side of a golden case, byte for byte."""
-    with open(CORPUS / case / f"{side}.txt", encoding="utf-8", newline="") as f:
+def _text(path: Path) -> str:
+    """A file's text, byte for byte: no newline translation."""
+    with open(path, encoding="utf-8", newline="") as f:
         return f.read()
+
+
+def _pair(case: str) -> tuple[str, str]:
+    """Both sides of a case under ``tests/corpus/``."""
+    return _text(CORPUS / case / "source.txt"), _text(CORPUS / case / "test.txt")
 
 
 FOX = (
     "The quick brown fox jumps over the lazy dog.",
     "The quick brown fox walks past the lazy dog.",
 )
-COURSE = (_read("course_lesson6", "source"), _read("course_lesson6", "test"))
-MULTI_PARAGRAPH = (_read("multi_paragraph", "source"), _read("multi_paragraph", "test"))
+MULTI_PARAGRAPH = _pair("multi_paragraph")
+
+# Three inputs on which one of 0.6's edits runs from one paragraph into the
+# next: the reason the facade is one block per document, not one per paragraph
+# (ADR-0036). A constructed pair, the sample pair's text twin, and the largest
+# hand pair in the benchmark.
+STRADDLE = (
+    "1. Alpha clause.\n\n2. Beta clause.\n\n3. Gamma.",
+    "1. Alpha clause.\n\n3. Gamma.\n\n2. Beta clause amended.",
+)
+SAMPLE_PAIR = _pair("sample_pair")
+CSA = (_text(CSA_DIR / "source.md"), _text(CSA_DIR / "test.md"))
 
 
 class CharacterProcessor(RedlinesProcessor):
@@ -171,6 +192,31 @@ class CountingProcessor(RedlinesProcessor):
     ) -> list[DiffOperation]:
         self.calls += 1
         return self._inner.process(source, test)
+
+
+class ReusingProcessor(RedlinesProcessor):
+    """A custom processor that refills and returns one list object every time."""
+
+    def __init__(self) -> None:
+        self._buffer: list[DiffOperation] = []
+        self._inner = WholeDocumentProcessor()
+
+    def process(
+        self, source: Document | str, test: Document | str
+    ) -> list[DiffOperation]:
+        self._buffer[:] = self._inner.process(source, test)
+        return self._buffer
+
+
+class InMemoryDocument(Document):
+    """The smallest `redlines.document.Document`: a string, held in memory."""
+
+    def __init__(self, text: str) -> None:
+        self._text = text
+
+    @property
+    def text(self) -> str:
+        return self._text
 
 
 def _read_every_output(r: Redlines) -> None:
@@ -223,9 +269,22 @@ def test_the_docstring_points_structural_callers_at_compare() -> None:
 @pytest.mark.parametrize(
     ("source", "test", "nodes"),
     [
+        # The seven M0 golden cases, all under the default processor: what is
+        # checked here is the derivation, not the goldens.
         pytest.param(*FOX, 1, id="readme_fox"),
-        pytest.param(*COURSE, 1, id="course_lesson6"),
+        pytest.param(*_pair("course_lesson6"), 1, id="course_lesson6"),
         pytest.param(*MULTI_PARAGRAPH, 1, id="multi_paragraph"),
+        pytest.param(*_pair("punctuation_merge"), 1, id="punctuation_merge"),
+        pytest.param(*_pair("repetitive_schedule"), 1, id="repetitive_schedule"),
+        pytest.param(*_pair("sentence_paragraphs"), 1, id="sentence_paragraphs"),
+        pytest.param(*_pair("whitespace_after_equal"), 1, id="whitespace_after_equal"),
+        # An edit across a paragraph break.
+        pytest.param(*STRADDLE, 1, id="constructed_straddle"),
+        pytest.param(*SAMPLE_PAIR, 1, id="sample_pair"),
+        pytest.param(*CSA, 1, id="csa_1_1_to_2_0"),
+        # Text that a reader or a careless facade would normalise.
+        pytest.param("  Hello world \n", "  Hello there \n", 1, id="padded"),
+        pytest.param("a\r\nb\r\n\r\nc", "a\r\nb\r\n\r\nd", 1, id="crlf"),
         pytest.param(MULTI_PARAGRAPH[0], MULTI_PARAGRAPH[0], 0, id="identical"),
         pytest.param("", "", 0, id="empty"),
         pytest.param("", "Hello", 1, id="insert_into_empty"),
@@ -241,10 +300,14 @@ def test_the_derived_comparison_is_valid_core_data(
     No node when the processor found no edit -- identical texts never reach
     it, and a whitespace-only difference gives it nothing to report -- and
     otherwise one ``modify`` node whose inline ops are the recorded opcodes in
-    characters.
+    characters, slicing the texts exactly as they were given.
     """
     r = Redlines(source, test)
     comparison = r._comparison()
+
+    # Not stripped, not re-joined, not normalised: the text the processor saw.
+    assert [block.text for block in comparison.source.root.children] == [source]
+    assert [block.text for block in comparison.test.root.children] == [test]
 
     document = comparison.to_dict(include_alignment=True)
     validator.validate(document)
@@ -261,8 +324,60 @@ def test_the_derived_comparison_is_valid_core_data(
             "/paragraph[1]",
             "/paragraph[1]",
         )
+        _assert_slices_of(change.inline, source, test)
     else:
         assert changes == []
+
+
+def _assert_slices_of(ops: Sequence[InlineOp], source: str, test: str) -> None:
+    """Every op is an in-order slice of the two texts exactly as given."""
+    source_at = test_at = 0
+    for op in ops:
+        assert source_at <= op.source_start <= op.source_end <= len(source)
+        assert test_at <= op.test_start <= op.test_end <= len(test)
+        assert source[op.source_start : op.source_end] == op.source_text
+        assert test[op.test_start : op.test_end] == op.test_text
+        if op.kind is InlineKind.INSERT:
+            assert op.source_text == ""
+        if op.kind is InlineKind.DELETE:
+            assert op.test_text == ""
+        source_at, test_at = op.source_end, op.test_end
+
+
+@pytest.mark.parametrize(
+    ("source", "test"),
+    [
+        pytest.param(*STRADDLE, id="constructed_straddle"),
+        pytest.param(*SAMPLE_PAIR, id="sample_pair"),
+        pytest.param(*CSA, id="csa_1_1_to_2_0"),
+    ],
+)
+def test_one_block_holds_an_edit_that_crosses_a_paragraph_break(
+    source: str, test: str
+) -> None:
+    """The facade's reason to exist (ADR-0036).
+
+    0.6 diffs the whole document at once, so one of its edits can run from
+    one paragraph into the next: 0.6 itself reports a change with a paragraph
+    marker inside it. No pair of paragraph blocks could hold that edit. The
+    one block a side does, as an inline op that crosses a blank line and still
+    slices the texts as given.
+    """
+    r = Redlines(source, test)
+    assert any(
+        "\N{PILCROW SIGN}" in text.strip("\N{PILCROW SIGN} ")
+        for change in r.changes
+        for text in (change.source_text or "", change.test_text or "")
+    )
+
+    (change,) = r._comparison().changes
+    crossing = [
+        op
+        for op in change.inline
+        if "\n\n" in op.source_text.strip() or "\n\n" in op.test_text.strip()
+    ]
+    assert crossing
+    _assert_slices_of(crossing, source, test)
 
 
 def test_the_derived_comparison_says_how_it_was_made() -> None:
@@ -353,8 +468,14 @@ def test_the_replay_refuses_texts_it_did_not_record() -> None:
     r = Redlines(*FOX)
     replay = facade_module._ReplayProcessor(r.source, r.test, r._diff_ops)
     assert replay.process(r.source, r.test) is r._diff_ops
+    assert (
+        replay.process(InMemoryDocument(r.source), InMemoryDocument(r.test))
+        is r._diff_ops
+    )
     with pytest.raises(AssertionError, match="different pair"):
         replay.process(r.source, "The quick brown fox sleeps.")
+    with pytest.raises(AssertionError, match="different pair"):
+        replay.process("The quick brown fox sleeps.", r.test)
 
 
 # --- the 0.6 path is still 0.6's (D1) ----------------------------------------
@@ -562,3 +683,39 @@ def test_the_derived_comparison_is_cached_until_a_setter_runs() -> None:
     assert fourth is not third
     assert fourth.source.root.children[0].text == FOX[0]
     assert r._comparison() is fourth
+
+
+def test_one_list_object_for_new_texts_still_derives_again() -> None:
+    """The cache compares both texts as well as the list's identity.
+
+    A processor may refill and return the same list object from every call.
+    The setter then leaves `_diff_operations` the very same object, and only
+    the texts tell the cache that what it holds is a comparison of others.
+    """
+    r = Redlines(*FOX, processor=ReusingProcessor())
+    first = r._comparison()
+    recorded = r._diff_operations
+
+    r.test = "An entirely different sentence."
+    assert r._diff_operations is recorded  # the premise: one list, refilled
+    second = r._comparison()
+    assert second is not first
+    assert second.test.root.children[0].text == r.test
+    (change,) = second.changes
+    assert change.inline == inline_ops_from_opcodes(
+        r._diff_ops, source_text=r.source, test_text=r.test
+    )
+
+    r.source = "A different source altogether."
+    assert r._diff_operations is recorded
+    third = r._comparison()
+    assert third is not second
+    assert third.source.root.children[0].text == r.source
+
+
+def test_two_instances_do_not_share_a_cache() -> None:
+    """The cache lives on the instance; the class attribute is only its default."""
+    a = Redlines(*FOX)
+    first = a._comparison()
+    Redlines(*FOX)._comparison()  # a second instance derives and keeps its own
+    assert a._comparison() is first

@@ -104,7 +104,7 @@ class Redlines:
     _seq1: list[str] | None = None
     _seq2: list[str] | None = None
     _diff_operations: list[DiffOperation] | None = None
-    _comparison_cache: tuple[list[DiffOperation], str, str, Comparison] | None = None
+    _comparison_cache: _ComparisonCache | None = None
 
     @property
     def source(self) -> str:
@@ -993,7 +993,13 @@ class Redlines:
 
         The change tree is therefore empty when the processor found no edit (identical texts never reach it),
         and otherwise holds one `modify` node whose inline ops are `redlines.changes.inline_ops_from_opcodes`
-        of the recorded opcodes. The result is kept until a setter assigns new opcodes.
+        of the recorded opcodes.
+
+        The result is cached against the identity of the opcode list and the two texts. A setter assigns a new
+        list, so the next call derives again. The texts are compared as well, so that a processor which refills
+        and returns one list object from every call cannot be served the comparison of the texts it diffed
+        before. A list changed in place while both texts stay the same is not noticed; both built-in processors
+        return a new list from every call.
 
         :return: the derived comparison.
         :rtype: Comparison
@@ -1004,11 +1010,11 @@ class Redlines:
         cached = self._comparison_cache
         if (
             cached is not None
-            and cached[0] is diff_operations
-            and cached[1] == source
-            and cached[2] == test
+            and cached.diff_operations is diff_operations
+            and cached.source == source
+            and cached.test == test
         ):
-            return cached[3]
+            return cached.comparison
 
         source_tree = _one_block_tree(source)
         test_tree = _one_block_tree(test)
@@ -1048,8 +1054,21 @@ class Redlines:
                 processor=type(self.processor).__name__,
             ),
         )
-        self._comparison_cache = (diff_operations, source, test, comparison)
+        self._comparison_cache = _ComparisonCache(
+            diff_operations, source, test, comparison
+        )
         return comparison
+
+
+class _ComparisonCache(t.NamedTuple):
+    """
+    What `Redlines._comparison` keeps: the comparison, and the opcode list and texts it was derived from.
+    """
+
+    diff_operations: list[DiffOperation]
+    source: str
+    test: str
+    comparison: Comparison
 
 
 def _one_block_tree(text: str) -> BlockTree:
