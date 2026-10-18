@@ -104,6 +104,18 @@ def test_the_block_tree_is_a_section_of_this_file_not_a_second_schema(
     assert schema["properties"]["test"]["$ref"] == "#/definitions/blockTree"
 
 
+def test_the_trees_are_optional_and_the_rest_is_required(schema: dict[str, Any]) -> None:
+    """ADR-0033's 2026-10-18 amendment, pinned before the freeze is published.
+
+    ``source`` and ``test`` are emitted by default but a strict consumer may not
+    assume them: the compact form (``include_trees=False``) leaves them out.
+    Loosening ``required`` after publication would be a major bump, so it is
+    pinned here as part of 2.0.
+    """
+    assert schema["required"] == ["schema_version", "config", "changes", "statistics"]
+    assert "source" in schema["properties"] and "test" in schema["properties"]
+
+
 def test_statistics_is_required_and_filter_is_nullable(schema: dict[str, Any]) -> None:
     """#139's addition is required (always present); #138's is nullable (#137)."""
     assert "statistics" in schema["required"]
@@ -178,6 +190,19 @@ def test_a_comparison_with_include_alignment_validates(
     payload = result.to_dict(include_alignment=True)
     assert "alignment" in payload
     validator.validate(payload)
+
+
+def test_the_compact_form_validates(
+    validator: jsonschema.protocols.Validator,
+) -> None:
+    """``include_trees=False`` is a valid 2.0 document, with and without the alignment."""
+
+    source, test = _sample_trees("markdown")
+    result = compare(source, test)
+    compact = result.to_dict(include_trees=False)
+    assert "source" not in compact and "test" not in compact
+    validator.validate(compact)
+    validator.validate(result.to_dict(include_alignment=True, include_trees=False))
 
 
 def test_an_empty_comparison_validates(

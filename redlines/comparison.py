@@ -39,6 +39,15 @@ not expressible in the change tree, because an unchanged pair produces no
 change node (ADR-0033). On the wire it is optional: `Comparison.to_dict` emits
 it only under ``include_alignment=True``.
 
+**The block trees are on the wire by default, and optional.** ``source`` and
+``test`` are the bulk of a payload -- on the section 3a sample pair they are
+about 125 KB of a 137 KB document, against 7 KB of changes -- and a consumer
+that only needs to know what changed does not need them: every change node
+carries both addresses and both texts. ``to_dict(include_trees=False)`` writes
+that compact form. It validates against the same schema (the two keys are not
+``required``) and cannot be rebuilt into a `Comparison` (ADR-0033, amendment
+of 2026-10-18).
+
 The JSON this module emits is version ``2.0`` (`SCHEMA_VERSION`). ADR-0011's
 policy: an additive change -- a new optional field, a new change kind, a new
 statistic -- bumps the minor; a breaking change bumps the major, gets its own
@@ -322,7 +331,9 @@ class Comparison:
             config=replace(self.config, filter=spec),
         )
 
-    def to_dict(self, *, include_alignment: bool = False) -> dict[str, Any]:
+    def to_dict(
+        self, *, include_alignment: bool = False, include_trees: bool = True
+    ) -> dict[str, Any]:
         """Return the whole comparison as a JSON-serialisable dict (v2).
 
         ``source`` and ``test`` are byte-for-byte
@@ -336,24 +347,36 @@ class Comparison:
             default: the full pair list roughly doubles a large payload for
             data only the benchmark reads today, and the key is optional in
             the schema, so turning it on later is not even a minor bump.
+        :param include_trees: emit the ``source`` and ``test`` block trees.
+            On by default. Off, the result is the **compact form**: the
+            configuration, the change list and the statistics, for a consumer
+            that needs to know what changed and not what the whole document
+            looks like -- a model reading a tool result, for one. The two keys
+            are optional in the schema, so the compact form validates; it
+            cannot be passed to `from_dict`.
         :return: a dict with the keys ``schema_version``, ``config``,
-            ``source``, ``test``, ``changes``, ``statistics``, and
-            ``alignment`` when it was asked for.
+            ``changes``, ``statistics``, plus ``source`` and ``test`` unless
+            they were turned off, plus ``alignment`` when it was asked for.
         """
         document: dict[str, Any] = {
             "schema_version": SCHEMA_VERSION,
             "config": self.config.to_dict(),
-            "source": self.source.to_dict(),
-            "test": self.test.to_dict(),
-            "changes": [change.to_dict() for change in self.changes],
-            "statistics": self.statistics().to_dict(),
         }
+        if include_trees:
+            document["source"] = self.source.to_dict()
+            document["test"] = self.test.to_dict()
+        document["changes"] = [change.to_dict() for change in self.changes]
+        document["statistics"] = self.statistics().to_dict()
         if include_alignment:
             document["alignment"] = self.alignment.to_dict()
         return document
 
     def to_json(
-        self, *, indent: int | None = None, include_alignment: bool = False
+        self,
+        *,
+        indent: int | None = None,
+        include_alignment: bool = False,
+        include_trees: bool = True,
     ) -> str:
         """Return `to_dict` as JSON text.
 
@@ -373,10 +396,13 @@ class Comparison:
             indent. Matches `json.dumps`'s own parameter rather than a
             boolean, so any indent width is available, not just two spaces.
         :param include_alignment: passed through to `to_dict`.
+        :param include_trees: passed through to `to_dict`.
         :return: the JSON text, without a trailing newline.
         """
         return json.dumps(
-            self.to_dict(include_alignment=include_alignment),
+            self.to_dict(
+                include_alignment=include_alignment, include_trees=include_trees
+            ),
             ensure_ascii=False,
             indent=indent,
         )
@@ -387,18 +413,26 @@ class Comparison:
 
         The payload must have been written with ``include_alignment=True``:
         the alignment is a field of this class, and rebuilding it as empty
-        would be a lie about which blocks correspond.
+        would be a lie about which blocks correspond. It must also carry both
+        block trees -- the default; the compact form written with
+        ``include_trees=False`` has nothing to rebuild them from.
 
         :param data: a mapping in the shape `to_dict` produces.
         :return: the reconstructed `Comparison`.
         :raises ValueError: if a key is unknown, ``schema_version`` is missing
             or unreadable, the payload's major version is not this one, its
             minor version is *higher* than this one -- a payload from a newer
-            release, whose extra fields would be silently dropped -- or the
-            ``alignment`` key is absent.
+            release, whose extra fields would be silently dropped -- the
+            ``alignment`` key is absent, or the block trees are absent.
         """
         _reject_unknown_keys(data, _COMPARISON_KEYS, "comparison")
         _check_schema_version(data.get("schema_version"))
+        if "source" not in data or "test" not in data:
+            raise ValueError(
+                "this comparison was serialised in the compact form, without its "
+                "block trees, and cannot be rebuilt; write it with "
+                "to_dict(include_trees=True)"
+            )
         if "alignment" not in data:
             raise ValueError(
                 "this comparison was serialised without its alignment and "
