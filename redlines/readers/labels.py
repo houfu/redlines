@@ -231,6 +231,14 @@ class LabelMatch:
         are removed. This is the block's text.
     :param end: how many characters of the (left-stripped) line the label
         occupied, for a caller that needs to map offsets back.
+    :param raw: the label exactly as the document wrote it: ``label`` before
+        its one trailing full stop is removed, so ``"2."``, ``"(a)"``,
+        ``"Schedule 1."`` and ``"1"``. Surrounding whitespace is stripped and
+        nothing else is touched: a space or a full stop *inside* the label
+        stays (``"§ 4"``, ``"4.—(1)"``). The readers record it as
+        ``attrs["label_raw"]`` so a renderer can write the label back as it was
+        written. It defaults to ``""`` so that a match built by hand still
+        constructs; `label_candidates` always sets it.
     """
 
     name: str
@@ -240,6 +248,7 @@ class LabelMatch:
     value: str
     text: str
     end: int
+    raw: str = ""
 
     @property
     def index(self) -> int | None:
@@ -345,7 +354,8 @@ def label_candidates(text: str, *, profile: Profile | None) -> tuple[LabelMatch,
             if match.re.groups >= 1 and match.group(1) is not None
             else match.group(0).strip()
         )
-        label = match.group(0).strip()
+        raw = match.group(0).strip()
+        label = raw
         if label.endswith(".") and not value.endswith("."):
             label = label[:-1]
         matches.append(
@@ -357,6 +367,7 @@ def label_candidates(text: str, *, profile: Profile | None) -> tuple[LabelMatch,
                 value=value,
                 text=stripped[match.end() :].strip(),
                 end=match.end(),
+                raw=raw,
             )
         )
     return tuple(matches)
