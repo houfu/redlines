@@ -234,6 +234,26 @@ def _markdown(style: str) -> Callable[[Comparison], str]:
     return render
 
 
+def dump_rich(comparison: Comparison) -> str:
+    """The ``output_rich`` golden: ``{"plain": …, "spans": [[start, end, style], …]}``.
+
+    ``(plain, spans)`` rather than ``Text.markup``, which churns on rich
+    upgrades (ADR-0037). JSON with one span to a line, so a diff shows which
+    run changed, and a trailing newline.
+
+    :param comparison: the comparison to render.
+    :return: the JSON text.
+    """
+    text = comparison.output_rich()
+    spans = [[span.start, span.end, str(span.style)] for span in text.spans]
+    rows = "".join(
+        f"    {json.dumps(span, ensure_ascii=False)}{',' if index < len(spans) - 1 else ''}\n"
+        for index, span in enumerate(spans)
+    )
+    plain = json.dumps(text.plain, ensure_ascii=False)
+    return f'{{\n  "plain": {plain},\n  "spans": [\n{rows}  ]\n}}\n'
+
+
 RENDERINGS: tuple[tuple[str, str, Callable[[Comparison], str]], ...] = (
     # Comparison.output_markdown (#179): every style, on the markdown twin as
     # markdown and on the text twin as text.
@@ -242,6 +262,8 @@ RENDERINGS: tuple[tuple[str, str, Callable[[Comparison], str]], ...] = (
         for style in MARKDOWN_STYLES
         for extension, profile_name in (("md", "markdown"), ("txt", "contract"))
     ),
+    # Comparison.output_rich (#180): the markdown twin.
+    ("rich.markdown.json", "markdown", dump_rich),
 )
 """Every rendered golden: its file under `RENDERED_DIR`, the profile naming its
 twin in `CHANGE_PAIRINGS`, and what draws it. Each renderer appends its own

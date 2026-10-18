@@ -24,6 +24,7 @@ render each case themselves rather than calling it.
 
 from __future__ import annotations
 
+import json
 from collections.abc import Callable, Mapping
 from pathlib import Path
 from types import MappingProxyType
@@ -58,6 +59,26 @@ def _markdown(style: str) -> Callable[[Comparison], str]:
     return render
 
 
+def dump_rich(comparison: Comparison) -> str:
+    """The ``output_rich`` golden: ``{"plain": …, "spans": [[start, end, style], …]}``.
+
+    ``(plain, spans)`` rather than ``Text.markup``, which churns on rich
+    upgrades (ADR-0037). JSON with one span to a line, so a diff shows which
+    run changed, and a trailing newline; the same form as the sample pair's.
+
+    :param comparison: the comparison to render.
+    :return: the JSON text.
+    """
+    text = comparison.output_rich()
+    spans = [[span.start, span.end, str(span.style)] for span in text.spans]
+    rows = "".join(
+        f"    {json.dumps(span, ensure_ascii=False)}{',' if index < len(spans) - 1 else ''}\n"
+        for index, span in enumerate(spans)
+    )
+    plain = json.dumps(text.plain, ensure_ascii=False)
+    return f'{{\n  "plain": {plain},\n  "spans": [\n{rows}  ]\n}}\n'
+
+
 GOLDENS: tuple[Golden, ...] = (
     # Comparison.output_markdown (#179): the none style on every case. Four of
     # them pin placement, the legacy picture of a nested move and the absence
@@ -76,6 +97,8 @@ CASE_GOLDENS: Mapping[str, tuple[Golden, ...]] = MappingProxyType(
                 for style in MARKDOWN_STYLES
                 if style != "none"
             ),
+            # Comparison.output_rich (#180).
+            ("rich.json", dump_rich),
         ),
     }
 )
