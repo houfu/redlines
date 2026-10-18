@@ -95,6 +95,13 @@ for change in result.changes:
 
 """
 
+# `X as X` is the explicit re-export that type checkers honour (PEP 484). Without it,
+# `from redlines import RedlinesDeprecationWarning` fails under `mypy --strict`.
+# `warn_deprecated` stays private: it is for redlines' own code.
+from ._deprecation import (
+    RedlinesDeprecationWarning as RedlinesDeprecationWarning,
+    RedlinesPendingDeprecationWarning as RedlinesPendingDeprecationWarning,
+)
 from .alignment import AlignmentConfig
 from .changes import Change, ChangeTree, InlineOp
 from .comparison import *
