@@ -58,7 +58,7 @@ class CommittedRun:
 
 
 def committed_runs() -> tuple[CommittedRun, ...]:
-    """Every committed run, in the research scripts' order (see the module docstring)."""
+    """Every committed run, in the research scripts' order (module docstring)."""
     runs: list[CommittedRun] = []
     for case in sorted((REPO_ROOT / "tests" / "corpus").iterdir()):
         source, test = case / "source.txt", case / "test.txt"

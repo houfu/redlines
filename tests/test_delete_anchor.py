@@ -1,4 +1,4 @@
-"""Where a deleted block sits: `redlines.changes.Anchors` and the change-list order (D4).
+"""Where a deleted block sits: `redlines.changes.Anchors` and the list order (D4).
 
 A delete has no test address, so the flat change list needs a rule for where
 it goes, and M3's renderers need the same rule to draw the deleted block and a
@@ -18,6 +18,11 @@ Each constructed case is the smallest input that separates candidate rules
 a clause moved out of a moved clause; a trailing insert in the section before
 a deleted one; a swap and its mirror; a deleted first child; and a deletion
 before the first block. The last two pin what ``Anchor.after is None`` means.
+Two more pin the sort key itself: a section deleted after a clause moved into
+the section before it, which only the delete's ``after`` of 1 orders, and
+deletions after a clause with a limb, where a subtree has to end at its last
+descendant. Two hand-built alignments pin the ride-along rules, which the
+committed runs never exercise.
 ``benchmark/corpus/hand/govinfo-hr7385-ih-to-eh`` is the one committed run
 whose order the amendment changes, and its whole node list is pinned. Every
 other committed run is checked against the rule as written, recomputed here
@@ -250,6 +255,33 @@ FIRST_BLOCK_TEST = """## 1. Delivery and Risk
 1.1 The Supplier shall deliver the goods to the warehouse nominated by the Buyer.
 """
 
+# A clause of section 4 moves up into section 3, and the rest of section 4 is
+# deleted.
+MOVED_INTO_SECTION_BEFORE_SOURCE = (
+    "## 3. Services\n\n3.1 The Supplier shall supply the Services.\n\n"
+    "## 4. Fees\n\n4.1 The Client shall pay the Fees monthly.\n\n"
+    "4.2 The Client shall pay interest on late payments at two percent.\n"
+)
+MOVED_INTO_SECTION_BEFORE_TEST = (
+    "## 3. Services\n\n3.1 The Supplier shall supply the Services.\n\n"
+    "3.2 The Client shall pay interest on late payments at two percent.\n"
+)
+
+# Section 3's last clause and all of section 4 are deleted, after a clause
+# that has a limb of its own.
+LIMB_BEFORE_DELETES_SOURCE = (
+    "## 3. Services\n\n"
+    "3.1 The Supplier shall supply the Services listed in Schedule One.\n\n"
+    "(a) The Supplier shall supply them with reasonable skill and care.\n\n"
+    "3.2 The Supplier shall meet the Service Levels set out in Schedule Two.\n\n"
+    "## 4. Fees\n\n4.1 The Client shall pay the Fees monthly in arrears.\n"
+)
+LIMB_BEFORE_DELETES_TEST = (
+    "## 3. Services\n\n"
+    "3.1 The Supplier shall supply the Services listed in Schedule One.\n\n"
+    "(a) The Supplier shall supply them with reasonable skill and care.\n"
+)
+
 CONSTRUCTED: dict[str, tuple[str, str]] = {
     "moved predecessor": (MOVED_PREDECESSOR_SOURCE, MOVED_PREDECESSOR_TEST),
     "deleted child of a moved clause": (MOVED_CHILD_SOURCE, MOVED_CHILD_TEST),
@@ -259,6 +291,11 @@ CONSTRUCTED: dict[str, tuple[str, str]] = {
     "mirrored swap": (SWAP_SOURCE, MIRRORED_SWAP_TEST),
     "first child": (FIRST_CHILD_SOURCE, FIRST_CHILD_TEST),
     "first block": (FIRST_BLOCK_SOURCE, FIRST_BLOCK_TEST),
+    "moved into the section before": (
+        MOVED_INTO_SECTION_BEFORE_SOURCE,
+        MOVED_INTO_SECTION_BEFORE_TEST,
+    ),
+    "limb before the deletions": (LIMB_BEFORE_DELETES_SOURCE, LIMB_BEFORE_DELETES_TEST),
 }
 
 
@@ -348,6 +385,51 @@ def test_a_deleted_section_sits_after_the_whole_section_before_it() -> None:
     # drawn with the section they belong to.
     assert placed.place("/section[2]/heading[1]") is None
     assert placed.place("/section[2]/list_item[1]") is None
+
+
+def test_a_deleted_section_sits_after_a_clause_that_moved_into_the_section_before() -> (
+    None
+):
+    """4.2 moved up into section 3 as 3.2, and the rest of section 4 was deleted.
+
+    Section 4's deletion sits after section 3's whole test subtree, which now
+    ends with the moved clause, so it is listed after the move. The two nodes
+    share 3.2's position, and the delete's source position is the earlier of
+    the two, so only its ``after`` of 1 puts it second. M2 listed it first,
+    after 3.1. The moved clause's origin was inside the deleted section, so
+    it has no anchor of its own.
+    """
+    comparison = compared(
+        MOVED_INTO_SECTION_BEFORE_SOURCE, MOVED_INTO_SECTION_BEFORE_TEST
+    )
+    assert nodes(comparison) == [
+        ("move", "/section[2]/list_item[2]", "/section[1]/list_item[2]"),
+        ("delete", "/section[2]", None),
+    ]
+    placed = anchors(comparison)
+    assert placed.place("/section[2]") == Anchor(test_parent="/", after="/section[1]")
+    assert placed.place("/section[2]/list_item[2]") is None
+
+
+def test_deletions_after_a_clause_with_a_limb_sit_after_the_limb() -> None:
+    """3.2 and all of section 4 were deleted; 3.1, before them, has a limb (a).
+
+    3.2 sits after 3.1's subtree and section 4 after section 3's, and both
+    subtrees end with (a), so the two deletions share a position and are
+    listed in source order. A subtree ends at its last descendant: had
+    section 3's ended at 3.1, its last child, section 4 would be listed
+    before 3.2.
+    """
+    comparison = compared(LIMB_BEFORE_DELETES_SOURCE, LIMB_BEFORE_DELETES_TEST)
+    assert nodes(comparison) == [
+        ("delete", "/section[1]/list_item[2]", None),
+        ("delete", "/section[2]", None),
+    ]
+    placed = anchors(comparison)
+    assert placed.place("/section[1]/list_item[2]") == Anchor(
+        test_parent="/section[1]", after="/section[1]/list_item[1]"
+    )
+    assert placed.place("/section[2]") == Anchor(test_parent="/", after="/section[1]")
 
 
 def test_a_delete_after_a_swap_sits_after_the_sibling_that_stayed() -> None:
@@ -441,6 +523,188 @@ def test_both_backends_order_and_place_the_constructed_cases_alike(case: str) ->
     assert seen[0] == seen[1]
 
 
+# --- blocks that rode along inside a moved clause ----------------------------
+#
+# A moved pair inside a moved ancestor, landed inside where the ancestor
+# landed, is not a move of its own. The committed runs never hold one (their
+# moved pairs and their move nodes are the same 24), and the aligner cannot be
+# relied on to make one, so these two alignments are written by hand.
+
+
+def _block(kind: BlockKind, text: str = "", *children: Block) -> Block:
+    """One block, with only the fields placement reads."""
+    return Block(kind=kind, text=text, children=children)
+
+
+def _document(*children: Block) -> BlockTree:
+    """Wrap blocks in a document root and address the result."""
+    return BlockTree.build(Block(kind=BlockKind.DOCUMENT, children=children))
+
+
+def _handmade(
+    pairs: list[tuple[str, str, bool]], *, deleted: tuple[str, ...]
+) -> Alignment:
+    """An alignment of exactly these (source, test, moved) pairs, after the root."""
+    return Alignment(
+        pairs=(
+            AlignedPair(
+                source_path="/", test_path="/", matched_by="root", confidence=1.0
+            ),
+            *(
+                AlignedPair(
+                    source_path=source,
+                    test_path=test,
+                    matched_by="exact",
+                    confidence=1.0,
+                    moved=moved,
+                )
+                for source, test, moved in pairs
+            ),
+        ),
+        inserted=(),
+        deleted=deleted,
+        config=AlignmentConfig(similarity=GOLDEN_BACKEND),
+        backend=GOLDEN_BACKEND,
+        pass_counts={"root": 1, "exact": len(pairs)},
+    )
+
+
+_SECTION = BlockKind.SECTION
+_ITEM = BlockKind.LIST_ITEM
+_PARAGRAPH = BlockKind.PARAGRAPH
+
+
+def test_a_block_that_left_its_limb_inside_a_moved_clause_is_no_anchor_there() -> None:
+    """A moved; inside it x left limb P for limb Q, and P's d was deleted.
+
+    x rode along with A's move, so it is not a move of its own, but its
+    counterpart is a child of Q's counterpart, not of P's: it did not stay
+    in P. So d, which came after x in P, sits first in P's counterpart
+    rather than after a block that is now in another limb.
+    """
+    source = _document(
+        _block(
+            _SECTION,
+            "",
+            _block(
+                _ITEM,
+                "A",
+                _block(_ITEM, "P", _block(_PARAGRAPH, "x"), _block(_PARAGRAPH, "d")),
+                _block(_ITEM, "Q"),
+            ),
+        ),
+        _block(_SECTION),
+    )
+    test = _document(
+        _block(_SECTION),
+        _block(
+            _SECTION,
+            "",
+            _block(
+                _ITEM,
+                "A",
+                _block(_ITEM, "P"),
+                _block(_ITEM, "Q", _block(_PARAGRAPH, "x")),
+            ),
+        ),
+    )
+    alignment = _handmade(
+        [
+            ("/section[1]", "/section[1]", False),
+            ("/section[2]", "/section[2]", False),
+            ("/section[1]/list_item[1]", "/section[2]/list_item[1]", True),
+            (
+                "/section[1]/list_item[1]/list_item[1]",
+                "/section[2]/list_item[1]/list_item[1]",
+                False,
+            ),
+            (
+                "/section[1]/list_item[1]/list_item[2]",
+                "/section[2]/list_item[1]/list_item[2]",
+                False,
+            ),
+            (
+                "/section[1]/list_item[1]/list_item[1]/paragraph[1]",
+                "/section[2]/list_item[1]/list_item[2]/paragraph[1]",
+                True,
+            ),
+        ],
+        deleted=("/section[1]/list_item[1]/list_item[1]/paragraph[2]",),
+    )
+    placed = Anchors(source=source, test=test, alignment=alignment)
+    assert placed.place("/section[1]/list_item[1]/list_item[1]/paragraph[2]") == (
+        Anchor(test_parent="/section[2]/list_item[1]/list_item[1]", after=None)
+    )
+    changes = build_change_tree(alignment, source, test)
+    assert [(change.kind.value, change.source_address) for change in changes] == [
+        ("move", "/section[1]/list_item[1]"),
+        ("delete", "/section[1]/list_item[1]/list_item[1]/paragraph[2]"),
+    ]
+
+
+def test_a_block_that_crossed_a_sibling_inside_a_moved_clause_is_still_an_anchor() -> (
+    None
+):
+    """A moved; inside it y moved ahead of x, and d, after y, was deleted.
+
+    The alignment flags y as moved, because it crossed x, but y rode along
+    with A's move and stayed in A: it is no ``move`` node, and it is a
+    sibling that stayed in place. d sits after y's counterpart. Skipping
+    every moved pair, instead of only the moves of their own, would put it
+    after x's.
+    """
+    source = _document(
+        _block(
+            _SECTION,
+            "",
+            _block(
+                _ITEM,
+                "A",
+                _block(_PARAGRAPH, "x"),
+                _block(_PARAGRAPH, "y"),
+                _block(_PARAGRAPH, "d"),
+            ),
+        ),
+        _block(_SECTION),
+    )
+    test = _document(
+        _block(_SECTION),
+        _block(
+            _SECTION,
+            "",
+            _block(_ITEM, "A", _block(_PARAGRAPH, "y"), _block(_PARAGRAPH, "x")),
+        ),
+    )
+    alignment = _handmade(
+        [
+            ("/section[1]", "/section[1]", False),
+            ("/section[2]", "/section[2]", False),
+            ("/section[1]/list_item[1]", "/section[2]/list_item[1]", True),
+            (
+                "/section[1]/list_item[1]/paragraph[1]",
+                "/section[2]/list_item[1]/paragraph[2]",
+                False,
+            ),
+            (
+                "/section[1]/list_item[1]/paragraph[2]",
+                "/section[2]/list_item[1]/paragraph[1]",
+                True,
+            ),
+        ],
+        deleted=("/section[1]/list_item[1]/paragraph[3]",),
+    )
+    placed = Anchors(source=source, test=test, alignment=alignment)
+    assert placed.place("/section[1]/list_item[1]/paragraph[3]") == Anchor(
+        test_parent="/section[2]/list_item[1]",
+        after="/section[2]/list_item[1]/paragraph[1]",
+    )
+    changes = build_change_tree(alignment, source, test)
+    assert [(change.kind.value, change.source_address) for change in changes] == [
+        ("move", "/section[1]/list_item[1]"),
+        ("delete", "/section[1]/list_item[1]/paragraph[3]"),
+    ]
+
+
 # --- the one committed run the amendment reorders ---------------------------
 
 # Its 24 nodes in the amended order. Under M2 the delete of
@@ -522,10 +786,11 @@ def test_govinfo_hr7385_has_the_same_order_under_rapidfuzz() -> None:
 def amended_order(comparison: Comparison) -> list[int]:
     """The order ADR-0033's amendment states, as indices into the change list.
 
-    Written from the rule's wording rather than from `redlines.changes`: own
-    moves are read off the change list's ``move`` nodes, siblings off the
-    source tree and positions off a fresh walk, so a regression in the
-    shipped code cannot hide in a helper it shares with this check.
+    Written from the rule's wording rather than from `redlines.changes`:
+    siblings come off the source tree and positions off a fresh walk. Own
+    moves are read off the change list's ``move`` nodes, which the shipped
+    `_under_a_move` also decides, so this check does not cover that filter;
+    the two hand-built ride-along cases above do.
     """
     test_order = {
         block.path: index for index, block in enumerate(comparison.test.walk())

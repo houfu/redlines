@@ -1,11 +1,16 @@
-r"""The reference reader for ADR-0037's CriticMarkup: accept-all, reject-all, and the residue rule.
+r"""The reference reader for ADR-0037's CriticMarkup: accept-all and reject-all.
 
 CriticMarkup defines no escape, so a third-party stripper ignores redlines'
 backslashes: it opens a mark at ``\{++`` and mis-pairs ``use \{++ here
-{++new++}``. This module is the reader ADR-0037 names. It is written from the
-ADR's text, independently of ``redlines.renderers``, so that the renderer
-tests have an oracle that is not the code under test. `accept_all` and
-`reject_all` are exactly the ADR's seven steps:
+{++new++}``. This module is the reader ADR-0037 names. Its control flow --
+the tokenising scan, the resolution, note stripping and the residue rule --
+is written from the ADR's text without importing ``redlines.renderers``, so
+the renderer tests have an oracle that does not run the code under test. Its
+regular expressions are the ADR's, written out again here, and a test checks
+that the head and line-start patterns match the renderer's: the two must
+agree for the line-start escape to read back, so a misreading of those two
+patterns shared by both would pass both. `accept_all` and `reject_all` are
+exactly the ADR's seven steps:
 
 1. **Parse** (`parse`): a strict tokenising scan, not a regular expression.
    A live opener (``{++``, ``{--``, ``{~~``, ``{>>``) has an even run of
@@ -84,10 +89,12 @@ _CLOSERS: Final[dict[TokenKind, str]] = {
     "note": "<<}",
 }
 
-# The three sites of ADR-0037's escape, written out again here rather than
-# imported, so that the oracle and the renderer are two readings of the ADR.
+# ADR-0037's patterns, written out again here rather than imported; the
+# head and line-start patterns are checked equal to the renderer's.
 _SITE: Final[re.Pattern[str]] = re.compile(
-    r"(?P<o>\\*)\{(?=\+\+|--|~~|==|>>)|(?<=\+\+|--|~~|==|<<)(?P<c>\\*)\}|(?<=~)(?P<s>\\*)>"
+    r"(?P<o>\\*)\{(?=\+\+|--|~~|==|>>)"
+    r"|(?<=\+\+|--|~~|==|<<)(?P<c>\\*)\}"
+    r"|(?<=~)(?P<s>\\*)>"
 )
 _ROLE: Final[str] = r"[A-Za-z0-9_.%-]+"
 _ROLE_PREFIX: Final[re.Pattern[str]] = re.compile(r"\[(" + _ROLE + r")\] ")
@@ -396,8 +403,10 @@ def multiset(left: Sequence[str], right: Sequence[str]) -> bool:
 
 
 def loose(resolved: Sequence[str]) -> list[str]:
-    """Each line without its leading syntax head or list marker, and without whitespace."""
-    return [_WHITESPACE.sub("", _LOOSE_HEAD.sub("", line, count=1)) for line in resolved]
+    """Each line without its leading syntax head or list marker, or whitespace."""
+    return [
+        _WHITESPACE.sub("", _LOOSE_HEAD.sub("", line, count=1)) for line in resolved
+    ]
 
 
 def loose_multiset(left: Sequence[str], right: Sequence[str]) -> bool:
@@ -406,13 +415,19 @@ def loose_multiset(left: Sequence[str], right: Sequence[str]) -> bool:
 
 
 _TAG: Final[dict[Side, tuple[re.Pattern[str], re.Pattern[str]]]] = {
-    "accept": (re.compile(r"<del>.*?</del>", re.S), re.compile(r"<ins>(.*?)</ins>", re.S)),
-    "reject": (re.compile(r"<ins>.*?</ins>", re.S), re.compile(r"<del>(.*?)</del>", re.S)),
+    "accept": (
+        re.compile(r"<del>.*?</del>", re.S),
+        re.compile(r"<ins>(.*?)</ins>", re.S),
+    ),
+    "reject": (
+        re.compile(r"<ins>.*?</ins>", re.S),
+        re.compile(r"<del>(.*?)</del>", re.S),
+    ),
 }
 
 
 def tag_lines(rendered: str, side: Side) -> list[str]:
-    """Resolve the legacy ``none`` style's ``<ins>`` and ``<del>`` and apply the residue rule.
+    """Read the legacy ``none`` style's ``<ins>`` and ``<del>``, then the residue.
 
     The legacy styles copy document text verbatim, so this is only a reader
     for documents that contain no ``<ins>`` or ``<del>`` of their own -- which
