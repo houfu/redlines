@@ -709,6 +709,58 @@ def test_the_reader_finds_exactly_the_marks_the_renderer_wrote(
     ] == written
 
 
+ROLE_SHAPED_STARTS = [
+    pytest.param(
+        "[2020] SGCA 5 held that the rule applies.\n",
+        "The court in [2020] SGCA 5 held that the rule applies.\n",
+        id="inserted_before_it",
+    ),
+    pytest.param(
+        "See [2020] SGCA 5 held that the rule applies.\n",
+        "[2020] SGCA 5 held that the rule applies.\n",
+        id="deleted_before_it",
+    ),
+]
+"""An edit at the very start of a block, after which only one side's text
+begins like a role prefix: a neutral citation, as contracts quote them."""
+
+
+@pytest.mark.parametrize("syntax", ["markdown", "text"])
+@pytest.mark.parametrize("source, test", ROLE_SHAPED_STARTS)
+def test_an_edit_before_a_role_shaped_start_keeps_accept_all_exact(
+    source: str, test: str, syntax: Syntax
+) -> None:
+    """The line-start escape serves the accept side, and roles=False has no such escape."""
+    comparison = md(source, test)
+    annotated = comparison.output_annotated(syntax=syntax)
+    test_rendering = md(test, test).output_annotated(syntax=syntax)
+    assert cm.accept_all(annotated) == cm.accept_all(test_rendering)
+    plain = comparison.output_annotated(syntax=syntax, roles=False)
+    plain_source = md(source, source).output_annotated(syntax=syntax, roles=False)
+    assert cm.multiset(
+        cm.reject_all(plain, roles=False), cm.reject_all(plain_source, roles=False)
+    )
+
+
+@pytest.mark.xfail(
+    strict=True,
+    reason="a design limit (output_annotated's docstring, ADR-0037): with roles "
+    "on, the line-start escape serves the accept side, so reject-all reads a "
+    "role-shaped start that only the source has as a role, or keeps a stray "
+    "backslash before it",
+)
+@pytest.mark.parametrize("syntax", ["markdown", "text"])
+@pytest.mark.parametrize("source, test", ROLE_SHAPED_STARTS)
+def test_reject_all_restores_a_role_shaped_start_that_only_one_side_has(
+    source: str, test: str, syntax: Syntax
+) -> None:
+    """Pins the limit: if the escape ever serves both sides, this passes and the
+    strict marker fails the run, so the marker and the docstring sentence go."""
+    annotated = md(source, test).output_annotated(syntax=syntax)
+    source_rendering = md(source, source).output_annotated(syntax=syntax)
+    assert cm.multiset(cm.reject_all(annotated), cm.reject_all(source_rendering))
+
+
 # --- the 60 committed runs -----------------------------------------------------------
 
 
@@ -720,7 +772,8 @@ WHITESPACE_RUNS = (
     "benchmark/synthetic/msa-text-heavy",
 )
 """Reject-all differs from the source rendering in whitespace only: unchanged
-runs carry the test's whitespace at change boundaries."""
+runs carry the test's whitespace at change boundaries. ADR-0037 names three of
+these runs; measured under either backend, the cause covers all five."""
 
 SYNTAX_HEAD_RUNS = (
     "benchmark/synthetic/msa-markdown-mixed",

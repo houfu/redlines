@@ -479,22 +479,32 @@ class Comparison:
         ``{>>moved from SRC_LABEL SRC_ADDRESS<<}``; its origin is a line
         ``{>>SRC_LABEL moved to TEST_LABEL TEST_ADDRESS<<}``. A renumbered
         label is ``{~~OLD~>NEW~~}``, or ``{>>renumbered from OLD<<}`` where a
-        markdown list marker is the label. A block with a role carries
-        ``[role]`` after its syntax head. Before the first block, a note says
+        markdown list marker is the label. A block's role, percent-encoded,
+        is written as ``[role]`` after its syntax head; tables, rows, cells,
+        fences and tombstones carry none. Before the first block, a note says
         so when the comparison is filtered, when alignment stopped early, and
         for each kind of content a reader dropped. Labels are written as the
         document wrote them. This is the document the MCP ``annotate`` tool
-        and a reviewing model read.
+        and a reviewing model will read.
 
         What it may be relied on for is exactly this: accept-all reproduces
         the test rendering exactly; reject-all reproduces the source text as a
         multiset of lines, up to whitespace and markdown syntax heads, except
-        where an old list-marker label moved into a note. Accept-all and
-        reject-all are those of the reference reader,
-        ``tests/helpers/criticmarkup.py``. CriticMarkup defines no escape, so
-        document text that would read as a delimiter is escaped with
-        backslashes (ADR-0037, "Escaping"), which other CriticMarkup tools do
-        not understand.
+        where an old list-marker label moved into a note. With ``roles=True``
+        there is one more exception: where an edit at the very start of a
+        block leaves only one side's text beginning like a role prefix, such
+        as ``[2020] SGCA 5``, the escape serves the accept side, so reject-all
+        may read ``[2020]`` as a role and drop it, or keep a stray backslash
+        before it. The test rendering is this method over
+        ``compare(test, test)``, and the source rendering the same over
+        ``compare(source, source)``. Accept-all and reject-all are those of
+        the reference reader in redlines' test suite,
+        ``tests/helpers/criticmarkup.py``, which the package does not ship.
+        CriticMarkup defines no escape, so document text that would read as a
+        delimiter is escaped with backslashes (ADR-0037, "Escaping"), which
+        other CriticMarkup tools do not understand. Document text is otherwise
+        copied as it is, not HTML-escaped, so sanitise untrusted input before a
+        markdown viewer renders the output.
 
         A filtered comparison renders the same test document with only its
         own nodes marked. The output is a normalised document, not the input
@@ -525,8 +535,7 @@ class Comparison:
         if syntax == "text" or syntax == "markdown":
             return render_inplace(self, CRITIC, syntax=syntax, roles=roles)
         raise ValueError(
-            "syntax must be None, 'text', 'markdown' or 'html', "
-            f"got {syntax!r}"
+            f"syntax must be None, 'text', 'markdown' or 'html', got {syntax!r}"
         )
 
     def to_dict(
