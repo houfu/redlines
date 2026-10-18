@@ -28,7 +28,7 @@ diff-match-patch stays out. The processor interface remains, so it can be added 
 
 Positive: no new dependency; the browser build stays trivial; the code path that most users already rely on is unchanged in character. Aligned blocks are short, so `autojunk=False` costs little in practice and the quadratic worst case is bounded by block size rather than document size.
 
-Negative: our cleanup will be less sophisticated than diff-match-patch's `cleanupSemantic`, and word-boundary quality may lag competitors on pathological inputs. Turning autojunk off has a real cost on any remaining whole-document comparisons, which the 0.6 compatibility facade still performs — so the hygiene release should measure it.
+Negative: our cleanup will be less sophisticated than diff-match-patch's `cleanupSemantic`, and word-boundary quality may lag competitors on pathological inputs. Turning autojunk off has a real cost on any remaining whole-document comparisons, which the 0.6 compatibility facade still performs — so the hygiene release should measure it. *Measured 18 October 2026, in M3 rather than in the hygiene release ([ADR-0036](0036-redlines-facade.md)): `autojunk=False` takes 7.7 times as long as `autojunk=True` on the repetitive schedule (5.07 against 0.66 ms), 2.5 times on the sample pair and 3.8 times on `csa-1.1-to-2.0`, which is still 54 ms for a 5,000-token contract. The facade keeps paying it, because byte identity with 0.6 is the whole-document diff.*
 
 ## Revisit when
 
