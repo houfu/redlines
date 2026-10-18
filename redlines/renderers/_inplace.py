@@ -472,6 +472,11 @@ class _Layout:
     def _label_part(self, node: ViewNode) -> list[Piece]:
         """The label part of a line: the label, its renumbering, or nothing.
 
+        A label changed when the node's labels differ, or when the labels as
+        written differ: ``Change`` labels are stripped of a trailing full stop,
+        so ``1.1`` becoming ``1.1.`` on a modified clause shows only in
+        ``label_raw``. A block with no node is drawn with its test label.
+
         The space between a label and its text is written only when there is
         text: a label-only block, such as a ``Schedule 1`` heading, ends at its
         label. The one exception is the renumber note, whose space the reader
@@ -479,14 +484,15 @@ class _Layout:
         """
         block = node.block
         change = node.change
+        source = node.counterpart
         new = label_text(block, self.syntax)
         space = " " if block.text else ""
-        relabelled = change is not None and (change.source_label or None) != (
-            change.test_label or None
+        relabelled = change is not None and (
+            (change.source_label or None) != (change.test_label or None)
+            or (source is not None and label_text(source, self.syntax) != new)
         )
         if not relabelled:
             return [Piece("text", new + space)] if new else []
-        source = node.counterpart
         if (
             self.marks.notes
             and self.syntax == "markdown"

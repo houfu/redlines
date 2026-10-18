@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import pytest
 
+from redlines.renderers._escape import LINE_START_SITE, SYNTAX_HEAD
 from tests.helpers import criticmarkup as cm
 from tests.helpers.criticmarkup import Token
 
@@ -184,3 +185,13 @@ def test_tag_lines_reads_the_legacy_none_style() -> None:
     rendered = "a <del>b </del><ins>c </ins>d\n\n<ins>new</ins>"
     assert cm.tag_lines(rendered, "accept") == ["a c d", "new"]
     assert cm.tag_lines(rendered, "reject") == ["a b d"]
+
+
+def test_the_reader_finds_a_line_s_content_where_the_renderer_does() -> None:
+    """The renderer escapes a line start by where a reader looks for it, so the two must agree.
+
+    The reader's patterns are its own reading of ADR-0037; this only checks the
+    two readings have not drifted apart.
+    """
+    assert cm._HEAD.pattern == SYNTAX_HEAD.pattern
+    assert cm._LINE_START.pattern == LINE_START_SITE.pattern

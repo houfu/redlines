@@ -299,6 +299,22 @@ def test_a_renumber_substitutes_the_labels_as_written() -> None:
     assert cm.reject_all(critic(comparison)) == ["2. The Supplier shall supply the Services."]
 
 
+def test_a_label_that_changed_only_as_written_is_marked_on_a_node() -> None:
+    """``Change`` labels drop a trailing full stop, so ``1.1`` to ``1.1.`` shows only in ``label_raw``."""
+    source = tree(_labelled("1.1", "1.1", "Target Uptime. The Provider shall try."))
+    test = tree(_labelled("1.1", "1.1.", "Target Uptime. The Provider shall try hard."))
+    comparison = compare(source, test)
+    assert [change.kind for change in comparison.changes] == [ChangeKind.MODIFY]
+    annotated = critic(comparison)
+    assert annotated.startswith("[clause] {~~1.1~>1.1.~~} Target Uptime.")
+    assert cm.accept_all(annotated) == ["1.1. Target Uptime. The Provider shall try hard."]
+    assert cm.reject_all(annotated) == ["1.1 Target Uptime. The Provider shall try."]
+    assert none(comparison).startswith("<del>1.1 </del><ins>1.1. </ins>Target Uptime.")
+    unchanged = compare(source, tree(_labelled("1.1", "1.1.", "Target Uptime. The Provider shall try.")))
+    assert list(unchanged.changes) == []
+    assert critic(unchanged) == "[clause] 1.1. Target Uptime. The Provider shall try."
+
+
 def test_a_list_marker_renumber_is_a_note_in_markdown_and_a_substitution_in_text() -> None:
     source = "1. Alpha item text\n2. Beta item text\n"
     test = "1. New first item\n2. Alpha item text\n3. Beta item text\n"
