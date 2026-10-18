@@ -85,3 +85,15 @@ def test_the_view_of_the_scale_pair_has_every_ghost_in_place(half_deleted: Compa
         BlockStatus.UNCHANGED,
         BlockStatus.DELETE,
     ]
+
+
+@pytest.mark.slow
+def test_both_html_fragments_take_under_a_second(half_deleted: Comparison) -> None:
+    """The change list (1,000 delete rows) and the document view (2,000 blocks) (#182)."""
+    seconds: list[float] = []
+    changes = _timed(seconds, half_deleted.output_html)
+    document = _timed(seconds, lambda: half_deleted.output_annotated(syntax="html"))
+    assert all(elapsed < 1.0 for elapsed in seconds), seconds
+    assert isinstance(changes, str) and changes.count('<li class="redlines-change"') == BLOCKS // 2
+    assert isinstance(document, str)
+    assert document.split("</style>", 1)[1].count('data-kind="delete"') == BLOCKS // 2
