@@ -68,6 +68,8 @@ Scoring uses exact counts and formats at the edge; pairs are iterated in sorted 
 
 The floor is computed by calling the flat engine directly — `WholeDocumentProcessor(autojunk=False)` — and **never `Redlines`**. [ADR-0003](0003-compatibility-facade.md) has M3 reimplement that class over the new core, so a baseline that called it would silently stop being the 0.6 baseline the day the facade lands, and the report would compare the new engine with itself. **A test asserts that `benchmark/baselines.py` does not import `redlines.Redlines`**, so the substitution cannot happen quietly.
 
+*Note, 18 October 2026:* under [ADR-0036](0036-redlines-facade.md) the facade's outputs are the flat engine's own opcodes, byte for byte, so the substitution would not move the floor today. The prohibition stands because the facade may change and the processor call cannot.
+
 Flat token pairs are lifted into unit pairs, then units into the label address space: each flat unit maps to the block whose normalised text contains it, a block's correspondence is the **plurality** of its units' targets, and ties break to the earliest test block in document order. Both the pairing rule and the tie-break are stated in the report, because they are the only places the baseline can be flattered or hobbled.
 
 Two columns are reported: **all labelled blocks**, the honest end-to-end number, and **blocks the flat engine can address**, excluding table rows and cells it has no concept of — the like-for-like one. Move recall and renumber recall are `0.0` by construction, and the report prints `0.0` rather than a blank: that cell is the thesis. One more thing is stated plainly rather than hidden: the flat engine's unit is a **line**, so it necessarily gets the sample pair's whitespace-only change wrong. That is what the floor is, and showing it is the point.
@@ -135,7 +137,7 @@ Three phases, and the mechanism enforces the flip. The eight named tests are wri
 
 **Running a pinned `redlines==0.6.2` in a separate environment as the baseline.** Unarguably the 0.6 engine. Rejected: a second environment in CI and in every checkout, and the unit-to-block lifting problem is identical anyway.
 
-**Using the M3 `Redlines` facade as the baseline.** Zero new code, and it is literally one block per paragraph. Rejected: it is the new engine in flat clothing, so the floor would move whenever the facade improved.
+**Using the M3 `Redlines` facade as the baseline.** Zero new code, and it is literally one block per paragraph. Rejected: it is the new engine in flat clothing, so the floor would move whenever the facade improved. *18 October 2026: the facade became one block per document, replaying the processor's own opcodes ([ADR-0036](0036-redlines-facade.md)); the rejection stands for the same reason.*
 
 **A fetch script with nothing committed for the hand set.** No foreign licence in the repository. Rejected: the gate stops being reproducible offline, upstream can retag, and digests would fail against re-derived text whenever a normalisation changed.
 
