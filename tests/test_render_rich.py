@@ -97,7 +97,9 @@ def four_kinds() -> Comparison:
     ],
     ids=["sample_pair/rich.markdown.json", "four_kinds/rich.json"],
 )
-def test_the_rendering_is_its_golden(golden: Path, build: Callable[[], Comparison]) -> None:
+def test_the_rendering_is_its_golden(
+    golden: Path, build: Callable[[], Comparison]
+) -> None:
     rendered = build().output_rich()
     written = read(golden)
     assert json.loads(written) == as_golden(rendered)
@@ -168,10 +170,16 @@ def test_the_header_counts_are_the_statistics(four_kinds: Comparison) -> None:
 
 def test_one_change_is_singular_and_none_is_plural() -> None:
     one = compare("A short clause.", "A shorter clause.", format="text").output_rich()
-    assert one.plain.split("\n")[0] == "1 change: 0 inserted, 0 deleted, 1 modified, 0 moved, 0 renumbered"
+    assert (
+        one.plain.split("\n")[0]
+        == "1 change: 0 inserted, 0 deleted, 1 modified, 0 moved, 0 renumbered"
+    )
     assert runs(one)[0] == ("1 change", "bold")
     none = compare("Same text.", "Same text.", format="text").output_rich()
-    assert none.plain == "0 changes: 0 inserted, 0 deleted, 0 modified, 0 moved, 0 renumbered\n\nSame text."
+    assert (
+        none.plain
+        == "0 changes: 0 inserted, 0 deleted, 0 modified, 0 moved, 0 renumbered\n\nSame text."
+    )
     assert runs(none) == [("0 changes", "bold")]
 
 
@@ -211,10 +219,17 @@ def test_the_notices_appear_exactly_when_true_in_order() -> None:
 
 
 def test_a_real_exhausted_budget_is_noticed() -> None:
-    source = "\n\n".join(f"Clause {n} says a thing of its own, number {n}." for n in range(30))
-    test = "\n\n".join(f"Clause {n} says a thing of its own, number {n + 1}." for n in range(30))
+    source = "\n\n".join(
+        f"Clause {n} says a thing of its own, number {n}." for n in range(30)
+    )
+    test = "\n\n".join(
+        f"Clause {n} says a thing of its own, number {n + 1}." for n in range(30)
+    )
     comparison = compare(
-        source, test, format="text", alignment=AlignmentConfig(similarity="difflib", max_comparisons=1)
+        source,
+        test,
+        format="text",
+        alignment=AlignmentConfig(similarity="difflib", max_comparisons=1),
     )
     assert comparison.config.budget_exhausted
     assert "Alignment stopped early: the comparison budget ran out" in _notices(
@@ -226,7 +241,11 @@ def test_a_real_exhausted_budget_is_noticed() -> None:
 
 
 def test_document_text_that_looks_like_markup_stays_literal() -> None:
-    comparison = compare("Write [bold] x and [red]y[/red].", "Write [bold] x and [red]z[/red].", format="text")
+    comparison = compare(
+        "Write [bold] x and [red]y[/red].",
+        "Write [bold] x and [red]z[/red].",
+        format="text",
+    )
     text = comparison.output_rich()
     assert "Write [bold] x and [red]" in text.plain
     assert ("Write [bold] x and [red]", "bold") not in runs(text)
@@ -236,16 +255,25 @@ def test_document_text_that_looks_like_markup_stays_literal() -> None:
 def test_headings_are_bold_and_no_role_is_shown() -> None:
     comparison = sample_markdown()
     text = comparison.output_rich()
-    bold = [covered for covered, style in runs(text) if style.startswith("bold")]
-    headings = [block for block in comparison.test.walk() if block.kind is BlockKind.HEADING]
-    assert headings and len(bold) == len(headings) + 1  # and the total
+    styles = [style for _, style in runs(text)]
+    headings = [
+        block for block in comparison.test.walk() if block.kind is BlockKind.HEADING
+    ]
+    # No heading of the sample pair is edited, so each is plain bold: one
+    # span apiece, and the total. A marked heading is "bold green" and so on.
+    assert not any(style.startswith("bold ") for style in styles)
+    assert headings and styles.count("bold") == len(headings) + 1
     assert "[clause]" not in text.plain and "[definition]" not in text.plain
     assert any(block.role for block in comparison.test.walk())
-    assert not any(line.startswith(("#", "- ", "> ", "| ---")) for line in text.plain.split("\n"))
+    assert not any(
+        line.startswith(("#", "- ", "> ", "| ---")) for line in text.plain.split("\n")
+    )
 
 
 def test_a_heading_carries_its_mark_in_bold() -> None:
-    source = tree(Block(kind=BlockKind.HEADING, text="Fees", label="4", attrs={"label_raw": "4."}))
+    source = tree(
+        Block(kind=BlockKind.HEADING, text="Fees", label="4", attrs={"label_raw": "4."})
+    )
     text = compare(source, tree()).output_rich()
     assert runs(text)[1:] == [("4. Fees", "bold strike red")]
     inserted = compare(tree(), source).output_rich()
@@ -261,8 +289,44 @@ def test_no_run_is_empty() -> None:
     table = "| Item | Due |\n| --- | --- |\n| Setup | Week 1 |\n"
     text = compare(table, table + "|  |  |\n", format="markdown").output_rich()
     assert all(span.end > span.start for span in text.spans)
-    for name in ("four_kinds", "hostile", "nested_move", "trailing_insert", "moved_neighbour"):
+    for name in (
+        "four_kinds",
+        "hostile",
+        "nested_move",
+        "trailing_insert",
+        "moved_neighbour",
+    ):
         assert all(span.end > span.start for span in case(name).output_rich().spans)
+
+
+def test_a_run_of_control_characters_alone_writes_nothing() -> None:
+    """rich drops a few control characters after checking a run's length; no empty span is left.
+
+    The readers strip these characters themselves, so only a hand-built tree
+    or a round-tripped payload can carry them.
+    """
+    stray = compare(
+        tree(
+            Block(kind=BlockKind.PARAGRAPH, text="Kept."),
+            Block(kind=BlockKind.PARAGRAPH, text="\x0c"),
+        ),
+        tree(Block(kind=BlockKind.PARAGRAPH, text="Kept.")),
+    )
+    text = stray.output_rich()
+    assert (
+        text.plain
+        == "1 change: 0 inserted, 1 deleted, 0 modified, 0 moved, 0 renumbered\n\nKept."
+    )
+    assert runs(text) == [("1 change", "bold")]
+    mixed = compare(tree(), tree(Block(kind=BlockKind.PARAGRAPH, text="a\x07b")))
+    assert runs(mixed.output_rich())[1:] == [("ab", "green")]
+
+
+def test_the_rich_set_has_notes_and_nothing_to_spell() -> None:
+    """What the renderer relies on: no roles, no substitution, no whole moves, empty delimiters."""
+    assert RICH.notes and not RICH.roles and not RICH.whole_moves
+    assert RICH.substitution is None
+    assert RICH.insert == RICH.delete == RICH.note == ("", "")
 
 
 def test_the_document_is_the_rich_set_spelled_as_text() -> None:
@@ -279,15 +343,23 @@ def test_the_document_is_the_rich_set_spelled_as_text() -> None:
 
 def test_a_filtered_comparison_marks_only_its_own_nodes(four_kinds: Comparison) -> None:
     text = four_kinds.filter(kinds=("delete",)).output_rich()
-    assert [style for _, style in runs(text) if style != "bold"] == ["yellow", "strike red"]
+    assert [style for _, style in runs(text) if style != "bold"] == [
+        "yellow",
+        "strike red",
+    ]
     assert "moved" not in text.plain.split("\n", 2)[2]
-    assert text.plain.split("\n")[0] == "1 change: 0 inserted, 1 deleted, 0 modified, 0 moved, 0 renumbered"
+    assert (
+        text.plain.split("\n")[0]
+        == "1 change: 0 inserted, 1 deleted, 0 modified, 0 moved, 0 renumbered"
+    )
 
 
 # --- determinism --------------------------------------------------------------------------
 
 
-def test_two_renders_and_a_round_trip_give_the_same_text(four_kinds: Comparison) -> None:
+def test_two_renders_and_a_round_trip_give_the_same_text(
+    four_kinds: Comparison,
+) -> None:
     first, second = four_kinds.output_rich(), four_kinds.output_rich()
     assert as_golden(first) == as_golden(second)
     rebuilt = Comparison.from_dict(four_kinds.to_dict(include_alignment=True))

@@ -54,7 +54,7 @@ class MarkSet:
     """The delimiters and capabilities of one in-place output.
 
     :param name: the set's name: a `redlines.enums.MarkdownStyle` value,
-        ``"custom_css"`` or ``"critic"``.
+        ``"custom_css"``, ``"critic"`` or ``"rich"``.
     :param insert: the ``(open, close)`` pair written around inserted text.
     :param delete: the ``(open, close)`` pair written around deleted text.
     :param substitution: ``(open, separator, close)`` for a replacement written

@@ -31,9 +31,10 @@ exactly the ADR's seven steps:
 6. **Line-start unescape** (`unescape_line_start`): at the content start, an
    odd run of backslashes before a role-shaped ``[`` is halved.
 7. **Residue** (`residue`), applied to both sides of every comparison: strip
-   each line; drop a line that is empty or holds only a syntax head, a table
-   row whose cells are all empty, an alignment row with no table row next to
-   it, and a fence whose body is empty.
+   each line; drop a table row whose cells are all empty; drop an alignment
+   row with no table row directly above or below it, judged before blank lines
+   go, so a row of another table never counts; then drop a line that is empty
+   or holds only a syntax head, and a fence whose body is empty.
 
 The comparisons are `exact` (list equality), `multiset` (`collections.Counter`
 equality) and `loose_multiset` (a multiset after `loose` also removes all
@@ -344,16 +345,15 @@ def residue(resolved: Sequence[str]) -> list[str]:
 
     :param resolved: lines from `lines`.
     :return: the lines stripped of outer whitespace, without the lines a
-        removed mark leaves behind: empty lines and lines holding only a syntax
-        head, table rows whose cells are all empty, alignment rows with no
-        table row next to them, and fences whose body is empty.
+        removed mark leaves behind: table rows whose cells are all empty,
+        alignment rows with no table row directly above or below them in the
+        same block, empty lines and lines holding only a syntax head, and
+        fences whose body is empty.
     """
     stripped = [line.strip() for line in resolved]
-    kept = [
-        line
-        for line in stripped
-        if not _HEAD_ONLY.fullmatch(line) and not _EMPTY_ROW.fullmatch(line)
-    ]
+    # Alignment rows are judged while blank lines still separate the blocks,
+    # so a row of the table before or after never counts as next to one.
+    kept = [line for line in stripped if not _EMPTY_ROW.fullmatch(line)]
 
     def is_row(position: int) -> bool:
         return (
@@ -369,7 +369,9 @@ def residue(resolved: Sequence[str]) -> list[str]:
         or is_row(position - 1)
         or is_row(position + 1)
     ]
-    return _drop_empty_fences(aligned)
+    return _drop_empty_fences(
+        [line for line in aligned if not _HEAD_ONLY.fullmatch(line)]
+    )
 
 
 def accept_all(annotated: str, *, roles: bool = True) -> list[str]:

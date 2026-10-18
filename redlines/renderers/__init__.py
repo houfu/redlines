@@ -11,6 +11,7 @@ publishes every public module:
 - ``_escape``: the CriticMarkup escape, role encoding, and the HTML escapers;
 - ``_view``: the view itself;
 - ``_inplace``: the inline splice, the line syntax and the in-place traversal;
+- ``_rich``: the rich renderer, the only module here that imports rich.
 - ``_html``: the two HTML fragments, the change list and the document view
   (ADR-0038).
 

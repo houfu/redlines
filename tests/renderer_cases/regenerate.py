@@ -95,8 +95,14 @@ GOLDENS: tuple[Golden, ...] = (
     # of escaping, not styling.
     ("markdown.none.md", _markdown("none")),
     # Comparison.output_annotated (#181): both CriticMarkup syntaxes on every case.
-    ("annotated.markdown.md", lambda comparison: comparison.output_annotated(syntax="markdown")),
-    ("annotated.text.txt", lambda comparison: comparison.output_annotated(syntax="text")),
+    (
+        "annotated.markdown.md",
+        lambda comparison: comparison.output_annotated(syntax="markdown"),
+    ),
+    (
+        "annotated.text.txt",
+        lambda comparison: comparison.output_annotated(syntax="text"),
+    ),
     # Comparison.output_html and output_annotated(syntax="html") (#182): both
     # HTML fragments of every case.
     ("changes.html", _changes_html),
@@ -140,7 +146,10 @@ def build_comparison(case: Path) -> Comparison:
     with open(case / "source.md", encoding="utf-8", newline="") as source:
         with open(case / "test.md", encoding="utf-8", newline="") as test:
             return compare(
-                source.read(), test.read(), format="markdown", alignment=GOLDEN_ALIGNMENT
+                source.read(),
+                test.read(),
+                format="markdown",
+                alignment=GOLDEN_ALIGNMENT,
             )
 
 

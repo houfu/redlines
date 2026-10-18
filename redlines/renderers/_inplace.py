@@ -553,7 +553,7 @@ class _Layout:
         old = "" if source is None else label_part_text(source, self.syntax)
         if old == new:
             return [Piece("text", new + space)] if new else []
-        if self.marks.substitution is not None:
+        if self.marks.substitution is not None and old and new:
             return [Piece("substitution", old, new), Piece("text", space)]
         pieces: list[Piece] = []
         if old:

@@ -4,10 +4,11 @@ A renderer over a block tree cannot be byte-identical to 0.6's token stream
 (ADR-0036), so the method has goldens of its own, and three checks keep the
 goldens from being their own oracle:
 
-- houfu read the sample pair's goldens against ``CHANGES.md``, and the small
-  cases' against their inputs, once; that reading froze them. Every golden is
-  checked byte for byte here, one test per file, rendered by this module
-  itself rather than by the script that wrote it;
+- the maintainer's reading: the goldens await houfu's read at PR review,
+  the sample pair's against ``CHANGES.md`` and the small cases' against
+  their inputs, once, and are frozen after it. Every golden is checked byte
+  for byte here, one test per file, rendered by this module itself rather
+  than by the script that wrote it;
 - a drift test against 0.6 on the README fox pair, for every style;
 - the ``none`` style's invariant on the 60 committed runs: accepting every
   mark gives the test rendering exactly, and rejecting every mark gives the
@@ -54,21 +55,36 @@ STYLES: tuple[str, ...] = (
     "streamlit",
     "custom_css",
 )
-CASE_NAMES = ("four_kinds", "moved_neighbour", "nested_move", "trailing_insert", "hostile")
+CASE_NAMES = (
+    "four_kinds",
+    "moved_neighbour",
+    "nested_move",
+    "trailing_insert",
+    "hostile",
+)
 
 # Each style's (insert, delete) delimiters, as ADR-0037's table and 0.6 spell them.
 DELIMITERS: dict[str, tuple[tuple[str, str], tuple[str, str]]] = {
     "red_green": (
         ("<span style='color:green;font-weight:700;'>", "</span>"),
-        ("<span style='color:red;font-weight:700;text-decoration:line-through;'>", "</span>"),
+        (
+            "<span style='color:red;font-weight:700;text-decoration:line-through;'>",
+            "</span>",
+        ),
     ),
     "none": (("<ins>", "</ins>"), ("<del>", "</del>")),
     "red": (
         ("<span style='color:red;font-weight:700;'>", "</span>"),
-        ("<span style='color:red;font-weight:700;text-decoration:line-through;'>", "</span>"),
+        (
+            "<span style='color:red;font-weight:700;text-decoration:line-through;'>",
+            "</span>",
+        ),
     ),
     "ghfm": (("**", "**"), ("~~", "~~")),
-    "bbcode": (("[b][color=green]", "[/color][/b]"), ("[s][color=red]", "[/color][/s]")),
+    "bbcode": (
+        ("[b][color=green]", "[/color][/b]"),
+        ("[s][color=red]", "[/color][/s]"),
+    ),
     "streamlit": (("**:green[", "]** "), ("~~:red[", "]~~ ")),
     "custom_css": (
         ("<span class='redline-inserted'>", "</span>"),
@@ -85,7 +101,9 @@ def read(path: Path) -> str:
 
 def sample(twin: str) -> Comparison:
     """One twin of the sample pair, read as the change-tree goldens read it."""
-    extension, profile = ("md", "markdown") if twin == "markdown" else ("txt", "contract")
+    extension, profile = (
+        ("md", "markdown") if twin == "markdown" else ("txt", "contract")
+    )
     return compare(
         read(SAMPLE / f"source.{extension}"),
         read(SAMPLE / f"test.{extension}"),
@@ -113,24 +131,32 @@ def twins() -> dict[str, Comparison]:
 # --- the goldens, one test per file -------------------------------------------------------
 
 
-SAMPLE_GOLDENS = [f"markdown.{style}.{extension}" for style in STYLES for extension in ("md", "txt")]
+SAMPLE_GOLDENS = [
+    f"markdown.{style}.{extension}" for style in STYLES for extension in ("md", "txt")
+]
 CASE_GOLDENS = [("four_kinds", style) for style in STYLES] + [
     (name, "none") for name in CASE_NAMES if name != "four_kinds"
 ]
 
 
 @pytest.mark.parametrize("file_name", SAMPLE_GOLDENS)
-def test_the_sample_pair_renders_its_golden(twins: dict[str, Comparison], file_name: str) -> None:
+def test_the_sample_pair_renders_its_golden(
+    twins: dict[str, Comparison], file_name: str
+) -> None:
     """``markdown.<style>.md`` is the markdown twin as markdown; ``.txt`` the text twin as text."""
     _, style, extension = file_name.split(".")
     assert twins[extension].output_markdown(style) == read(RENDERED / file_name)
 
 
 @pytest.mark.parametrize(
-    ("name", "style"), CASE_GOLDENS, ids=[f"{name}/markdown.{style}.md" for name, style in CASE_GOLDENS]
+    ("name", "style"),
+    CASE_GOLDENS,
+    ids=[f"{name}/markdown.{style}.md" for name, style in CASE_GOLDENS],
 )
 def test_each_renderer_case_renders_its_golden(name: str, style: str) -> None:
-    assert case(name).output_markdown(style) == read(CASES / name / f"markdown.{style}.md")
+    assert case(name).output_markdown(style) == read(
+        CASES / name / f"markdown.{style}.md"
+    )
 
 
 def _respell(none_rendering: str, style: str) -> str:
@@ -173,7 +199,11 @@ def test_the_readme_pair_renders_as_0_6_renders_it(style: str) -> None:
 def test_custom_css_with_its_own_classes_renders_the_readme_pair_as_0_6_does() -> None:
     source, test = read(QUICKSTART / "source.txt"), read(QUICKSTART / "test.txt")
     expected = Redlines(
-        source, test, markdown_style="custom_css", ins_class="added", del_class="removed"
+        source,
+        test,
+        markdown_style="custom_css",
+        ins_class="added",
+        del_class="removed",
     ).output_markdown
     rendered = compare(source, test, format="text").output_markdown(
         "custom_css", ins_class="added", del_class="removed"
@@ -194,14 +224,20 @@ def test_the_none_style_on_the_readme_pair_is_its_m0_golden() -> None:
 
 def _none_oracle() -> dict[str, list[str]]:
     """Which runs fail each comparison of the ``none`` style's accept and reject sides."""
-    failures: dict[str, list[str]] = {"accept": [], "order_loose": [], "order_strict": []}
+    failures: dict[str, list[str]] = {
+        "accept": [],
+        "order_loose": [],
+        "order_strict": [],
+    }
     runs = committed_runs()
     assert len(runs) == COMMITTED_RUN_COUNT
     for run in runs:
         source, test = run.texts()
         rendered = compare(source, test, format=run.format).output_markdown("none")
         test_rendering = compare(test, test, format=run.format).output_markdown("none")
-        source_rendering = compare(source, source, format=run.format).output_markdown("none")
+        source_rendering = compare(source, source, format=run.format).output_markdown(
+            "none"
+        )
         if cm.tag_lines(rendered, "accept") != cm.tag_lines(test_rendering, "accept"):
             failures["accept"].append(run.name)
         rejected = cm.tag_lines(rendered, "reject")
@@ -244,12 +280,14 @@ def test_rejecting_every_mark_gives_the_source_exactly_on_49_of_60_runs(
 ) -> None:
     """The 11 strict failures, all loose matches but csa-1.1-to-2.0, have two causes.
 
-    An unchanged run carries the test's whitespace at a change boundary
-    (``course_lesson6``, ``whitespace_after_equal``, ``msa-text-heavy``, the
-    table cells of ``msa-markdown-table`` and ``msa-markdown-mixed``), or a
+    An unchanged run carries the test's whitespace at a change boundary, or a
     line's syntax head comes from the test block: an ordered list whose numbers
-    shifted, or numbered paragraphs that became list items (``csa`` and
-    ``sla``).
+    shifted, or numbered paragraphs that became list items. Whitespace alone:
+    ``course_lesson6``, ``whitespace_after_equal``, ``adr-moves-mixed``,
+    ``msa-markdown-table`` and ``msa-text-heavy``. Syntax heads alone:
+    ``msa-markdown-move-heavy``, ``msa-markdown-renumber-storm`` and
+    ``msa-markdown-structure``. Both: ``msa-markdown-mixed`` and ``sla``. And
+    ``csa`` has syntax heads as well as its dot-only relabel.
     """
     assert none_oracle["order_strict"] == [
         "tests/corpus/course_lesson6",
@@ -280,7 +318,9 @@ def test_the_default_style_is_red_green(four_kinds: Comparison) -> None:
 
 def test_a_style_is_a_member_or_its_value(four_kinds: Comparison) -> None:
     for member in MarkdownStyle:
-        assert four_kinds.output_markdown(member) == four_kinds.output_markdown(member.value)
+        assert four_kinds.output_markdown(member) == four_kinds.output_markdown(
+            member.value
+        )
 
 
 def test_markdown_style_gains_no_member() -> None:
@@ -288,7 +328,9 @@ def test_markdown_style_gains_no_member() -> None:
     assert [member.value for member in MarkdownStyle] == list(STYLES[:-1])
 
 
-@pytest.mark.parametrize("style", [None, "red-green", "RED", "critic", "", 7, MarkdownStyle])
+@pytest.mark.parametrize(
+    "style", [None, "red-green", "RED", "critic", "", 7, MarkdownStyle]
+)
 def test_any_other_style_raises_value_error_naming_the_accepted_ones(
     four_kinds: Comparison, style: object
 ) -> None:
@@ -320,7 +362,9 @@ def test_custom_css_defaults_its_classes_and_takes_others_one_at_a_time(
     assert "<span class='removed'>thirty (30</span>" in removed
     assert "<span class='redline-inserted'>sixty (60</span>" in removed
     # An empty class is written as given, as 0.6 writes it.
-    assert "<span class=''>sixty (60</span>" in four_kinds.output_markdown("custom_css", ins_class="")
+    assert "<span class=''>sixty (60</span>" in four_kinds.output_markdown(
+        "custom_css", ins_class=""
+    )
 
 
 # --- what is drawn ------------------------------------------------------------------------
@@ -336,11 +380,43 @@ FOUR_KINDS_TEST = (
 )
 
 
+def test_a_list_item_numbered_by_its_marker_shows_its_new_number_unmarked() -> None:
+    """The marker is the line's syntax head, so a legacy style cannot mark it.
+
+    The two renumbers still count, and rich, which has no syntax heads, marks
+    them; the annotated view says so in a note (ADR-0037, "Labels as
+    written").
+    """
+    comparison = compare(
+        "1. Alpha item text\n2. Beta item text\n",
+        "1. New first item\n2. Alpha item text\n3. Beta item text\n",
+        format="markdown",
+    )
+    assert [change.kind.value for change in comparison.changes] == [
+        "insert",
+        "renumber",
+        "renumber",
+    ]
+    assert comparison.output_markdown("none") == (
+        "1. <ins>New first item</ins>\n\n2. Alpha item text\n\n3. Beta item text"
+    )
+    numbered = compare(
+        "1.1 Alpha clause text.\n\n1.2 Beta clause text.\n",
+        "1.1 New clause text.\n\n1.2 Alpha clause text.\n\n1.3 Beta clause text.\n",
+        format="markdown",
+    )
+    assert numbered.output_markdown("none").split("\n\n")[1:] == [
+        "<del>1.1 </del><ins>1.2 </ins>Alpha clause text.",
+        "<del>1.2 </del><ins>1.3 </ins>Beta clause text.",
+    ]
+
+
 def test_a_filtered_comparison_marks_only_its_own_nodes(four_kinds: Comparison) -> None:
     """The same test document, with only the filter's nodes marked (ADR-0037, rule 1)."""
     modified = four_kinds.filter(kinds=("modify",)).output_markdown("none")
     assert modified == FOUR_KINDS_TEST.replace(
-        "within sixty (60) days", "within <del>thirty (30</del><ins>sixty (60</ins>) days"
+        "within sixty (60) days",
+        "within <del>thirty (30</del><ins>sixty (60</ins>) days",
     )
     moved = four_kinds.filter(kinds=("move",)).output_markdown("none").split("\n\n")
     assert [line for line in moved if "<" in line] == [
@@ -356,10 +432,14 @@ def test_a_filtered_comparison_marks_only_its_own_nodes(four_kinds: Comparison) 
 
 def case_on_itself(name: str) -> str:
     test = read(CASES / name / "test.md")
-    return compare(test, test, format="markdown", alignment=GOLDEN_ALIGNMENT).output_markdown("none")
+    return compare(
+        test, test, format="markdown", alignment=GOLDEN_ALIGNMENT
+    ).output_markdown("none")
 
 
-def test_the_syntax_follows_the_test_document_s_format(twins: dict[str, Comparison]) -> None:
+def test_the_syntax_follows_the_test_document_s_format(
+    twins: dict[str, Comparison],
+) -> None:
     """Markdown in, markdown out; text in, no line syntax."""
     markdown = twins["md"].output_markdown("none").split("\n\n")
     text = twins["txt"].output_markdown("none").split("\n\n")
@@ -378,7 +458,9 @@ def test_a_comparison_with_no_changes_renders_the_document_unmarked() -> None:
 # --- the backends and determinism ---------------------------------------------------------
 
 
-@pytest.mark.skipif(importlib.util.find_spec("rapidfuzz") is None, reason="needs the [fuzzy] extra")
+@pytest.mark.skipif(
+    importlib.util.find_spec("rapidfuzz") is None, reason="needs the [fuzzy] extra"
+)
 @pytest.mark.parametrize("name", CASE_NAMES)
 def test_difflib_and_rapidfuzz_render_each_renderer_case_alike(name: str) -> None:
     """The goldens are difflib's; rapidfuzz would have written the same bytes."""
@@ -392,7 +474,9 @@ def test_difflib_and_rapidfuzz_render_each_renderer_case_alike(name: str) -> Non
     assert renders[0] == renders[1]
 
 
-def test_a_round_tripped_comparison_renders_the_same_bytes(twins: dict[str, Comparison]) -> None:
+def test_a_round_tripped_comparison_renders_the_same_bytes(
+    twins: dict[str, Comparison],
+) -> None:
     """The renderer reads only what survives ``to_dict(include_alignment=True)`` (ADR-0037, rule 7)."""
     for comparison in (*twins.values(), case("nested_move")):
         rebuilt = Comparison.from_dict(comparison.to_dict(include_alignment=True))
