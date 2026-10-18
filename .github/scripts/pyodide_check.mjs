@@ -71,8 +71,8 @@ profile = load_profile("name: x")
 assert profile.name == "x", f"unexpected profile name: {profile.name!r}"
 
 pair = compare(
-    "The quick brown fox jumps over the lazy dog.\n\nA second paragraph stays.",
-    "The quick brown fox walks past the lazy dog.\n\nA second paragraph stays.",
+    "The quick brown fox jumps over the lazy dog.\\n\\nA second paragraph stays.",
+    "The quick brown fox walks past the lazy dog.\\n\\nA second paragraph stays.",
     format="text",
 )
 view = build_view(pair)
@@ -80,7 +80,7 @@ assert len(view.children) == 2, f"unexpected view: {view.children!r}"
 rendered = render_inplace(pair, LEGACY["none"], syntax="text", roles=False)
 expected = (
     "The quick brown fox <del>jumps over </del><ins>walks past </ins>the lazy dog."
-    "\n\nA second paragraph stays."
+    "\\n\\nA second paragraph stays."
 )
 assert rendered == expected, f"unexpected in-place render: {rendered!r}"
 f"redlines ok; profile {profile.name!r} loaded; renderer core ok"
