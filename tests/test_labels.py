@@ -193,6 +193,13 @@ RAW_CASES = [
     ("§ 4 Notices", "§ 4", "§ 4"),
     ("4.—(1) A person commits an offence.", "4.—(1)", "4.—(1)"),
     ("1 Background", "1", "1"),
+    # The full stop `label` drops from the other dotted styles (roman, alpha,
+    # section symbol), a multi-level decimal, and two spaces inside a word label.
+    ("IV. Miscellaneous", "IV.", "IV"),
+    ("A. Heading", "A.", "A"),
+    ("§ 4. Notices", "§ 4.", "§ 4"),
+    ("7.2 Termination", "7.2", "7.2"),
+    ("Section  3 Fees", "Section  3", "Section  3"),
 ]
 
 

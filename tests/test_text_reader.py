@@ -495,7 +495,7 @@ def test_label_raw_is_the_label_plus_at_most_a_full_stop_in_every_fixture(
     dotted_seen: set[bool] = set()
     for fixture in sorted(HARD_CASES.glob("*.txt")):
         text = fixture.read_text(encoding="utf-8")
-        for active in (profile, mixed_profile):
+        for active in (profile, mixed_profile, builtin_profile("contract")):
             for block in _walk(PlainTextReader().read(text, profile=active).root):
                 where = f"{fixture.name} {active.name} {block.path}"
                 if block.label is None:
@@ -511,8 +511,12 @@ def test_label_raw_is_the_label_plus_at_most_a_full_stop_in_every_fixture(
     assert dotted_seen == {True, False}
 
 
-def test_label_raw_keeps_every_spelling_the_contract_profile_reads() -> None:
-    """The cases ``label`` cannot tell apart: ``5.1.``, ``Schedule 1.``, ``1``."""
+def test_label_raw_survives_the_reader_for_every_contract_label_pattern() -> None:
+    """One label for each of the ``contract`` profile's eight patterns.
+
+    Includes the cases ``label`` cannot tell apart: ``5.1.``, ``Schedule 1.``,
+    ``IV.``, ``A.`` and ``1``.
+    """
     document = (
         "Article 5 Fees\n\n"
         "5.1. The Customer shall pay each invoice within thirty days of receipt.\n\n"
@@ -521,11 +525,18 @@ def test_label_raw_keeps_every_spelling_the_contract_profile_reads() -> None:
         "§ 4 Notices\n\n"
         "4.—(1) A person commits an offence.\n\n"
         "(a) first limb of the provision\n\n"
-        "(i) a roman sub limb of the provision\n"
+        "(i) a roman sub limb of the provision\n\n"
+        "IV. Miscellaneous\n\n"
+        "A. Heading\n"
     )
 
-    root = PlainTextReader().read(document, profile=builtin_profile("contract")).root
+    contract = builtin_profile("contract")
+    root = PlainTextReader().read(document, profile=contract).root
 
+    # Each pattern the profile has read one of the labels below.
+    assert {
+        block.attrs["label_pattern"] for block in _walk(root) if block.label is not None
+    } == {pattern.name for pattern in contract.label_patterns}
     assert [
         (block.label, block.attrs["label_raw"])
         for block in _walk(root)
@@ -539,6 +550,8 @@ def test_label_raw_keeps_every_spelling_the_contract_profile_reads() -> None:
         ("4.—(1)", "4.—(1)"),
         ("(a)", "(a)"),
         ("(i)", "(i)"),
+        ("IV", "IV."),
+        ("A", "A."),
     ]
 
 

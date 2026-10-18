@@ -662,6 +662,8 @@ def _label_attrs(placement: Placement) -> dict[str, Any]:
     """
     attrs: dict[str, Any] = {
         "label_pattern": placement.match.name,
+        # Never "" for a match `label_candidates` returned; only a `LabelMatch`
+        # built by hand and left at its default `raw` writes an empty one.
         "label_raw": placement.match.raw,
         "label_style": placement.match.style,
         "label_depth_mode": placement.match.depth_mode,
