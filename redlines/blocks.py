@@ -356,8 +356,9 @@ class Block:
         (R2). Container blocks (``document``, ``section``, ``table``, ``row``)
         normally leave it empty and carry their text in their children.
     :param label: the document's own label for this block where it has one --
-        ``"7.2"``, ``"(a)"``, ``"Schedule 2"`` -- stripped of surrounding
-        punctuation and never encoded into ``path``.
+        ``"7.2"``, ``"(a)"``, ``"Schedule 2"`` -- never encoded into ``path``.
+        The readers drop one trailing full stop (``"2."`` is read as ``"2"``)
+        and keep the label as written in ``attrs["label_raw"]``.
     :param level: the block's depth in the *document's own* numbering, as the
         reader inferred it. Distinct from the depth of ``path``, which is
         purely positional; a continuation paragraph sits at its parent's level.
