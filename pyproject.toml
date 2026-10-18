@@ -74,6 +74,12 @@ markers = [
 python_version = "3.11"
 strict = true
 disable_error_code = ["misc", "unused-ignore"]
+# tests/helpers/ is a real package (tests/ itself is not, by design -- see
+# the pytest pythonpath comment above), so mypy needs to be told which
+# directory each test module's dotted name is relative to rather than
+# guessing and finding tests/helpers/hash_seed.py importable two ways (#135).
+explicit_package_bases = true
+mypy_path = "."
 
 ignore_missing_imports = false
 follow_untyped_imports = true
