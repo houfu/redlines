@@ -29,7 +29,7 @@ The rule, in `redlines/redlines.py`:
 1. The class's 0.6 code is not edited: `__init__`, both setters, `compare()`, `_diff_ops`, every output and every error message. The deprecation section below adds docstring notes only.
 2. `def _comparison(self) -> Comparison` is added. It is private, and a method, not a property.
    - It raises 0.6's `ValueError` through `self._diff_ops` when nothing has been compared.
-   - Otherwise it returns the derived comparison, cached against the identity of `self._diff_operations`. A setter assigns a new list, which invalidates the cache.
+   - Otherwise it returns the derived comparison, cached against the identity of `self._diff_operations` and the equality of the two texts, so a processor that returns one list object for different inputs cannot serve a stale result. A setter assigns a new list, which invalidates the cache.
 3. Derivation:
    - (a) Each side is `BlockTree.build(Block(kind="document", children=(Block(kind="paragraph", text=<side text, unmodified>),)))`.
    - (b) The alignment is constructed, never computed: `Alignment(pairs=(AlignedPair("/", "/", "root", 1.0), AlignedPair("/paragraph[1]", "/paragraph[1]", "positional", 1.0)), inserted=(), deleted=(), config=DEFAULT_ALIGNMENT, backend="difflib", pass_counts={"root": 1, "positional": 1})`. The paragraph pair's confidence is `1.0`, not a ratio read off the opcodes. That is harmless while the object is private, and is recomputed if it is ever made public.

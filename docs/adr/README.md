@@ -55,7 +55,7 @@ This directory records the decisions behind redlines 1.0 — the reasoning, the 
 | [0035](0035-hosted-demo-server.md) | A hosted demo server over streamable HTTP that retains nothing | Accepted |
 | [0036](0036-redlines-facade.md) | The `Redlines` facade: 0.6's code over 0.6's opcodes, with a change tree derived from them | Accepted |
 | [0037](0037-annotate-the-test-document.md) | Annotate the test document with CriticMarkup | Accepted |
-| [0038](0038-render-html-once-in-python.md) | Render HTML once, in Python: one fragment contract | Proposed |
+| [0038](0038-render-html-once-in-python.md) | Render HTML once, in Python: one fragment contract | Accepted |
 
 ## Evidence base
 
