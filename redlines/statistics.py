@@ -26,12 +26,18 @@ inside it on its own six blocks -- the number #139's own next clause ("using
 the heading breadcrumb from ADR-0029") was pointing at all along.
 
 **Attribution side.** A change with a ``test_address`` (insert, modify, move,
-renumber) is attributed by walking up the *test* tree from that address; a
-``delete`` has no test address, so it is attributed by walking up the
-*source* tree from its ``source_address`` instead -- the tree it still exists
-in. Walking includes the change's own address, so a change *to* a section
-block itself (an inserted or renumbered section, say) counts toward that
-section, not its parent.
+renumber) is attributed by walking up the *test* tree from that address.
+Walking includes the change's own address, so a change *to* a section block
+itself (an inserted or renumbered section, say) counts toward that section,
+not its parent. A ``delete`` has no test address, so it is attributed where
+the test document shows it (ADR-0033, amendment): by walking up the *test*
+tree from its anchor's ``test_parent``, the counterpart of its source parent
+(`redlines.changes.Anchors`). That is the section the change list sorts the
+node into and the renderers draw it in. The rows are keyed by test
+addresses, so M2's walk up the *source* tree looked a source address up in
+the wrong address space: a `KeyError` where no test section had that address
+(``benchmark/corpus/hand/govinfo-hr4668-ih-to-rh``), and the wrong row where
+one did, as when a section is inserted above the deletion.
 
 **The block denominator is test-side and change-independent.** ``blocks`` on
 each `SectionStatistics` is how many blocks of the *test* tree have that
@@ -49,8 +55,9 @@ overstating how much of the section changed.
 means the *entire* section vanished -- there is no test-side address to hang
 a row off, so `SectionStatistics.address` falls back to the source one, and
 ``heading``/``breadcrumb`` come from the source tree. It is placed in
-document order using the same surviving-neighbour rule
-`redlines.changes.build_change_tree` places a topmost delete node by.
+document order by the rule `redlines.changes.build_change_tree` places a
+topmost delete node by: in its own parent, after its nearest preceding
+sibling that stayed in place.
 
 **No `by_block` array.** R22's per-block half of the ask is already on the
 node: `redlines.changes.Change.inline`, `.tokens_changed`, `.chars_added` and
@@ -60,7 +67,7 @@ list again, at a cost M5's size guards and the site would both pay.
 
 from __future__ import annotations
 
-from collections.abc import Iterator, Sequence
+from collections.abc import Iterable, Iterator, Sequence
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, Final
 
@@ -69,7 +76,15 @@ from .blocks import Block, BlockKind, BlockTree
 if TYPE_CHECKING:  # pragma: no cover - typing only, avoids a circular import
     from .comparison import Comparison
 
-from .changes import Change, ChangeKind, ChangeTree, InlineKind
+from .changes import (
+    Anchors,
+    Change,
+    ChangeKind,
+    ChangeTree,
+    InlineKind,
+    _anchor_rank,
+    _Side,
+)
 
 __all__: tuple[str, ...] = (
     "ChangeCounts",
@@ -294,8 +309,8 @@ def statistics(comparison: Comparison) -> ComparisonStatistics:
     """
     source, test = comparison.source, comparison.test
     changes = tuple(comparison.changes)
+    anchors = Anchors(source=source, test=test, alignment=comparison.alignment)
 
-    source_parents = _parent_map(source)
     test_parents = _parent_map(test)
     test_units = {
         block.path: block for block in test.walk() if _is_section_unit(block)
@@ -330,15 +345,15 @@ def statistics(comparison: Comparison) -> ComparisonStatistics:
         by_section.setdefault(addr, [])
     for change in changes:
         if change.kind is ChangeKind.DELETE:
-            nearest = _nearest_enclosing(
-                change.source_address, source_parents, source_units
+            nearest = _delete_section(
+                change.source_address, anchors, source_units, test_parents, test_units
             )
         else:
             nearest = _nearest_enclosing(change.test_address, test_parents, test_units)
         if nearest is not None:
             by_section[nearest].append(change)
 
-    order = _section_order(test, source, comparison, test_units.keys(), deleted_units)
+    order = _section_order(test, source, anchors, test_units.keys(), deleted_units)
     sections = tuple(
         _row(addr, test, source, test_units, source_units, block_counts, by_section)
         for addr in order
@@ -395,6 +410,36 @@ def _nearest_enclosing(
     return None
 
 
+def _delete_section(
+    address: str | None,
+    anchors: Anchors,
+    source_units: dict[str, Block],
+    test_parents: dict[str, str | None],
+    test_units: dict[str, Block],
+) -> str | None:
+    """The row a delete counts under (ADR-0033, amendment).
+
+    A deleted block that was itself a section unit is the whole section gone,
+    and it keeps the row of its own, addressed on the source side. Any other
+    deletion counts under the nearest test section enclosing its anchor's
+    ``test_parent``: the section that shows it. A block whose source parent
+    has no counterpart has no anchor, and so does an address that is not in
+    the source tree, which only a hand-built change list can hold; neither is
+    counted in any section.
+    """
+    if address is None:
+        return None
+    if address in source_units:
+        return address
+    try:
+        anchor = anchors.place(address)
+    except KeyError:
+        return None
+    if anchor is None:
+        return None
+    return _nearest_enclosing(anchor.test_parent, test_parents, test_units)
+
+
 def _heading_text(unit: Block) -> str:
     """The text of a section unit's own ``heading`` child."""
     for child in unit.children:
@@ -435,35 +480,32 @@ def _row(
 def _section_order(
     test: BlockTree,
     source: BlockTree,
-    comparison: Comparison,
-    test_addrs: Any,
+    anchors: Anchors,
+    test_addrs: Iterable[str],
     deleted_addrs: list[str],
 ) -> Iterator[str]:
     """Document order over both test-side units and whole-section deletes.
 
     A test-side unit is ordered by its own position in the test tree. A
     section deleted whole has no test position of its own, so it is placed
-    the same way `redlines.changes.build_change_tree` places a topmost
-    delete: immediately after the last surviving neighbour before it, using
-    the comparison's own alignment.
+    the way `redlines.changes.build_change_tree` places a topmost delete
+    (ADR-0033, amendment): by `redlines.changes.Anchors`, in its own parent,
+    immediately after the whole test subtree of its nearest preceding sibling
+    that stayed in place, or first in that parent. The key is the change
+    list's own, so a deleted section's row and its ``delete`` node cannot be
+    ordered two ways.
     """
-    test_order = {block.path: index for index, block in enumerate(test.walk())}
+    test_side = _Side(test)
     source_order = {block.path: index for index, block in enumerate(source.walk())}
-    alignment = comparison.alignment
-
-    def placement(deleted_addr: str) -> tuple[int, int]:
-        surviving = -1
-        for path in sorted(source_order, key=source_order.__getitem__):
-            if path == deleted_addr:
-                break
-            counterpart = alignment.test_for(path)
-            if counterpart is not None:
-                surviving = test_order.get(counterpart, surviving)
-        return (surviving, source_order[deleted_addr])
-
-    ranked: list[tuple[tuple[int, int], str]] = [
-        ((test_order[addr], 0), addr) for addr in test_addrs
+    ranked: list[tuple[tuple[int, int, int], str]] = [
+        ((test_side.order[addr], 0, 0), addr) for addr in test_addrs
     ]
-    ranked.extend((placement(addr), addr) for addr in deleted_addrs)
+    ranked.extend(
+        (
+            (_anchor_rank(anchors.place(addr), test_side), 1, source_order[addr]),
+            addr,
+        )
+        for addr in deleted_addrs
+    )
     ranked.sort(key=lambda item: item[0])
     return (addr for _, addr in ranked)
