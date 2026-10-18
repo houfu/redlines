@@ -209,6 +209,10 @@ class Redlines:
         This is an alias for the `changes` property and provides the same functionality.
         Only actual changes are returned (equal operations are excluded).
 
+        Superseded by `Comparison.changes`, from `redlines.compare(...)`
+        (block-addressed, character offsets; not a drop-in replacement). Not deprecated
+        in 1.0; not removed before 2.0.
+
         :return: List of Redline objects
         :rtype: list[Redline]
         """
@@ -320,6 +324,10 @@ class Redlines:
         with direct access to the changed text and position information. Only actual
         changes are returned (equal operations are excluded).
 
+        Superseded by `Comparison.changes`, from `redlines.compare(...)`
+        (block-addressed, character offsets; not a drop-in replacement). Not deprecated
+        in 1.0; not removed before 2.0.
+
         ```python
         from redlines import Redlines
 
@@ -343,6 +351,10 @@ class Redlines:
     def get_changes(self, operation: str | None = None) -> list[Redline]:
         """
         Get changes (redlines), optionally filtered by operation type.
+
+        Superseded by `Comparison.changes`, from `redlines.compare(...)`
+        (block-addressed, character offsets; not a drop-in replacement). Not deprecated
+        in 1.0; not removed before 2.0.
 
         ```python
         from redlines import Redlines
