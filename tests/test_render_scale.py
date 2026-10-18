@@ -85,6 +85,8 @@ def _steps(comparison: Comparison) -> dict[str, Callable[[], object]]:
         "critic render": lambda: render_inplace(
             comparison, CRITIC, syntax="markdown", roles=True
         ),
+        "markdown render": lambda: comparison.output_markdown("none"),
+        "rich render": comparison.output_rich,
     }
 
 
@@ -113,14 +115,11 @@ def test_the_view_of_the_scale_pair_has_every_ghost_in_place(
     ]
 
 
-@pytest.mark.slow
-def test_the_markdown_and_rich_renders_each_take_under_a_second(
+def test_the_markdown_and_rich_renders_of_the_scale_pair_mark_every_deletion(
     half_deleted: Comparison,
 ) -> None:
-    """``Comparison.output_markdown`` and ``Comparison.output_rich`` at N2's size (#179, #180)."""
-    seconds: list[float] = []
-    markdown = _timed(seconds, lambda: half_deleted.output_markdown("none"))
-    rich = _timed(seconds, half_deleted.output_rich)
-    assert all(elapsed < 1.0 for elapsed in seconds), seconds
-    assert isinstance(markdown, str) and markdown.count("<del>") == BLOCKS // 2
-    assert str(rich).startswith(f"{BLOCKS // 2} changes: 0 inserted, {BLOCKS // 2} deleted")
+    """``Comparison.output_markdown`` and ``Comparison.output_rich`` are timed in `_steps` (#179, #180)."""
+    assert half_deleted.output_markdown("none").count("<del>") == BLOCKS // 2
+    assert half_deleted.output_rich().plain.startswith(
+        f"{BLOCKS // 2} changes: 0 inserted, {BLOCKS // 2} deleted"
+    )
