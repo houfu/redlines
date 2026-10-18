@@ -76,7 +76,11 @@ marks per cell, and deleted rows where the walk places them.
    inheritance; each FALLBACK is the hosts' standard variable with a
    ``light-dark()`` fallback of its own (`THEME`), ``--redlines-bg`` falls back
    to ``transparent``, and the fragment declares no ``color-scheme``: it
-   inherits the scheme its shell sets on ``<html>``;
+   inherits the scheme its shell sets on ``<html>``. So the shell page must
+   declare one, ``color-scheme: light dark`` or the scheme it has chosen, for
+   ``light-dark()`` to follow the theme: on a page that declares none, even
+   under a dark ``prefers-color-scheme``, every fallback resolves to the light
+   palette, which on a dark background is dark text on nothing;
 6. every selector starts with the ``.redlines`` class, and none is or contains
    ``:root``, ``html`` or ``body``, because an injected ``<style>`` is
    document-global;
@@ -222,6 +226,8 @@ _RULES: Final[tuple[tuple[str, str], ...]] = (
     ('.redlines [data-kind="delete"] .redlines-kind', f"color:{_DEL_FG}"),
     ('.redlines [data-kind="move"] .redlines-kind', f"color:{_MOVE_FG}"),
     (".redlines .redlines-label", "font-weight:600"),
+    (".redlines .redlines-label del+ins", "margin-inline-start:.25em"),
+    (".redlines .redlines-breadcrumb::before", 'content:"in "'),
     (
         ".redlines .redlines-role",
         f"border:1px solid {_BORDER};border-radius:{_RADIUS};padding:0 .3em",
@@ -262,7 +268,7 @@ _RULES: Final[tuple[tuple[str, str], ...]] = (
     (
         ".redlines th,.redlines td",
         f"border:1px solid {_BORDER};padding:.25em .5em;text-align:start;"
-        "vertical-align:top",
+        "vertical-align:top;white-space:pre-wrap",
     ),
     (
         ".redlines ins",
@@ -530,12 +536,15 @@ def _row_attributes(index: int, change: Change) -> str:
 def _summary_label(change: Change) -> str:
     """The summary's label: ``OLD → NEW``, or the one label the node has.
 
-    ``OLD → NEW`` for a move or a renumber whose labels differ; otherwise the
-    test label, or the source label on a delete.
+    ``OLD → NEW`` for a move or a renumber whose two labels differ; otherwise
+    the test label, or the source label on a delete. A block that gained or
+    lost its label has only one, so it shows that one alone: an arrow with
+    nothing on one side reads as a mistake.
     """
     source, test = change.source_label or "", change.test_label or ""
-    if change.kind in (ChangeKind.MOVE, ChangeKind.RENUMBER) and source != test:
-        return f"{source}{_ARROW}{test}".strip()
+    moved = change.kind in (ChangeKind.MOVE, ChangeKind.RENUMBER)
+    if moved and source and test and source != test:
+        return f"{source}{_ARROW}{test}"
     return source if change.kind is ChangeKind.DELETE else test
 
 
@@ -548,7 +557,8 @@ def _summary(change: Change, node: ViewNode) -> str:
     if not text:
         lines = _subtree_lines(node, _keeps(change))
         text = _CELL_JOINER.join(line.plain() for line in lines)
-    parts.append(f'<span class="redlines-excerpt">{html_text(_excerpt(text))}</span>')
+    excerpt = _excerpt(text) or f"(empty {change.block_kind.value.replace('_', ' ')})"
+    parts.append(f'<span class="redlines-excerpt">{html_text(excerpt)}</span>')
     if change.breadcrumb:
         breadcrumb = _BREADCRUMB_JOINER.join(change.breadcrumb)
         parts.append(
@@ -880,7 +890,7 @@ def _heading_level(block: Block) -> int:
     if isinstance(value, (int, float, str)) and not isinstance(value, bool):
         try:
             level = int(value)
-        except ValueError:
+        except (ValueError, OverflowError):
             pass
     return min(max(level, 1), 6)
 

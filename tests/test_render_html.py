@@ -39,6 +39,7 @@ from redlines.renderers._html import (
     THEME,
     _row_attributes,
     _summary,
+    _summary_label,
     render_change_list,
     render_document,
 )
@@ -534,6 +535,9 @@ def _heading(level: int, atx: object) -> int:
         (3, "4", 4),
         (3, "x", 4),
         (3, True, 4),
+        (3, float("inf"), 4),
+        (3, float("nan"), 4),
+        (3, 2.0, 2),
     ],
 )
 def test_a_heading_is_role_heading_with_a_clamped_aria_level(
@@ -710,6 +714,47 @@ def test_an_inserted_row_shows_its_cells_joined() -> None:
         "redlines-excerpt"
     ] == ("Training day | Week 9 | Client")
     assert body.text() == "Training day | Week 9 | Client"
+
+
+def _labelled(kind: ChangeKind, source: str | None, test: str | None) -> Change:
+    return Change(
+        kind=kind,
+        source_address=None if kind is ChangeKind.INSERT else "/paragraph[1]",
+        test_address=None if kind is ChangeKind.DELETE else "/paragraph[2]",
+        block_kind=BlockKind.PARAGRAPH,
+        source_label=source,
+        test_label=test,
+        matched_by=(
+            "unmatched" if kind in (ChangeKind.INSERT, ChangeKind.DELETE) else "exact"
+        ),
+        confidence=0.0 if kind in (ChangeKind.INSERT, ChangeKind.DELETE) else 1.0,
+    )
+
+
+@pytest.mark.parametrize(
+    ("kind", "source", "test", "expected"),
+    [
+        (ChangeKind.RENUMBER, "3.3", "3.4", "3.3 → 3.4"),
+        (ChangeKind.MOVE, "7.5", "9.6", "7.5 → 9.6"),
+        (ChangeKind.MOVE, "7.5", "7.5", "7.5"),
+        (ChangeKind.RENUMBER, None, "1.1", "1.1"),  # gained a label: no arrow
+        (ChangeKind.RENUMBER, "1.1", None, ""),  # lost it: the test has none
+        (ChangeKind.DELETE, "2.2", None, "2.2"),
+        (ChangeKind.INSERT, None, "3.3", "3.3"),
+        (ChangeKind.MODIFY, "1.1", "1.1", "1.1"),
+    ],
+)
+def test_the_summary_label_has_an_arrow_only_between_two_labels(
+    kind: ChangeKind, source: str | None, test: str | None, expected: str
+) -> None:
+    assert _summary_label(_labelled(kind, source, test)) == expected
+
+
+def test_an_empty_excerpt_names_the_block_instead() -> None:
+    for source, test in (("Intro.", "Intro.\n\n#"), ("Intro.\n\n#", "Intro.")):
+        comparison = compare(source, test, format="markdown", alignment=DIFFLIB)
+        root = fc.parse(comparison.output_html())
+        assert _texts(root, "redlines-excerpt") == ["(empty section)"]
 
 
 def test_an_excerpt_is_cut_at_a_space_within_80_characters() -> None:

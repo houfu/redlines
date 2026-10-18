@@ -17,6 +17,8 @@
 .redlines [data-kind="delete"] .redlines-kind{color:var(--redlines-del-fg,var(--color-text-danger,light-dark(#7F2C28,#EE8884)))}
 .redlines [data-kind="move"] .redlines-kind{color:var(--redlines-move-fg,var(--color-text-info,light-dark(#3266AD,#80AADD)))}
 .redlines .redlines-label{font-weight:600}
+.redlines .redlines-label del+ins{margin-inline-start:.25em}
+.redlines .redlines-breadcrumb::before{content:"in "}
 .redlines .redlines-role{border:1px solid var(--redlines-border,var(--color-border-tertiary,light-dark(#1F1E1D26,#DEDCD126)));border-radius:var(--redlines-radius,var(--border-radius-sm,4px));padding:0 .3em}
 .redlines code,.redlines .redlines-match{font-family:var(--redlines-mono,var(--font-mono,ui-monospace,monospace))}
 .redlines .redlines-inline{margin:.375em 0 .125em 1.25em}
@@ -31,7 +33,7 @@
 .redlines .redlines-document>[data-kind="move"]{border-inline-start-color:var(--redlines-move-fg,var(--color-text-info,light-dark(#3266AD,#80AADD)))}
 .redlines .redlines-note{color:var(--redlines-move-fg,var(--color-text-info,light-dark(#3266AD,#80AADD)));font-style:italic}
 .redlines .redlines-table{border-collapse:collapse}
-.redlines th,.redlines td{border:1px solid var(--redlines-border,var(--color-border-tertiary,light-dark(#1F1E1D26,#DEDCD126)));padding:.25em .5em;text-align:start;vertical-align:top}
+.redlines th,.redlines td{border:1px solid var(--redlines-border,var(--color-border-tertiary,light-dark(#1F1E1D26,#DEDCD126)));padding:.25em .5em;text-align:start;vertical-align:top;white-space:pre-wrap}
 .redlines ins{color:var(--redlines-ins-fg,var(--color-text-success,light-dark(#265B19,#7AB948)));background:var(--redlines-ins-bg,var(--color-background-success,light-dark(#E9F1DC,#1B4614)));text-decoration:underline;border-radius:var(--redlines-radius,var(--border-radius-sm,4px))}
 .redlines del{color:var(--redlines-del-fg,var(--color-text-danger,light-dark(#7F2C28,#EE8884)));background:var(--redlines-del-bg,var(--color-background-danger,light-dark(#F7ECEC,#602A28)));text-decoration:line-through;border-radius:var(--redlines-radius,var(--border-radius-sm,4px))}</style>
 <header class="redlines-header">
