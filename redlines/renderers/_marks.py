@@ -41,6 +41,7 @@ __all__: tuple[str, ...] = (
     "DEFAULT_INS_CLASS",
     "DEFAULT_DEL_CLASS",
     "custom_css",
+    "RICH",
 )
 
 Escape = Literal["none", "critic", "html"]
@@ -175,3 +176,17 @@ CRITIC: Final[MarkSet] = MarkSet(
 """CriticMarkup as ADR-0037's grammar writes it: no spaces inside delimiters, a
 replacement as one substitution, notes for moves and renumbers, role prefixes,
 and the backslash escape of ``_escape``."""
+
+RICH: Final[MarkSet] = MarkSet(
+    name="rich",
+    insert=("", ""),
+    delete=("", ""),
+    note=("", ""),
+    whole_moves=False,
+)
+"""rich's set (ADR-0037): notes for a move and its origin, no roles, a
+replacement as a delete then an insert, and no delimiters at all. rich marks a
+run with a style rather than with characters, so ``_rich`` appends each piece
+to a `rich.text.Text` with its own style -- an insertion ``green``, a deletion
+``strike red``, a note ``magenta`` -- and this set spelled as a string is the
+rendering's plain text."""

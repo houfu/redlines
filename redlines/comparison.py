@@ -65,6 +65,8 @@ from importlib.resources import files
 from pathlib import Path
 from typing import Any, Final
 
+from rich.text import Text
+
 from .alignment import DEFAULT_ALIGNMENT, Alignment, AlignmentConfig, align
 from .blocks import BlockTree, _reject_unknown_keys
 from .changes import ChangeKind, ChangeTree, build_change_tree
@@ -78,6 +80,7 @@ from .readers import DEFAULT_MAX_CHARS
 from .readers.detect import detect_format
 from .renderers._inplace import render_inplace
 from .renderers._marks import DEFAULT_DEL_CLASS, DEFAULT_INS_CLASS, LEGACY, custom_css
+from .renderers._rich import render_rich
 from .statistics import ComparisonStatistics, statistics as _statistics
 
 __all__: tuple[str, ...] = (
@@ -261,6 +264,7 @@ class Comparison:
     The renderers that have landed, by signature (ADR-0037):
 
     - ``output_markdown(style=MarkdownStyle.RED_GREEN, *, ins_class=None, del_class=None) -> str``
+    - ``output_rich() -> rich.text.Text``
 
     :param source: the earlier document's block tree.
     :param test: the later one's.
@@ -417,6 +421,36 @@ class Comparison:
             syntax="markdown" if self.config.test_format == "markdown" else "text",
             roles=False,
         )
+
+    def output_rich(self) -> Text:
+        """Return the test document with this comparison's changes marked in place, for a terminal (ADR-0037).
+
+        0.6's two colours over the change tree, plus the notes a tree can
+        give that a flat diff cannot. An insertion is ``green`` and a deletion
+        ``strike red``; a replacement is a deletion then an insertion, and a
+        renumbered label the old label struck and the new one green. A moved
+        block is drawn where it is now, its line ending in a magenta ``moved
+        from SRC_LABEL SRC_ADDRESS``, and a magenta line ``SRC_LABEL moved to
+        TEST_LABEL TEST_ADDRESS`` stands where it was. Headings are bold, roles
+        are not shown, and the text has no markdown syntax whatever the
+        documents' format.
+
+        Above the document is a header line, ``T changes: N inserted, N
+        deleted, N modified, N moved, N renumbered``, its counts those of
+        `statistics`, and below it, in yellow, a notice for each of a filter,
+        an exhausted alignment budget and each item a reader dropped. A
+        filtered comparison draws the same document with only its own changes
+        marked.
+
+        The text is built from plain runs and styles, never from markup, so
+        document text such as ``[bold]`` stays literal. On a terminal without
+        colour, deleted and inserted runs look alike, as they do in 0.6;
+        ``output_annotated(syntax="text")`` marks the same changes in
+        characters instead.
+
+        :return: a `rich.text.Text` to print with a `rich.console.Console`.
+        """
+        return render_rich(self)
 
     def to_dict(
         self, *, include_alignment: bool = False, include_trees: bool = True
