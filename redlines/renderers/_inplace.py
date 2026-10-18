@@ -305,13 +305,11 @@ def _pipes(text: str) -> str:
     return text.replace("|", "\\|")
 
 
-def _longest_backtick_run(texts: Iterable[str]) -> int:
-    longest = 0
-    for text in texts:
-        run = 0
-        for character in text:
-            run = run + 1 if character == "`" else 0
-            longest = max(longest, run)
+def _longest_backtick_run(text: str) -> int:
+    longest = run = 0
+    for character in text:
+        run = run + 1 if character == "`" else 0
+        longest = max(longest, run)
     return longest
 
 
@@ -563,9 +561,23 @@ class _Layout:
         return pieces
 
     def _fence(self, block: Block, body: list[Piece], status: BlockStatus) -> None:
-        """A fenced block, its marks inside the fence."""
-        texts = [piece.text for piece in body] + [piece.new for piece in body]
-        ticks = "`" * max(3, _longest_backtick_run(texts) + 1)
+        """A fenced block, its marks inside the fence.
+
+        The fence is one backtick longer than the longest run in the body as
+        accepted -- the test text with its insertions, without deleted or old
+        text -- so that accept-all reproduces the test rendering's fence. A
+        deleted fence, which has no accepted body, is sized on its source
+        body. A deleted run at least as long as the fence, standing on a line
+        of its own, can therefore close the fence early in a markdown viewer.
+        """
+        accepted = "".join(
+            piece.new if piece.kind == "substitution" else piece.text
+            for piece in body
+            if piece.kind in ("text", "insert", "substitution")
+        )
+        if not any(piece.kind in ("text", "insert", "substitution") for piece in body):
+            accepted = "".join(piece.text for piece in body)
+        ticks = "`" * max(3, _longest_backtick_run(accepted) + 1)
         info = block.attrs.get("fence")
         pieces: list[Piece] = [Piece("syntax", ticks)]
         if isinstance(info, str) and info:

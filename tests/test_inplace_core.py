@@ -242,6 +242,18 @@ def test_a_fence_is_one_backtick_longer_than_its_longest_run_with_marks_inside()
     round_trips(source, test)
 
 
+def test_a_fence_is_sized_on_its_accepted_body() -> None:
+    """A deleted run of backticks does not lengthen the fence, so accept-all stays exact."""
+    for run in ("`" * 5, "`" * 6):
+        source = f"```\nuse {run} here for x\n```\n"
+        test = "```\nuse here for x\n```\n"
+        annotated = critic(md(source, test))
+        assert annotated == f"```\nuse {{--{run} --}}here for x\n```"
+        assert cm.accept_all(annotated) == cm.accept_all(critic(md(test, test)))
+    deleted = md("Intro.\n\n```\ncode ```` here\n```\n", "Intro.\n")
+    assert critic(deleted) == "Intro.\n\n`````\n{--code ```` here--}\n`````"
+
+
 def test_the_text_variant_has_no_line_syntax() -> None:
     source, test = case_texts("four_kinds")
     lines = critic(md(source, test), syntax="text", roles=False).split("\n\n")
