@@ -123,7 +123,10 @@ def build_comparison(case: Path) -> Comparison:
     with open(case / "source.md", encoding="utf-8", newline="") as source:
         with open(case / "test.md", encoding="utf-8", newline="") as test:
             return compare(
-                source.read(), test.read(), format="markdown", alignment=GOLDEN_ALIGNMENT
+                source.read(),
+                test.read(),
+                format="markdown",
+                alignment=GOLDEN_ALIGNMENT,
             )
 
 
