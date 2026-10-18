@@ -21,10 +21,12 @@ module exists to catch.
 from __future__ import annotations
 
 import json
+from dataclasses import replace
 from pathlib import Path
 
 import pytest
 
+from redlines.alignment import AlignmentConfig
 from redlines.blocks import BlockTree
 from redlines.changes import ChangeKind
 from redlines.comparison import Comparison, compare
@@ -308,3 +310,369 @@ def test_comparison_statistics_key_order() -> None:
         "test_blocks",
         "sections",
     ]
+
+
+# --- Where a deletion is counted, and where its row sits ----------------------
+#
+# ADR-0033's amendment: a deletion counts under the test section that shows
+# it, the nearest one enclosing the counterpart of its source parent
+# (`redlines.changes.Anchors`), and a section deleted whole keeps its own row,
+# placed where its `delete` node sits. M2 walked up the *source* tree instead
+# and looked the address it found up in rows keyed by *test* addresses.
+
+_HAND = Path(__file__).parent.parent / "benchmark" / "corpus" / "hand"
+_DIFFLIB = AlignmentConfig(similarity="difflib")
+
+
+def _hand_pair(name: str) -> Comparison:
+    """A hand-tier benchmark pair, compared under the goldens' backend."""
+    pair = _HAND / name
+    return compare(
+        (pair / "source.txt").read_text(encoding="utf-8"),
+        (pair / "test.txt").read_text(encoding="utf-8"),
+        format="text",
+        alignment=_DIFFLIB,
+    )
+
+
+def test_govinfo_hr4668_is_counted_rather_than_raising() -> None:
+    """M2 raised ``KeyError: '/section[6]/section[1]'`` here, and so did ``to_dict()``.
+
+    Two paragraphs of the source section ``/section[6]/section[1]`` were
+    deleted. The test document has no section at that address: the same
+    section is ``/section[7]/section[1]`` there. Counted by the counterpart of
+    their parent, both deletions land in its row.
+    """
+    result = _hand_pair("govinfo-hr4668-ih-to-rh")
+    stats = result.statistics()
+
+    assert result.to_dict()["statistics"] == stats.to_dict()
+    row = next(s for s in stats.sections if s.address == "/section[7]/section[1]")
+    assert row.counts.deleted == 2
+    assert sum(s.counts.deleted for s in stats.sections) == stats.counts.deleted
+    assert sum(s.counts.total for s in stats.sections) == stats.counts.total
+
+
+SCOPE_AND_TERMS = (
+    "## 1. Scope\n\n1.1 This Agreement covers the Services.\n\n"
+    "## 2. Terms\n\n2.1 The Term is two years.\n\n2.2 Either party may renew it.\n"
+)
+SCOPE_EXTRA_AND_TERMS = (
+    "## 1. Scope\n\n1.1 This Agreement covers the Services.\n\n"
+    "## 1A. Extra\n\n1A.1 A new clause.\n\n"
+    "## 2. Terms\n\n2.1 The Term is two years.\n"
+)
+
+
+def test_a_section_inserted_above_does_not_take_the_deletion_below_it() -> None:
+    """``## 1A. Extra`` was inserted above ``## 2. Terms``, and 2.2 deleted.
+
+    The deletion's source section is ``/section[2]``, which in the test
+    document is the inserted section, so M2 counted it there without a word.
+    It belongs to Terms, now ``/section[3]``, where the change list sorts it.
+    """
+    result = compare(
+        SCOPE_AND_TERMS, SCOPE_EXTRA_AND_TERMS, format="markdown", alignment=_DIFFLIB
+    )
+    rows = {s.address: s for s in result.statistics().sections}
+
+    assert rows["/section[3]"].heading == "Terms"
+    assert [(address, s.counts.deleted) for address, s in rows.items()] == [
+        ("/section[1]", 0),
+        ("/section[2]", 0),
+        ("/section[3]", 1),
+    ]
+    assert rows["/section[2]"].counts.inserted == 1
+
+
+CLAUSE_WITH_LIMBS = """## 7. Confidentiality
+
+7.1 Each party shall keep the other party's Confidential Information secret.
+
+7.2 Each party shall return or destroy the other party's Confidential Information on request.
+
+(a) The receiving party shall certify the destruction in writing.
+
+(b) The receiving party may keep one archival copy for legal purposes.
+
+## 8. Termination
+
+8.1 Either party may terminate this Agreement on ninety days' notice to the other.
+"""
+CLAUSE_MOVED_WITHOUT_ITS_LAST_LIMB = """## 7. Confidentiality
+
+7.1 Each party shall keep the other party's Confidential Information secret.
+
+## 8. Termination
+
+8.1 Either party may terminate this Agreement on ninety days' notice to the other.
+
+8.2 Each party shall return or destroy the other party's Confidential Information on request.
+
+(a) The receiving party shall certify the destruction in writing.
+"""
+
+
+def test_a_deletion_inside_a_moved_clause_counts_where_the_clause_went() -> None:
+    """7.2 moved to Termination with its (a), and its (b) was deleted.
+
+    The deleted limb is shown inside 8.2, so it counts under Termination with
+    the move, not under Confidentiality, where its source address put it.
+    """
+    result = compare(
+        CLAUSE_WITH_LIMBS,
+        CLAUSE_MOVED_WITHOUT_ITS_LAST_LIMB,
+        format="markdown",
+        alignment=_DIFFLIB,
+    )
+
+    assert [
+        (s.heading, s.counts.deleted, s.counts.moved)
+        for s in result.statistics().sections
+    ] == [("Confidentiality", 0, 0), ("Termination", 1, 1)]
+
+
+def test_govinfo_hr7385_counts_a_deletion_where_its_parent_went() -> None:
+    """The other committed run whose rows change (besides hr4668, which raised).
+
+    ``/section[9]/list_item[1]/list_item[2]`` moved into section 7 ("AN
+    ACT"), and its first paragraph was deleted. M2 counted the deletion under
+    section 9 ("2d Session") by its source address. It counts in section 7,
+    where the sub-item now is.
+    """
+    rows = {
+        s.address: (s.heading, s.counts.deleted, s.counts.total)
+        for s in _hand_pair("govinfo-hr7385-ih-to-eh").statistics().sections
+    }
+
+    assert rows["/section[7]"] == ("AN ACT", 2, 11)
+    assert rows["/section[9]"] == ("2d Session", 3, 4)
+
+
+THREE_SECTIONS = """## 1. Supply
+
+1.1 The Supplier shall supply the Goods described in the Order.
+
+## 2. Price
+
+2.1 The Price is the amount stated in the Order.
+
+2.2 Each party shall bear its own costs of negotiating this Agreement.
+
+## 3. Insurance
+
+3.1 The Supplier shall insure the Goods until delivery.
+"""
+TWO_SECTIONS_AFTER_A_MOVE = """## 1. Supply
+
+1.1 The Supplier shall supply the Goods described in the Order.
+
+1.2 Each party shall bear its own costs of negotiating this Agreement.
+
+## 2. Price
+
+2.1 The Price is the amount stated in the Order, exclusive of VAT.
+"""
+
+
+def test_a_section_deleted_whole_keeps_its_row_after_the_section_before_it() -> None:
+    """2.2 moved up into section 1, 2.1 was edited, and section 3 was deleted.
+
+    The deleted section keeps a row of its own, by its source address, in the
+    place its ``delete`` node has: after the whole of section 2. M2 placed
+    both after 2.2's new place in section 1, so "Insurance" came between
+    "Supply" and "Price", and its delete between the move and the edit.
+    """
+    result = compare(
+        THREE_SECTIONS, TWO_SECTIONS_AFTER_A_MOVE, format="markdown", alignment=_DIFFLIB
+    )
+
+    assert [(c.kind.value, c.source_address) for c in result.changes] == [
+        ("move", "/section[2]/list_item[2]"),
+        ("modify", "/section[2]/list_item[1]"),
+        ("delete", "/section[3]"),
+    ]
+    assert [
+        (s.side, s.address, s.heading, s.blocks, s.counts.deleted)
+        for s in result.statistics().sections
+    ] == [
+        ("test", "/section[1]", "Supply", 3, 0),
+        ("test", "/section[2]", "Price", 2, 0),
+        ("source", "/section[3]", "Insurance", 0, 1),
+    ]
+
+
+INTRODUCTION_WITH_A_SUBSECTION = (
+    "## 1. Introduction\n\n### 1.1 Scope of services\n\n"
+    "1.1.1 The Supplier shall supply the Services described in Schedule One.\n\n"
+    "## 2. Fees\n\n2.1 The Client shall pay the Fees monthly in arrears.\n"
+)
+RETITLED_WITHOUT_THE_SUBSECTION = (
+    "## 1. Zebra Crossing\n\n"
+    "## 2. Fees\n\n2.1 The Client shall pay the Fees monthly in arrears.\n"
+)
+
+
+def test_a_deleted_first_subsection_is_listed_right_after_its_own_section() -> None:
+    """Section 1 was retitled and its only subsection, 1.1, deleted whole.
+
+    Nothing before 1.1 in section 1 stayed, since the old heading was
+    replaced, so the deleted subsection sits first in section 1: at section
+    1's own position, just after it. Its row comes straight after section
+    1's row, the way its ``delete`` node sorts after a node at the same
+    position, and before section 2's.
+    """
+    result = compare(
+        INTRODUCTION_WITH_A_SUBSECTION,
+        RETITLED_WITHOUT_THE_SUBSECTION,
+        format="markdown",
+        alignment=_DIFFLIB,
+    )
+
+    assert [
+        (s.side, s.address, s.heading, s.counts.deleted)
+        for s in result.statistics().sections
+    ] == [
+        ("test", "/section[1]", "Zebra Crossing", 1),
+        ("source", "/section[1]/section[1]", "Scope of services", 1),
+        ("test", "/section[2]", "Fees", 0),
+    ]
+
+
+# --- Which tree a row names: ``side`` ------------------------------------------
+#
+# A section deleted whole keeps a row of its own, addressed and headed from
+# the source tree. Its source address is often a test section's address as
+# well, so every row says which tree it names (ADR-0033, amendment).
+
+DEFINITIONS = (
+    "## 1. Definitions\n\n"
+    "1.1 In this Agreement the terms defined below have the meanings given to them.\n\n"
+)
+FEES = (
+    "## 2. Fees\n\n"
+    "2.1 The Client shall pay the Supplier a monthly fee of one thousand dollars "
+    "on the first of each month.\n\n"
+)
+LIABILITY = (
+    "## 3. Liability\n\n"
+    "3.1 Neither party is liable for indirect or consequential loss arising out "
+    "of this Agreement.\n\n"
+)
+
+
+def test_a_deleted_middle_section_has_its_own_row_beside_the_one_at_its_address() -> (
+    None
+):
+    """Fees, the second of three sections, was deleted; Liability kept its 3.
+
+    Liability is now ``/section[2]``, the address Fees had in the source. M2
+    kept both under that one address: Liability was charged the deletion and
+    listed twice, and Fees was not listed at all. Fees now has a row of its
+    own, from the source tree, with the deletion counted there, and
+    Liability's row is charged nothing.
+    """
+    result = compare(
+        DEFINITIONS + FEES + LIABILITY,
+        DEFINITIONS + LIABILITY,
+        format="markdown",
+        alignment=_DIFFLIB,
+    )
+    stats = result.statistics()
+
+    assert [
+        (s.side, s.address, s.heading, s.blocks, s.counts.deleted)
+        for s in stats.sections
+    ] == [
+        ("test", "/section[1]", "Definitions", 2, 0),
+        ("source", "/section[2]", "Fees", 0, 1),
+        ("test", "/section[2]", "Liability", 2, 0),
+    ]
+    assert sum(s.counts.deleted for s in stats.sections) == stats.counts.deleted
+    assert [row["side"] for row in result.to_dict()["statistics"]["sections"]] == [
+        "test",
+        "source",
+        "test",
+    ]
+
+
+def test_a_deleted_last_section_has_a_source_row_too() -> None:
+    """Liability, the last section, was deleted, so nothing moved into its address.
+
+    Its row is the same kind as when something does: addressed, headed and
+    counted from the source tree, and marked ``"source"``.
+    """
+    result = compare(
+        DEFINITIONS + FEES + LIABILITY,
+        DEFINITIONS + FEES,
+        format="markdown",
+        alignment=_DIFFLIB,
+    )
+
+    assert [
+        (s.side, s.address, s.heading, s.blocks, s.counts.deleted)
+        for s in result.statistics().sections
+    ] == [
+        ("test", "/section[1]", "Definitions", 2, 0),
+        ("test", "/section[2]", "Fees", 2, 0),
+        ("source", "/section[3]", "Liability", 0, 1),
+    ]
+
+
+def test_a_row_round_trips_with_its_side_and_reads_as_test_without_one() -> None:
+    """``side`` is always written, last, and a row from before it still loads."""
+    deleted = SectionStatistics(
+        address="/section[2]",
+        heading="Fees",
+        breadcrumb=(),
+        blocks=0,
+        counts=ChangeCounts(deleted=1, total=1),
+        density=0.0,
+        side="source",
+    )
+    kept = replace(
+        deleted, heading="Liability", blocks=2, counts=ChangeCounts(), side="test"
+    )
+
+    assert list(deleted.to_dict())[-1] == "side"
+    assert SectionStatistics.from_dict(deleted.to_dict()) == deleted
+    assert SectionStatistics.from_dict(kept.to_dict()) == kept
+    older = deleted.to_dict()
+    del older["side"]
+    assert SectionStatistics.from_dict(older).side == "test"
+
+
+def test_a_payload_written_before_side_still_loads_and_writes_it_back() -> None:
+    """Rows without ``side`` read as test rows; a rebuilt comparison recomputes them."""
+    result = compare(
+        DEFINITIONS + FEES + LIABILITY,
+        DEFINITIONS + LIABILITY,
+        format="markdown",
+        alignment=_DIFFLIB,
+    )
+    payload = result.to_dict(include_alignment=True)
+    for row in payload["statistics"]["sections"]:
+        del row["side"]
+
+    older = ComparisonStatistics.from_dict(payload["statistics"])
+    assert [s.side for s in older.sections] == ["test", "test", "test"]
+    rebuilt = Comparison.from_dict(payload)
+    assert [row["side"] for row in rebuilt.to_dict()["statistics"]["sections"]] == [
+        "test",
+        "source",
+        "test",
+    ]
+
+
+def test_a_side_that_names_neither_tree_is_refused() -> None:
+    """The schema's two values, and nothing else."""
+    with pytest.raises(ValueError, match="'source' or 'test'"):
+        SectionStatistics(
+            address="/section[1]",
+            heading="Fees",
+            breadcrumb=(),
+            blocks=0,
+            counts=ChangeCounts(),
+            density=0.0,
+            side="both",
+        )

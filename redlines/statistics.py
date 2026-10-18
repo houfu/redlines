@@ -26,12 +26,18 @@ inside it on its own six blocks -- the number #139's own next clause ("using
 the heading breadcrumb from ADR-0029") was pointing at all along.
 
 **Attribution side.** A change with a ``test_address`` (insert, modify, move,
-renumber) is attributed by walking up the *test* tree from that address; a
-``delete`` has no test address, so it is attributed by walking up the
-*source* tree from its ``source_address`` instead -- the tree it still exists
-in. Walking includes the change's own address, so a change *to* a section
-block itself (an inserted or renumbered section, say) counts toward that
-section, not its parent.
+renumber) is attributed by walking up the *test* tree from that address.
+Walking includes the change's own address, so a change *to* a section block
+itself (an inserted or renumbered section, say) counts toward that section,
+not its parent. A ``delete`` has no test address, so it is attributed where
+the test document shows it (ADR-0033, amendment): by walking up the *test*
+tree from its anchor's ``test_parent``, the counterpart of its source parent
+(`redlines.changes.Anchors`). That is the section the change list sorts the
+node into and the renderers draw it in. The rows are keyed by test
+addresses, so M2's walk up the *source* tree looked a source address up in
+the wrong address space: a `KeyError` where no test section had that address
+(``benchmark/corpus/hand/govinfo-hr4668-ih-to-rh``), and the wrong row where
+one did, as when a section is inserted above the deletion.
 
 **The block denominator is test-side and change-independent.** ``blocks`` on
 each `SectionStatistics` is how many blocks of the *test* tree have that
@@ -47,10 +53,21 @@ overstating how much of the section changed.
 **A section deleted whole gets its own row, by its source address.** A
 ``delete`` change whose own block was itself a section-with-heading unit
 means the *entire* section vanished -- there is no test-side address to hang
-a row off, so `SectionStatistics.address` falls back to the source one, and
-``heading``/``breadcrumb`` come from the source tree. It is placed in
-document order using the same surviving-neighbour rule
-`redlines.changes.build_change_tree` places a topmost delete node by.
+a row off, so `SectionStatistics.address` falls back to the source one,
+``heading``/``breadcrumb`` come from the source tree, and
+`SectionStatistics.side` is ``"source"``; it is ``"test"`` on every other
+row. That row counts the deletion of the section itself. It is placed in
+document order by the rule `redlines.changes.build_change_tree` places a
+topmost delete node by: in its own parent, after its nearest preceding
+sibling that stayed in place.
+
+The address alone cannot say which tree it names. Delete the second of
+three sections and the third becomes ``/section[2]`` in the test document,
+the address the deleted section had in the source. M2 kept both rows'
+changes under that one string, so the surviving section was charged the
+deletion and listed twice, and the deleted section was never listed at all.
+The two rows are built apart, and ``side`` tells them apart on the wire:
+``(side, address)`` is unique across the rows (ADR-0033, amendment).
 
 **No `by_block` array.** R22's per-block half of the ask is already on the
 node: `redlines.changes.Change.inline`, `.tokens_changed`, `.chars_added` and
@@ -60,7 +77,7 @@ list again, at a cost M5's size guards and the site would both pay.
 
 from __future__ import annotations
 
-from collections.abc import Iterator, Sequence
+from collections.abc import Iterable, Iterator, Sequence
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, Final
 
@@ -69,7 +86,15 @@ from .blocks import Block, BlockKind, BlockTree
 if TYPE_CHECKING:  # pragma: no cover - typing only, avoids a circular import
     from .comparison import Comparison
 
-from .changes import Change, ChangeKind, ChangeTree, InlineKind
+from .changes import (
+    Anchors,
+    Change,
+    ChangeKind,
+    ChangeTree,
+    InlineKind,
+    _anchor_rank,
+    _Side,
+)
 
 __all__: tuple[str, ...] = (
     "ChangeCounts",
@@ -77,6 +102,9 @@ __all__: tuple[str, ...] = (
     "ComparisonStatistics",
     "statistics",
 )
+
+_SIDES: Final[tuple[str, ...]] = ("source", "test")
+"""The values `SectionStatistics.side` can take: the two trees."""
 
 
 @dataclass(frozen=True, slots=True)
@@ -200,6 +228,7 @@ class SectionStatistics:
 
     :param address: the section block's test address, or its source address
         when the whole section was deleted (see the module docstring).
+        ``side`` says which, because the two address spaces overlap.
     :param heading: the section's ``heading`` child's text.
     :param breadcrumb: the ADR-0029 heading breadcrumb leading to the section
         itself, from whichever side ``address`` names.
@@ -209,6 +238,11 @@ class SectionStatistics:
     :param counts: the changes attributed to this section.
     :param density: ``counts.total / blocks``, rounded to four places;
         ``0.0`` when ``blocks`` is ``0``.
+    :param side: the tree ``address``, ``heading`` and ``breadcrumb`` come
+        from: ``"test"`` for a section of the test document, ``"source"``
+        for a section deleted whole. Always written; a row serialised before
+        the field existed reads back as ``"test"``.
+    :raises ValueError: if ``side`` is neither.
     """
 
     address: str
@@ -217,6 +251,14 @@ class SectionStatistics:
     blocks: int
     counts: ChangeCounts
     density: float
+    side: str = "test"
+
+    def __post_init__(self) -> None:
+        """Reject a ``side`` that names neither tree."""
+        if self.side not in _SIDES:
+            raise ValueError(
+                f"a section row's side is 'source' or 'test', got {self.side!r}"
+            )
 
     def to_dict(self) -> dict[str, Any]:
         """Return this row as a JSON-serialisable dict, in a fixed key order."""
@@ -227,11 +269,16 @@ class SectionStatistics:
             "blocks": self.blocks,
             "counts": self.counts.to_dict(),
             "density": self.density,
+            "side": self.side,
         }
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> SectionStatistics:
-        """Rebuild a row from `to_dict` output."""
+        """Rebuild a row from `to_dict` output.
+
+        A row without ``side``, written before the field existed, is a
+        test-side row.
+        """
         return cls(
             address=str(data["address"]),
             heading=str(data.get("heading", "")),
@@ -239,6 +286,7 @@ class SectionStatistics:
             blocks=int(data.get("blocks", 0)),
             counts=ChangeCounts.from_dict(data.get("counts", {}) or {}),
             density=float(data.get("density", 0.0)),
+            side=str(data.get("side", "test")),
         )
 
 
@@ -294,8 +342,8 @@ def statistics(comparison: Comparison) -> ComparisonStatistics:
     """
     source, test = comparison.source, comparison.test
     changes = tuple(comparison.changes)
+    anchors = Anchors(source=source, test=test, alignment=comparison.alignment)
 
-    source_parents = _parent_map(source)
     test_parents = _parent_map(test)
     test_units = {
         block.path: block for block in test.walk() if _is_section_unit(block)
@@ -325,23 +373,35 @@ def statistics(comparison: Comparison) -> ComparisonStatistics:
         and change.source_address in source_units
     ]
 
+    # Kept apart from the test rows: a deleted section's source address is
+    # often a test section's address as well.
     by_section: dict[str, list[Change]] = {addr: [] for addr in test_units}
-    for addr in deleted_units:
-        by_section.setdefault(addr, [])
+    by_deleted: dict[str, list[Change]] = {addr: [] for addr in deleted_units}
     for change in changes:
         if change.kind is ChangeKind.DELETE:
-            nearest = _nearest_enclosing(
-                change.source_address, source_parents, source_units
-            )
+            address = change.source_address
+            if address is not None and address in by_deleted:
+                by_deleted[address].append(change)
+                continue
+            nearest = _delete_section(address, anchors, test_parents, test_units)
         else:
             nearest = _nearest_enclosing(change.test_address, test_parents, test_units)
         if nearest is not None:
             by_section[nearest].append(change)
 
-    order = _section_order(test, source, comparison, test_units.keys(), deleted_units)
+    order = _section_order(test, source, anchors, test_units.keys(), deleted_units)
     sections = tuple(
-        _row(addr, test, source, test_units, source_units, block_counts, by_section)
-        for addr in order
+        _row(
+            addr,
+            side,
+            test,
+            source,
+            test_units,
+            source_units,
+            block_counts,
+            by_section if side == "test" else by_deleted,
+        )
+        for side, addr in order
     )
 
     return ComparisonStatistics(
@@ -395,6 +455,33 @@ def _nearest_enclosing(
     return None
 
 
+def _delete_section(
+    address: str | None,
+    anchors: Anchors,
+    test_parents: dict[str, str | None],
+    test_units: dict[str, Block],
+) -> str | None:
+    """The test section a deletion counts under (ADR-0033, amendment).
+
+    The nearest test section enclosing its anchor's ``test_parent``: the
+    section that shows it. A section deleted whole is not looked up here,
+    because it has a row of its own. A block whose source parent has no
+    counterpart has no anchor, and so does an address that is not in the
+    source tree, which only a hand-built change list can hold; neither is
+    counted in any section, and nor is a deletion with no test section
+    around its anchor, at the root say.
+    """
+    if address is None:
+        return None
+    try:
+        anchor = anchors.place(address)
+    except KeyError:
+        return None
+    if anchor is None:
+        return None
+    return _nearest_enclosing(anchor.test_parent, test_parents, test_units)
+
+
 def _heading_text(unit: Block) -> str:
     """The text of a section unit's own ``heading`` child."""
     for child in unit.children:
@@ -405,22 +492,29 @@ def _heading_text(unit: Block) -> str:
 
 def _row(
     address: str,
+    side: str,
     test: BlockTree,
     source: BlockTree,
     test_units: dict[str, Block],
     source_units: dict[str, Block],
     block_counts: dict[str, int],
-    by_section: dict[str, list[Change]],
+    attributed: dict[str, list[Change]],
 ) -> SectionStatistics:
-    """Build one `SectionStatistics` row, test-side unit or deleted-whole."""
-    if address in test_units:
+    """Build one `SectionStatistics` row, test-side unit or deleted-whole.
+
+    ``side`` says which tree ``address`` names, and so which tree the
+    heading and breadcrumb come from. ``attributed`` holds that side's
+    changes by address: the test rows', or the deleted sections'.
+    """
+    if side == "test":
         unit = test_units[address]
         breadcrumb = test.heading_breadcrumb(address)
+        blocks = block_counts.get(address, 0)
     else:
         unit = source_units[address]
         breadcrumb = source.heading_breadcrumb(address)
-    blocks = block_counts.get(address, 0)
-    counts = _count(by_section.get(address, ()))
+        blocks = 0
+    counts = _count(attributed.get(address, ()))
     density = round(counts.total / blocks, 4) if blocks else 0.0
     return SectionStatistics(
         address=address,
@@ -429,41 +523,42 @@ def _row(
         blocks=blocks,
         counts=counts,
         density=density,
+        side=side,
     )
 
 
 def _section_order(
     test: BlockTree,
     source: BlockTree,
-    comparison: Comparison,
-    test_addrs: Any,
+    anchors: Anchors,
+    test_addrs: Iterable[str],
     deleted_addrs: list[str],
-) -> Iterator[str]:
+) -> Iterator[tuple[str, str]]:
     """Document order over both test-side units and whole-section deletes.
+
+    Each row comes out as ``(side, address)``, because a deleted section's
+    source address can be a test unit's address as well.
 
     A test-side unit is ordered by its own position in the test tree. A
     section deleted whole has no test position of its own, so it is placed
-    the same way `redlines.changes.build_change_tree` places a topmost
-    delete: immediately after the last surviving neighbour before it, using
-    the comparison's own alignment.
+    the way `redlines.changes.build_change_tree` places a topmost delete
+    (ADR-0033, amendment): by `redlines.changes.Anchors`, in its own parent,
+    immediately after the whole test subtree of its nearest preceding sibling
+    that stayed in place, or first in that parent. The key is the change
+    list's own, so a deleted section's row and its ``delete`` node cannot be
+    ordered two ways.
     """
-    test_order = {block.path: index for index, block in enumerate(test.walk())}
+    test_side = _Side(test)
     source_order = {block.path: index for index, block in enumerate(source.walk())}
-    alignment = comparison.alignment
-
-    def placement(deleted_addr: str) -> tuple[int, int]:
-        surviving = -1
-        for path in sorted(source_order, key=source_order.__getitem__):
-            if path == deleted_addr:
-                break
-            counterpart = alignment.test_for(path)
-            if counterpart is not None:
-                surviving = test_order.get(counterpart, surviving)
-        return (surviving, source_order[deleted_addr])
-
-    ranked: list[tuple[tuple[int, int], str]] = [
-        ((test_order[addr], 0), addr) for addr in test_addrs
+    ranked: list[tuple[tuple[int, int, int], tuple[str, str]]] = [
+        ((test_side.order[addr], 0, 0), ("test", addr)) for addr in test_addrs
     ]
-    ranked.extend((placement(addr), addr) for addr in deleted_addrs)
+    ranked.extend(
+        (
+            (_anchor_rank(anchors.place(addr), test_side), 1, source_order[addr]),
+            ("source", addr),
+        )
+        for addr in deleted_addrs
+    )
     ranked.sort(key=lambda item: item[0])
-    return (addr for _, addr in ranked)
+    return (row for _, row in ranked)
