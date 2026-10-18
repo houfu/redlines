@@ -34,7 +34,15 @@ from redlines.alignment import AlignmentConfig
 from redlines.blocks import Block, BlockKind, BlockTree, Dropped
 from redlines.comparison import SCHEMA_VERSION, Comparison, compare
 from redlines.renderers import FRAGMENT_VERSION, STYLESHEET
-from redlines.renderers._html import THEME, render_change_list, render_document
+from redlines.changes import Change, ChangeKind
+from redlines.renderers._html import (
+    THEME,
+    _row_attributes,
+    _summary,
+    render_change_list,
+    render_document,
+)
+from redlines.renderers._view import BlockStatus, ViewNode
 from tests.helpers import fragment_checks as fc
 from tests.helpers.committed_runs import CommittedRun, committed_runs
 from tests.helpers.hash_seed import assert_byte_identical_across_hash_seeds
@@ -197,6 +205,17 @@ HOSTILE_TEXT = (
 
 HOSTILE_ROLE = '"><script>alert(1)</script>'
 HOSTILE_LABEL = '1"><img src=x onerror=alert(1)>'
+DELETED_LABEL = '(b)<img src=x onerror=alert(1)>&"'
+INSERTED_LABEL = '(e)"><script>alert(1)</script>'
+MOVED_FROM = '(c)<img src=x onerror=alert(1)>"'
+MOVED_TO = '(f)"><b>&'
+HEADER: tuple[str, str] = ("<img src=x onerror=alert(1)>", '"><b>&')
+HOSTILE_CONFIG: dict[str, str] = {
+    "test_format": '"><script>alert(1)</script>',
+    "profile": "<img src=x onerror=alert(1)>",
+    "similarity": "</style><b>&",
+}
+UNSORTED_SPAN_TYPES: list[str] = ["zeta", "</style><b>", "alpha"]
 
 
 def _tree(*children: Block, dropped: tuple[Dropped, ...] = ()) -> BlockTree:
@@ -246,10 +265,12 @@ def hostile_trees() -> Comparison:
             f"Heading {HOSTILE}",
             _clause("(a)", f"Kept {HOSTILE} and C:\\dir\\old", HOSTILE_ROLE),
             _clause(
-                "(b)", f"Struck out entirely: {ATTACKS[0]} {ATTACKS[3]}", "x</style>y"
+                DELETED_LABEL,
+                f"Struck out entirely: {ATTACKS[0]} {ATTACKS[3]}",
+                "x</style>y",
             ),
-            _clause('(c)"', f"Moved away {HOSTILE}"),
-            _table(("Item", "Note"), (HOSTILE, "a | b"), ("gone", "</style>")),
+            _clause(MOVED_FROM, f"Moved away {HOSTILE}"),
+            _table(HEADER, (HOSTILE, "a | b"), ("gone", "</style>")),
         ),
         _section("Second </style>", _clause("(d)", "Another clause stays as it is.")),
         dropped=(
@@ -264,9 +285,9 @@ def hostile_trees() -> Comparison:
         _section(
             f"Heading {HOSTILE}",
             _clause("(a)", f"Kept {HOSTILE} and C:\\dir\\new", HOSTILE_ROLE),
-            _table(("Item", "Note"), (HOSTILE, "a | b"), ("new </style>", "{++x++}")),
+            _table(HEADER, (HOSTILE, "a | b"), ("new </style>", "{++x++}")),
             _clause(
-                "(e)",
+                INSERTED_LABEL,
                 f"A brand new obligation: {ATTACKS[1]} {ATTACKS[2]} {ATTACKS[5]}",
                 HOSTILE_ROLE,
             ),
@@ -274,13 +295,25 @@ def hostile_trees() -> Comparison:
         _section(
             "Second </style>",
             _clause("(d)", "Another clause stays as it is."),
-            _clause('(f)"><b>', f"Moved away {HOSTILE}"),
+            _clause(MOVED_TO, f"Moved away {HOSTILE}"),
         ),
         dropped=(
             Dropped(kind="</style>", count=1, reason="<script>alert(1)</script>"),
         ),
     )
     return compare(source, test, alignment=DIFFLIB)
+
+
+@lru_cache(maxsize=None)
+def hostile_rebuilt() -> Comparison:
+    """The hostile trees rebuilt from their JSON with hostile configuration
+    strings and one change's span types out of order: ``from_dict`` is the only
+    way in for either, since a comparison names its own backend and the engine
+    sorts span types."""
+    data = hostile_trees().to_dict(include_alignment=True)
+    data["config"].update(HOSTILE_CONFIG)
+    data["changes"][0]["span_types"] = list(UNSORTED_SPAN_TYPES)
+    return Comparison.from_dict(data)
 
 
 def hostile_comparisons() -> dict[str, Comparison]:
@@ -290,8 +323,9 @@ def hostile_comparisons() -> dict[str, Comparison]:
         "text": compare(*HOSTILE_TEXT, format="text", alignment=DIFFLIB),
         "trees": trees,
         "trees, filtered": trees.filter(
-            labels=(HOSTILE_ROLE, "(a)", "(e)"), roles=(HOSTILE_ROLE,)
+            labels=(HOSTILE_ROLE, "(a)", INSERTED_LABEL), roles=(HOSTILE_ROLE,)
         ),
+        "trees, rebuilt with a hostile configuration": hostile_rebuilt(),
         "committed case": fixture("hostile"),
     }
 
@@ -335,7 +369,7 @@ def test_the_hostile_corpus_has_every_kind_and_every_attack() -> None:
     for attack in ATTACKS[:4]:
         assert attack in shown  # every attack reaches the reader as text, escaped
     assert any(element.get("data-role") == HOSTILE_ROLE for element in root.walk())
-    assert any(element.get("data-test-label") == '(f)"><b>' for element in root.walk())
+    assert any(element.get("data-test-label") == MOVED_TO for element in root.walk())
     notices = [
         element.text()
         for element in root.walk()
@@ -354,16 +388,117 @@ def test_a_hostile_filter_value_is_escaped_in_its_notice() -> None:
     (notice,) = [
         element for element in root.walk() if element.get("data-notice") == "filtered"
     ]
-    assert (
-        notice.text()
-        == f"Filtered: labels={HOSTILE_ROLE},(a),(e); roles={HOSTILE_ROLE}"
+    assert notice.text() == (
+        f"Filtered: labels={HOSTILE_ROLE},(a),{INSERTED_LABEL}; roles={HOSTILE_ROLE}"
     )
+
+
+def _texts(root: fc.Element, cls: str) -> list[str]:
+    return [element.text() for element in root.walk() if cls in element.classes()]
+
+
+def test_every_escape_point_carries_a_hostile_string() -> None:
+    """Each place the renderer escapes a string gets one with ``<``, ``&`` and ``"``.
+
+    The review's mutation run found escapes no hostile string reached: the
+    labels of an inserted and a deleted block, a changed label's old side, a
+    table's header cells, the configuration line and the order of span types.
+    Each is reached here, and F1 to F9 hold over it in the test above, so an
+    escape taken out shows as an element the allowlist refuses.
+    """
+    trees, rebuilt = hostile_trees(), hostile_rebuilt()
+    kinds = {
+        change.test_label or change.source_label: change.kind.value
+        for change in trees.changes
+    }
+    assert kinds[DELETED_LABEL] == "delete" and kinds[INSERTED_LABEL] == "insert"
+    assert kinds[MOVED_TO] == "move"
+    for root in (
+        fc.parse(trees.output_html()),
+        fc.parse(trees.output_annotated(syntax="html")),
+    ):
+        labels = _texts(root, "redlines-label")
+        assert {DELETED_LABEL, INSERTED_LABEL} <= set(labels)
+        assert MOVED_FROM + MOVED_TO in labels  # <del>OLD</del><ins>NEW</ins>
+    document = fc.parse(trees.output_annotated(syntax="html"))
+    headers = [cell.text() for cell in document.walk() if cell.tag == "th"]
+    assert headers == list(HEADER)
+    root = fc.parse(rebuilt.output_html())
+    (config_line,) = _texts(root, "redlines-config")
+    assert config_line == (
+        f"{HOSTILE_CONFIG['test_format']} · profile {HOSTILE_CONFIG['profile']}"
+        f" · similarity {HOSTILE_CONFIG['similarity']}"
+    )
+    (first,) = [row for row in fc.row_elements(root) if row.get("data-index") == "0"]
+    assert first.get("data-span-types") == " ".join(sorted(UNSORTED_SPAN_TYPES))
+
+
+def test_a_hostile_address_is_escaped_in_the_summary_and_the_row() -> None:
+    """Block addresses are validated on the way in, so no comparison carries markup
+    in one; the address escapes are pinned on the row's own pieces instead."""
+    evil = '/x"><img src=x onerror=alert(1)>'
+    change = Change(
+        kind=ChangeKind.MOVE,
+        source_address=evil,
+        test_address=evil + "&",
+        block_kind=BlockKind.PARAGRAPH,
+        matched_by="move",
+        confidence=1.0,
+        source_text="text",
+        test_text="text",
+    )
+    block = Block(kind=BlockKind.PARAGRAPH, text="text")
+    node = ViewNode(BlockStatus.MOVE, block, block, change)
+    summary = fc.parse(f"<summary>{_summary(change, node)}</summary>")
+    assert [element.tag for element in summary.walk()].count("img") == 0
+    (address,) = [e for e in summary.walk() if "redlines-address" in e.classes()]
+    assert address.text() == f"{evil} → {evil}&"
+    row = fc.parse(f'<li class="redlines-change"{_row_attributes(0, change)}></li>')
+    assert row.get("data-address") == evil + "&"
+    assert row.get("data-source-address") == evil
+    assert row.get("onerror") is None
 
 
 def test_a_hostile_heading_level_is_clamped() -> None:
     root = fc.parse(hostile_trees().output_annotated(syntax="html"))
     headings = [element for element in root.walk() if element.get("role") == "heading"]
     assert headings and {element.get("aria-level") for element in headings} == {"6"}
+
+
+# --- shapes the F7 oracle must read (review findings S1, S2) -----------------------
+
+_TABLE = "| A | B |\n| --- | --- |\n"
+ORACLE_SHAPES: dict[str, tuple[str, str]] = {
+    "an inserted two-line fence": ("Intro.", "Intro.\n\n```\nline1\nline2\n```"),
+    "a deleted two-line fence": ("Intro.\n\n```\nline1\nline2\n```", "Intro."),
+    "an inserted empty heading": ("Intro.", "Intro.\n\n#"),
+    "a deleted empty heading": ("Intro.\n\n#", "Intro."),
+    "a deleted all-empty row": (
+        _TABLE + "|  |  |\n| 1 | 2 |\n",
+        _TABLE + "| 1 | 2 |\n",
+    ),
+    "an inserted all-empty row": (
+        _TABLE + "| 1 | 2 |\n",
+        _TABLE + "|  |  |\n| 1 | 2 |\n",
+    ),
+    "a row emptied of its text": (
+        _TABLE + "| x |  |\n| 1 | 2 |\n",
+        _TABLE + "|  |  |\n| 1 | 2 |\n",
+    ),
+    "a deleted blank row before a kept one": (
+        _TABLE + "|  |  |\n| 1 | 2 |\n|  |  |\n",
+        _TABLE + "| 1 | 2 |\n|  |  |\n",
+    ),
+}
+"""Renders the F7 oracle once read wrong. A block whose own text holds a
+newline, a subtree with no line at all, and table rows that are blank on one
+side, where a deleted row and a kept blank one look alike in the markup."""
+
+
+@pytest.mark.parametrize("name", list(ORACLE_SHAPES))
+def test_the_oracle_reads_multi_line_empty_and_blank_row_shapes(name: str) -> None:
+    source, test = ORACLE_SHAPES[name]
+    check_both(compare(source, test, format="markdown", alignment=DIFFLIB))
 
 
 # --- the document view ---------------------------------------------------------------
