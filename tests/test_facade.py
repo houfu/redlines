@@ -108,8 +108,8 @@ V062_PACKAGE_NAMES = frozenset(
     }
 )
 
-# The modules `_comparison()` runs through, plus the renderers once M3 adds
-# them: none of them may import inside a function (D1 rule 4).
+# The modules `_comparison()` runs through, plus every renderer module under
+# redlines/renderers/: none of them may import inside a function (D1 rule 4).
 CORE_MODULES = sorted(
     [
         PACKAGE_DIR / f"{name}.py"

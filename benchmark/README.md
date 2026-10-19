@@ -106,10 +106,10 @@ Four modules, in dependency order:
   place the floor can be flattered. Both of its rules are in its docstring and in `REPORT.md`.
 - **`baselines.py`** — the flat floor: `WholeDocumentProcessor` called directly, opcodes voted
   into unit pairs, unit pairs lifted into block pairs by plurality. It must never import
-  `redlines.Redlines` — [ADR-0003](../docs/adr/0003-compatibility-facade.md) has M3 reimplement
-  that class over this core, so a baseline going through the facade would stop being the 0.6
-  baseline the day the facade lands. `tests/test_benchmark_score.py` asserts the prohibition
-  against the source.
+  `redlines.Redlines` — [ADR-0036](../docs/adr/0036-redlines-facade.md) has that class replay
+  the flat engine's own opcodes, one block per document, so going through it would not move
+  the floor today; the prohibition stands because the facade may change and the processor call
+  cannot. `tests/test_benchmark_score.py` asserts the prohibition against the source.
 - **`score.py`** — every definition, written to be read as the definition: links-only
   precision/recall/F1 with the root pair and the containers excluded, a spurious-match rate
   beside them, subtree-moves-once, the four-tuple renumber key, splits and merges skipped with

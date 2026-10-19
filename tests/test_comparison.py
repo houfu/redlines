@@ -133,7 +133,7 @@ def test_a_document_is_how_a_file_gets_in() -> None:
 
 
 def test_a_block_tree_skips_reading_entirely() -> None:
-    """How the M3 facade, the benchmark harness and the site hand in their own trees.
+    """How the benchmark harness and the site hand in their own trees.
 
     Nothing was read, so there is no format and no profile to record, and
     `compare` says exactly that rather than guessing one.
