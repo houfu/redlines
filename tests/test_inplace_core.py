@@ -941,7 +941,9 @@ def test_the_none_style_accepts_exactly_and_rejects_in_source_order_on_every_run
     oracle: dict[str, list[str]],
 ) -> None:
     assert oracle["none_accept"] == []
-    assert oracle["none_order"] == ["benchmark/hand/csa-1.1-to-2.0"]  # label_raw: a dot-only relabel with no change node
+    assert oracle["none_order"] == [
+        "benchmark/hand/csa-1.1-to-2.0"
+    ]  # label_raw: a dot-only relabel with no change node
 
 
 # --- determinism ------------------------------------------------------------------
