@@ -431,6 +431,10 @@ class PairScore:
         file records no statuses to compute one from.
     :param labels_signed: whether the label file carries a `review` block --
         the difference between ground truth and an engine-seeded draft.
+    :param labels_reviewed: whether that `review` block also names a reviewer.
+        A labeller's signature alone is not sign-off: ADR-0034 keeps labelling and
+        reviewing as separate passes, and #142 says the labels need a reviewer, not
+        just a labeller.
     :param proposed_rows: how many correspondence rows are still ``proposed``.
     :param budget_exhausted: whether alignment ran out of ``max_comparisons``.
     """
@@ -449,6 +453,7 @@ class PairScore:
     skipped_merges: int = 0
     override_rate: float | None = None
     labels_signed: bool = False
+    labels_reviewed: bool = False
     proposed_rows: int = 0
     budget_exhausted: bool = False
 
@@ -469,6 +474,7 @@ class PairScore:
             "skipped_merges": self.skipped_merges,
             "override_rate": self.override_rate,
             "labels_signed": self.labels_signed,
+            "labels_reviewed": self.labels_reviewed,
             "proposed_rows": self.proposed_rows,
             "budget_exhausted": self.budget_exhausted,
         }
@@ -736,6 +742,7 @@ def score_engine_pair(
         skipped_merges=truth.skipped_merges,
         override_rate=override_rate(labels),
         labels_signed=labels.review is not None,
+        labels_reviewed=labels.review is not None and labels.review.reviewed_by is not None,
         proposed_rows=sum(
             1 for row in labels.correspondences if row.status == "proposed"
         ),
@@ -793,6 +800,7 @@ def score_baseline_pair(
         skipped_merges=truth.skipped_merges,
         override_rate=override_rate(labels),
         labels_signed=labels.review is not None,
+        labels_reviewed=labels.review is not None and labels.review.reviewed_by is not None,
         proposed_rows=sum(
             1 for row in labels.correspondences if row.status == "proposed"
         ),

@@ -35,9 +35,12 @@ two things ADR-0034 keeps as a human's job (D-10, and the anti-self-marking miti
   signing asserts a human looked at every row, which a freshly-``init``ed file has, by
   construction, not yet had.
 
-Every hand-labelled pair this repository ships stays at the ``init`` stage -- ``status:
-proposed`` throughout, no ``review:`` block -- until a maintainer has actually done the reading
-`sign` refuses to let a machine skip.
+A pair leaves the ``init`` stage only when a labeller has read every row and signed with
+``--role labeller``; it becomes ground truth only when a reviewer, on a separate pass, signs with
+``--role reviewer``. The ten pairs under ``benchmark/corpus/hand/`` were labelled on
+2026-10-19 by Claude Opus 5.5 working for the maintainer, who reviews them; the ``review:``
+block in each file records exactly who did which, and the hand-tier F1 gate stays closed until
+a reviewer is named there. ``move_verdicts`` are the reviewer's alone.
 """
 
 from __future__ import annotations

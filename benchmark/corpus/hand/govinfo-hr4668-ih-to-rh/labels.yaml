@@ -25,7 +25,7 @@ correspondences:
   test_label: null
   source_digest: 3fdc472ea5a961b9
   test_digest: 3fdc472ea5a961b9
-  status: proposed
+  status: confirmed
 - source: /section[2]/heading[1]
   test: /section[2]/heading[1]
   kind: same
@@ -33,7 +33,7 @@ correspondences:
   test_label: null
   source_digest: 796a57f4a18dde6b
   test_digest: 796a57f4a18dde6b
-  status: proposed
+  status: confirmed
 - source: /section[3]/heading[1]
   test: /section[3]/heading[1]
   kind: same
@@ -41,7 +41,7 @@ correspondences:
   test_label: null
   source_digest: d4db2c15498b812a
   test_digest: 22b204f8a6ffa97b
-  status: proposed
+  status: confirmed
 - source: /section[4]/heading[1]
   test: /section[4]/heading[1]
   kind: same
@@ -49,7 +49,7 @@ correspondences:
   test_label: null
   source_digest: 5f6f4e690f5e1cf0
   test_digest: 5f6f4e690f5e1cf0
-  status: proposed
+  status: confirmed
 - source: /section[5]/heading[1]
   test: /section[6]/heading[1]
   kind: same
@@ -57,7 +57,7 @@ correspondences:
   test_label: null
   source_digest: eb73950bb6cac3a9
   test_digest: eb73950bb6cac3a9
-  status: proposed
+  status: confirmed
 - source: /section[6]/heading[1]
   test: /section[7]/heading[1]
   kind: same
@@ -65,7 +65,7 @@ correspondences:
   test_label: null
   source_digest: bab6f83e3368e2c4
   test_digest: bab6f83e3368e2c4
-  status: proposed
+  status: confirmed
 - source: /section[6]/section[1]/heading[1]
   test: /section[7]/section[1]/heading[1]
   kind: same
@@ -73,7 +73,23 @@ correspondences:
   test_label: H
   source_digest: b57392da52df98a2
   test_digest: b57392da52df98a2
-  status: proposed
+  status: confirmed
+- source: /section[6]/section[1]/paragraph[1]
+  test: /section[8]/paragraph[1]
+  kind: same
+  source_label: null
+  test_label: null
+  source_digest: 6fba0cbed36f4353
+  test_digest: 6fba0cbed36f4353
+  status: corrected
+- source: /section[6]/section[1]/paragraph[2]
+  test: /section[8]/paragraph[2]
+  kind: same
+  source_label: null
+  test_label: null
+  source_digest: 2ccdd2ef5ac7f200
+  test_digest: 2ccdd2ef5ac7f200
+  status: corrected
 - source: /section[7]/heading[1]
   test: /section[9]/heading[1]
   kind: same
@@ -81,7 +97,7 @@ correspondences:
   test_label: null
   source_digest: 8fb45959ef15269d
   test_digest: 8fb45959ef15269d
-  status: proposed
+  status: confirmed
 - source: /section[8]/heading[1]
   test: /section[10]/heading[1]
   kind: same
@@ -89,7 +105,7 @@ correspondences:
   test_label: null
   source_digest: 464befbbe8fa65d0
   test_digest: 464befbbe8fa65d0
-  status: proposed
+  status: confirmed
 - source: /section[8]/paragraph[1]
   test: /section[10]/paragraph[1]
   kind: same
@@ -97,7 +113,15 @@ correspondences:
   test_label: null
   source_digest: ddd067cc41a38903
   test_digest: ddd067cc41a38903
-  status: proposed
+  status: confirmed
+- source: /section[8]/paragraph[2]
+  test: /section[12]/paragraph[3]
+  kind: same
+  source_label: null
+  test_label: null
+  source_digest: 2ccdd2ef5ac7f200
+  test_digest: 2ccdd2ef5ac7f200
+  status: corrected
 - source: /section[9]/heading[1]
   test: /section[13]/heading[1]
   kind: same
@@ -105,7 +129,7 @@ correspondences:
   test_label: null
   source_digest: 333c39a48b7224a8
   test_digest: 333c39a48b7224a8
-  status: proposed
+  status: confirmed
 - source: /section[9]/paragraph[1]
   test: /section[13]/paragraph[1]
   kind: same
@@ -113,7 +137,7 @@ correspondences:
   test_label: null
   source_digest: 6fba0cbed36f4353
   test_digest: 6fba0cbed36f4353
-  status: proposed
+  status: confirmed
 - source: /section[9]/list_item[1]
   test: /section[13]/list_item[1]
   kind: same
@@ -121,7 +145,7 @@ correspondences:
   test_label: SECTION 1
   source_digest: 5dcbd6bf7fae10ad
   test_digest: 5dcbd6bf7fae10ad
-  status: proposed
+  status: confirmed
 - source: /section[9]/list_item[1]/paragraph[1]
   test: /section[13]/list_item[1]/paragraph[1]
   kind: same
@@ -129,7 +153,7 @@ correspondences:
   test_label: null
   source_digest: 0fad0479b30d2956
   test_digest: 0fad0479b30d2956
-  status: proposed
+  status: confirmed
 - source: /section[9]/list_item[1]/list_item[1]
   test: /section[13]/list_item[1]/list_item[1]
   kind: same
@@ -137,7 +161,7 @@ correspondences:
   test_label: (A)
   source_digest: f4b68b5601ad805c
   test_digest: f4b68b5601ad805c
-  status: proposed
+  status: confirmed
 - source: /section[9]/list_item[1]/section[1]/heading[1]
   test: /section[13]/list_item[1]/section[1]/heading[1]
   kind: same
@@ -145,7 +169,7 @@ correspondences:
   test_label: (a)
   source_digest: ab83818d830381f1
   test_digest: ab83818d830381f1
-  status: proposed
+  status: confirmed
 - source: /section[9]/list_item[1]/section[1]/paragraph[1]
   test: /section[13]/list_item[1]/section[1]/paragraph[1]
   kind: same
@@ -153,7 +177,7 @@ correspondences:
   test_label: null
   source_digest: ccd51f0043bf2bda
   test_digest: ccd51f0043bf2bda
-  status: proposed
+  status: confirmed
 - source: /section[9]/list_item[1]/section[1]/paragraph[2]
   test: /section[13]/list_item[1]/section[1]/paragraph[2]
   kind: same
@@ -161,7 +185,7 @@ correspondences:
   test_label: null
   source_digest: 4c1adb79d669444c
   test_digest: 4c1adb79d669444c
-  status: proposed
+  status: confirmed
 - source: /section[9]/list_item[1]/paragraph[2]
   test: /section[13]/list_item[1]/paragraph[2]
   kind: same
@@ -169,7 +193,7 @@ correspondences:
   test_label: null
   source_digest: 2a2feca5be79d5f3
   test_digest: 2a2feca5be79d5f3
-  status: proposed
+  status: confirmed
 - source: /section[9]/list_item[1]/list_item[2]
   test: /section[13]/list_item[1]/list_item[2]
   kind: same
@@ -177,7 +201,7 @@ correspondences:
   test_label: (B)
   source_digest: 595ee0a6334fa2ae
   test_digest: 595ee0a6334fa2ae
-  status: proposed
+  status: confirmed
 - source: /section[9]/list_item[1]/list_item[3]
   test: /section[13]/list_item[1]/list_item[3]
   kind: same
@@ -185,7 +209,7 @@ correspondences:
   test_label: (C)
   source_digest: 789bac1bbcd0ea88
   test_digest: 789bac1bbcd0ea88
-  status: proposed
+  status: confirmed
 - source: /section[9]/list_item[1]/list_item[3]/paragraph[1]
   test: /section[13]/list_item[1]/list_item[3]/paragraph[1]
   kind: same
@@ -193,7 +217,7 @@ correspondences:
   test_label: null
   source_digest: 945ec26c4333fb9d
   test_digest: 945ec26c4333fb9d
-  status: proposed
+  status: confirmed
 - source: /section[9]/list_item[1]/list_item[3]/paragraph[2]
   test: /section[13]/list_item[1]/list_item[3]/paragraph[2]
   kind: same
@@ -201,7 +225,7 @@ correspondences:
   test_label: null
   source_digest: 893141aa71be27fe
   test_digest: 893141aa71be27fe
-  status: proposed
+  status: confirmed
 - source: /section[9]/list_item[1]/list_item[3]/paragraph[3]
   test: /section[13]/list_item[1]/list_item[3]/paragraph[3]
   kind: same
@@ -209,7 +233,7 @@ correspondences:
   test_label: null
   source_digest: 4ebd8380049a2bd5
   test_digest: 4ebd8380049a2bd5
-  status: proposed
+  status: confirmed
 - source: /section[9]/list_item[1]/list_item[4]
   test: /section[13]/list_item[1]/list_item[4]
   kind: same
@@ -217,7 +241,7 @@ correspondences:
   test_label: (b)
   source_digest: 71f0fc4526746170
   test_digest: 71f0fc4526746170
-  status: proposed
+  status: confirmed
 - source: /section[9]/paragraph[2]
   test: /section[13]/paragraph[2]
   kind: same
@@ -225,7 +249,7 @@ correspondences:
   test_label: null
   source_digest: 6233c927b56cd87a
   test_digest: 6233c927b56cd87a
-  status: proposed
+  status: confirmed
 - source: /section[9]/list_item[2]
   test: /section[13]/list_item[2]
   kind: same
@@ -233,7 +257,7 @@ correspondences:
   test_label: '1996'
   source_digest: 407e032b98add356
   test_digest: 407e032b98add356
-  status: proposed
+  status: confirmed
 - source: /section[9]/list_item[2]/paragraph[1]
   test: /section[13]/list_item[2]/paragraph[1]
   kind: same
@@ -241,7 +265,7 @@ correspondences:
   test_label: null
   source_digest: ccbdf661c5753e66
   test_digest: ccbdf661c5753e66
-  status: proposed
+  status: confirmed
 - source: /section[9]/list_item[2]/paragraph[2]
   test: /section[13]/list_item[2]/paragraph[2]
   kind: same
@@ -249,85 +273,72 @@ correspondences:
   test_label: null
   source_digest: ec28c2d2323b8528
   test_digest: ec28c2d2323b8528
-  status: proposed
+  status: confirmed
 inserted:
 - test: /section[5]/heading[1]
   test_digest: 68cdeaf95084c0fd
-  status: proposed
+  status: confirmed
 - test: /section[8]/heading[1]
   test_digest: a04909f6d5f93090
-  status: proposed
-- test: /section[8]/paragraph[1]
-  test_digest: 6fba0cbed36f4353
-  status: proposed
-- test: /section[8]/paragraph[2]
-  test_digest: 2ccdd2ef5ac7f200
-  status: proposed
+  status: confirmed
 - test: /section[11]/heading[1]
   test_digest: dff15341b0ef02cd
-  status: proposed
+  status: confirmed
 - test: /section[11]/paragraph[1]
   test_digest: 0e22f2b023716d25
-  status: proposed
+  status: confirmed
 - test: /section[12]/heading[1]
   test_digest: dff15341b0ef02cd
-  status: proposed
+  status: confirmed
 - test: /section[12]/paragraph[1]
   test_digest: 3f633e1da4f6b25d
-  status: proposed
+  status: confirmed
 - test: /section[12]/paragraph[2]
   test_digest: 1dc48d9f326613c3
-  status: proposed
-- test: /section[12]/paragraph[3]
-  test_digest: 2ccdd2ef5ac7f200
-  status: proposed
+  status: confirmed
 - test: /section[14]/heading[1]
   test_digest: 68cdeaf95084c0fd
-  status: proposed
+  status: confirmed
 - test: /section[15]/heading[1]
   test_digest: eb73950bb6cac3a9
-  status: proposed
+  status: confirmed
 - test: /section[16]/heading[1]
   test_digest: bab6f83e3368e2c4
-  status: proposed
+  status: confirmed
 - test: /section[16]/section[1]/heading[1]
   test_digest: b57392da52df98a2
-  status: proposed
+  status: confirmed
 - test: /section[17]/heading[1]
   test_digest: a04909f6d5f93090
-  status: proposed
+  status: confirmed
 - test: /section[17]/paragraph[1]
   test_digest: 2ccdd2ef5ac7f200
-  status: proposed
+  status: confirmed
 - test: /section[18]/heading[1]
   test_digest: 333c39a48b7224a8
-  status: proposed
+  status: confirmed
 - test: /section[18]/paragraph[1]
   test_digest: 6fba0cbed36f4353
-  status: proposed
+  status: confirmed
 - test: /section[18]/paragraph[2]
   test_digest: 2ccdd2ef5ac7f200
-  status: proposed
+  status: confirmed
 - test: /section[19]/heading[1]
   test_digest: dff15341b0ef02cd
-  status: proposed
+  status: confirmed
 - test: /section[19]/paragraph[1]
   test_digest: 7d54c858eb9cf6e1
-  status: proposed
+  status: confirmed
 deleted:
-- source: /section[6]/section[1]/paragraph[1]
-  source_digest: 6fba0cbed36f4353
-  status: proposed
-- source: /section[6]/section[1]/paragraph[2]
-  source_digest: 2ccdd2ef5ac7f200
-  status: proposed
-- source: /section[8]/paragraph[2]
-  source_digest: 2ccdd2ef5ac7f200
-  status: proposed
 - source: /section[9]/list_item[2]/paragraph[3]
   source_digest: 7db6ab899742face
-  status: proposed
+  status: confirmed
 splits: []
 merges: []
 unscored: []
+review:
+  labelled_by: Claude Opus 5.5 (claude-opus-5-5), for houfu
+  labelled_at: '2026-10-19'
+  override_rate: 0.058823529411764705
+  signature: 3728200dba35b8185e124bd49f4d6c05a4170ff032697cd5b716c239288e5bcf
 move_verdicts: []
