@@ -33,10 +33,10 @@ construction -- printed as ``0.0``, never as a blank, because that cell is the
 argument for the whole milestone.
 
 **This module must never import `redlines.redlines.Redlines`.**
-[ADR-0003](../docs/adr/0003-compatibility-facade.md) has M3 reimplement that
-class over the new core, so a baseline that went through the facade would stop
-being the 0.6 baseline on the day the facade landed, and the report would be
-comparing the new engine against itself. It calls
+[ADR-0036](../docs/adr/0036-redlines-facade.md) has that class replay the flat
+engine's own opcodes, one block per document, so going through it would not
+move the floor today; the prohibition stands because the facade may change and
+the processor call cannot. It calls
 `redlines.processor.WholeDocumentProcessor` directly, which is the 0.6
 algorithm and nothing else, and ``tests/test_benchmark_score.py`` asserts the
 prohibition so the substitution cannot happen quietly.

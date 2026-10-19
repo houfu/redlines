@@ -262,18 +262,23 @@ class Comparison:
     `redlines.pipeline.read_document` built them, the alignment, the change
     tree and the configuration that produced all of it.
 
-    The M3 renderers arrive as methods on this class -- ``output_markdown()``,
-    ``output_rich()``, `output_html`, ``output_annotated()`` and
-    ``output_summary()`` -- and are named here so M3 has no naming argument to
-    have. ``statistics()`` (#139) and ``filter()`` (#138) land the same way,
-    on the object rather than as loose functions.
-
-    The renderers that have landed, by signature (ADR-0037):
+    The renderers are methods on this class (ADR-0037, ADR-0038), each
+    returning one output of the same comparison:
 
     - ``output_markdown(style=MarkdownStyle.RED_GREEN, *, ins_class=None, del_class=None) -> str``
-    - ``output_rich() -> rich.text.Text``
-    - ``output_annotated(*, syntax=None, roles=True) -> str``
-    - ``output_html() -> str``
+      returns the test document with its changes marked in one of 0.6's six
+      markdown styles or ``custom_css``;
+    - ``output_rich() -> rich.text.Text`` returns the test document as styled
+      terminal text, under a header line that counts the changes;
+    - ``output_annotated(*, syntax=None, roles=True) -> str`` returns the test
+      document with its changes marked in place in CriticMarkup, or, for
+      ``syntax="html"``, as an HTML document view;
+    - ``output_html() -> str`` returns the change list as one script-free HTML
+      fragment.
+
+    ``output_summary()`` arrives in M5 (ADR-0016). ``statistics()`` (#139) and
+    ``filter()`` (#138) are methods on the object in the same way, not loose
+    functions.
 
     :param source: the earlier document's block tree.
     :param test: the later one's.

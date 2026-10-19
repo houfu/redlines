@@ -19,7 +19,7 @@ nine labelled test blocks, one insertion (``1.3``) and one deletion (``3.2``).
 
 `benchmark.baselines` and `benchmark.units` are tested against the same
 fixture, including the prohibition that keeps the 0.6 floor from quietly
-becoming the M3 facade.
+becoming the `Redlines` facade.
 """
 
 from __future__ import annotations
@@ -932,9 +932,9 @@ def test_the_floor_scores_zero_move_and_renumber_recall_rather_than_blank(
 
 
 def test_the_baseline_never_reaches_the_redlines_facade() -> None:
-    """ADR-0003 has M3 reimplement `Redlines` over this same core, so a baseline that
-    went through it would stop being the 0.6 baseline on the day the facade lands and
-    the report would be comparing the new engine with itself.
+    """ADR-0036 has `Redlines` replay the flat engine's own opcodes, one block per
+    document, so a baseline that went through it would not move the floor today; the
+    prohibition stands because the facade may change and the processor call cannot.
 
     Asserted against the source rather than against a mock, because the failure this
     guards is somebody editing the module later.
