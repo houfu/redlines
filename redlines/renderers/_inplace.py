@@ -26,9 +26,11 @@ paragraph, list item) on a line of its own:
   the origin, deleted and moved-out descendants included, and its whole test
   subtree inserted at the destination with no ghost or tombstone drawn inside
   it;
-- a label that changed is a substitution as the label part, or a delete then
-  an insert in a set without one; in the markdown variant a list-marker label
-  stays in the syntax head and a note-bearing set says
+- a label that changed is a substitution as the label part when both sides
+  have a label, or a delete then an insert in a set without one; a block that
+  lost its label writes the delete form (``{--OLD --}``) and one that gained a
+  label the insert form (``{++NEW ++}``); in the markdown variant a
+  list-marker label stays in the syntax head and a note-bearing set says
   ``{>>renumbered from OLD<<}`` instead, because a mark inside the marker would
   break the list.
 

@@ -223,10 +223,12 @@ def _methodology(results: Mapping[str, Any]) -> list[str]:
         "### The 0.6 floor, and how a flat engine gets an address",
         "",
         "The floor is the flat engine called directly -- "
-        "`WholeDocumentProcessor(autojunk=False)`, never the `Redlines` class, which "
-        "M3 reimplements over this same core and which would therefore stop being the "
-        "0.6 baseline the day the facade lands. A test asserts the import prohibition so "
-        "the substitution cannot happen quietly.",
+        "`WholeDocumentProcessor(autojunk=False)`, never the `Redlines` class. "
+        "[ADR-0036](../docs/adr/0036-redlines-facade.md) has that class replay the "
+        "flat engine's own opcodes, one block per document, so going through it "
+        "would not move the floor today; the prohibition stands because the facade "
+        "may change and the processor call cannot. A test asserts the import "
+        "prohibition so the substitution cannot happen quietly.",
         "",
         "0.6 has no block model, so getting a correspondence set out of it means "
         "deciding what its opcodes *imply*. There are exactly two decisions, and this is "
