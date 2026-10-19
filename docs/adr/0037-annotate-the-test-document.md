@@ -2,6 +2,7 @@
 
 **Status:** Accepted
 **Date:** 2026-10-18
+**Amended:** 2026-10-19 -- the choices the implementation fixed (#192 to #195). See *Amendment* below.
 **Deciders:** houfu
 
 ## Context
@@ -365,6 +366,21 @@ Output is deterministic, as N1 requires:
 - floats are written as `repr(round(x, 4))`, the digits the JSON uses.
 
 With `roles=True` there is one more exception: where an edit at the very start of a block leaves only one side's text beginning like a role prefix, such as `[2020] SGCA 5`, the escape serves the accept side, so reject-all may read `[2020]` as a role and drop it, or keep a stray backslash before it. A strict expected-failure test pins the limit.
+
+## Amendment, 2026-10-19: choices the implementation fixed
+
+Building the renderers (#192 to #195) and reviewing them against this ADR fixed ten details that the text left open or worded loosely. Two other choices are already in the Decision and are not repeated: the label part's delete and insert forms, for a block that lost or gained its label (`LABEL-PART`), and the fence length measured over the accepted body.
+
+- **A bullet has no label.** The text variant writes no `- ` for one. A numbered item's marker is its label in the text variant (`1. First`) and its syntax head in the markdown variant.
+- **Filtered-note values.** A boolean is written `true` or `false`, and `false` is a constraint, so it is written. A zero or an empty field was never set and is left out: `{>>filtered: kinds=modify,insert; min_chars=1; has_inline=true<<}`.
+- **A quote composes with a head.** `> ` comes first, then the head, then the role. A quoted list is one `> ` chunk per item with a blank line between, which CommonMark reads as separate blockquotes, and a quoted heading is written `> Quoted heading` without its `#`, because the readers give it the kind `paragraph`.
+- **The line-start escape is decided per side and per physical line.** *Order* puts that site at the raw start of a line's first content piece. The renderer works from what a reader recovers, so a `[` exposed by a removed note, or starting a continuation line of a quote, is escaped too, and where one string cannot serve both sides the accept side wins, which is the limit named under *Where the code lives, and determinism*.
+- **An empty role is no role.** A block whose `role` is the empty string writes no prefix, because `ENCODED-ROLE` has at least one character and `[] ` could not be read back.
+- **A row that gained or lost a cell** is drawn as its test row inserted and its source row deleted, so neither side reads back a cell the other lacks. Adding a column therefore draws every row twice, the header included, with the alignment row between the first pair. Accept-all stays exact, and reject-all recovers every source row.
+- **A moved block with no line of its own** gets its note as a chunk of its own. A fence ends in its closing fence, so `{>>moved from SRC_LABEL SRC_ADDRESS<<}` follows it; a section, which moves only under a custom `move_kinds`, gets the same chunk before its first block.
+- **An empty chunk is left out.** An empty paragraph therefore vanishes from every rendering, accept-all included.
+- **A filter can drop a tombstone.** A move out of a deleted block has its tombstone inside the block's ghost. When a filter removes the deletion the ghost is not drawn, and the tombstone goes with it, so the destination's `moved from` note is then the only trace of the move.
+- **A renumbered list-marker label is unmarked in the markdown variant of the six legacy styles.** The marker is the syntax head, so the label part is empty, and `DEL("1. ")INS("2. ")` after the head would read back as `2. 2. Alpha` and break the `none` style's accept-all. The text variant marks it (`<del>1. </del><ins>2. </ins>Alpha`), and the note-bearing sets say `{>>renumbered from 1.<<}`.
 
 ## Alternatives considered
 
