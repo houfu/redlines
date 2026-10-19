@@ -21,7 +21,9 @@ own alignment, every row still ``status: proposed``. Scoring the engine against
 its own unreviewed proposals produces 1.0000 and means nothing, so a gate that
 read only the ratio could be passed by a benchmark that had never been
 labelled. ADR-0034 says a proposed row is not ground truth; this test says the
-same thing where it can fail.
+same thing where it can fail. It also asserts every hand pair names a reviewer, because a
+labeller's signature alone is not sign-off: ADR-0034 keeps the two passes
+separate.
 
 Everything here runs under the ``difflib`` backend -- the floor the
 documentation site runs on (PRD § 12), and the backend the report quotes its
@@ -91,8 +93,9 @@ def test_synthetic_correspondence_f1_meets_the_target(results: dict[str, Any]) -
 
 @pytest.mark.xfail(
     strict=True,
-    reason="the hand tier's labels are still engine-seeded drafts (#142): every row "
-    "is status: proposed, so its F1 measures self-agreement and is not evidence",
+    reason="the hand tier's labels are labelled but not yet reviewed (#142): a "
+    "labeller has confirmed or corrected every row, but ADR-0034 keeps the review as a "
+    "separate pass and its sign-off is what makes the labels ground truth",
 )
 def test_hand_correspondence_f1_meets_the_target(results: dict[str, Any]) -> None:
     """PRD § 10: correspondence F1 ≥ 0.85 on the hand-labelled tier.
@@ -100,10 +103,21 @@ def test_hand_correspondence_f1_meets_the_target(results: dict[str, Any]) -> Non
     The confirmation check is part of the gate, not a separate courtesy: a
     ratio computed against rows this engine proposed and nobody reviewed is not
     a measurement of the engine.
+    So is the review check: a labeller's signature alone is one reading of the
+    pairs, and #142 says the labels need a reviewer, not just a labeller.
     """
     assert _proposed_rows(results, "hand") == 0, (
         "the hand tier's labels are still drafts; run benchmark/label.py check "
         "and sign before quoting this number"
+    )
+    unreviewed = [
+        pair["pair"]
+        for pair in _tier(results, "hand")["pairs"]
+        if not pair.get("labels_reviewed", False)
+    ]
+    assert not unreviewed, (
+        "the hand tier's labels have no reviewer sign-off yet: "
+        f"{', '.join(unreviewed)}; run benchmark/label.py sign --role reviewer"
     )
     f1 = _tier(results, "hand")["links"]["f1"]
     assert f1 is not None

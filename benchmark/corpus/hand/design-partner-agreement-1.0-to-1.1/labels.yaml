@@ -26,7 +26,7 @@ correspondences:
   test_label: null
   source_digest: d5a6d7107592b44f
   test_digest: d5a6d7107592b44f
-  status: proposed
+  status: confirmed
 - source: /section[1]/list_item[1]
   test: /section[1]/list_item[1]
   kind: same
@@ -34,7 +34,7 @@ correspondences:
   test_label: '1'
   source_digest: 53fcb4d20907c872
   test_digest: 53fcb4d20907c872
-  status: proposed
+  status: confirmed
 - source: /section[1]/list_item[1]/list_item[1]
   test: /section[1]/list_item[1]/list_item[1]
   kind: same
@@ -42,7 +42,7 @@ correspondences:
   test_label: '1'
   source_digest: a58a3bf1153c189e
   test_digest: a58a3bf1153c189e
-  status: proposed
+  status: confirmed
 - source: /section[1]/list_item[1]/list_item[2]
   test: /section[1]/list_item[1]/list_item[2]
   kind: same
@@ -50,7 +50,7 @@ correspondences:
   test_label: '2'
   source_digest: e6f6ac41fd24dcd2
   test_digest: b834e4de5ffc6178
-  status: proposed
+  status: confirmed
 - source: /section[1]/list_item[1]/list_item[3]
   test: /section[1]/list_item[1]/list_item[3]
   kind: same
@@ -58,7 +58,7 @@ correspondences:
   test_label: '3'
   source_digest: a45d4922aedf957f
   test_digest: a45d4922aedf957f
-  status: proposed
+  status: confirmed
 - source: /section[1]/list_item[2]
   test: /section[1]/list_item[2]
   kind: same
@@ -66,7 +66,7 @@ correspondences:
   test_label: '2'
   source_digest: 7a63bc61769419c6
   test_digest: 7a63bc61769419c6
-  status: proposed
+  status: confirmed
 - source: /section[1]/list_item[2]/list_item[1]
   test: /section[1]/list_item[2]/list_item[1]
   kind: same
@@ -74,7 +74,7 @@ correspondences:
   test_label: '1'
   source_digest: 644ca37bbbf6ae6e
   test_digest: 644ca37bbbf6ae6e
-  status: proposed
+  status: confirmed
 - source: /section[1]/list_item[3]
   test: /section[1]/list_item[3]
   kind: same
@@ -82,7 +82,7 @@ correspondences:
   test_label: '3'
   source_digest: 105022554e34e9b3
   test_digest: 105022554e34e9b3
-  status: proposed
+  status: confirmed
 - source: /section[1]/list_item[3]/list_item[1]
   test: /section[1]/list_item[3]/list_item[1]
   kind: same
@@ -90,7 +90,7 @@ correspondences:
   test_label: '1'
   source_digest: d3414153b1341610
   test_digest: d3414153b1341610
-  status: proposed
+  status: confirmed
 - source: /section[1]/list_item[3]/list_item[2]
   test: /section[1]/list_item[3]/list_item[2]
   kind: same
@@ -98,7 +98,7 @@ correspondences:
   test_label: '2'
   source_digest: 61dc78c3174b9fa2
   test_digest: 61dc78c3174b9fa2
-  status: proposed
+  status: confirmed
 - source: /section[1]/list_item[3]/list_item[3]
   test: /section[1]/list_item[3]/list_item[3]
   kind: same
@@ -106,7 +106,7 @@ correspondences:
   test_label: '3'
   source_digest: 81ec2ee18aaeeef5
   test_digest: 81ec2ee18aaeeef5
-  status: proposed
+  status: confirmed
 - source: /section[1]/list_item[4]
   test: /section[1]/list_item[4]
   kind: same
@@ -114,7 +114,7 @@ correspondences:
   test_label: a
   source_digest: e2466e08632a96b3
   test_digest: e2466e08632a96b3
-  status: proposed
+  status: confirmed
 - source: /section[1]/list_item[5]
   test: /section[1]/list_item[5]
   kind: same
@@ -122,7 +122,7 @@ correspondences:
   test_label: b
   source_digest: ee15527ed0d4fc2a
   test_digest: ee15527ed0d4fc2a
-  status: proposed
+  status: confirmed
 - source: /section[1]/list_item[5]/list_item[1]
   test: /section[1]/list_item[5]/list_item[1]
   kind: same
@@ -130,7 +130,7 @@ correspondences:
   test_label: '4'
   source_digest: cd8acc25a6098419
   test_digest: cd8acc25a6098419
-  status: proposed
+  status: confirmed
 - source: /section[1]/list_item[6]
   test: /section[1]/list_item[6]
   kind: same
@@ -138,7 +138,7 @@ correspondences:
   test_label: a
   source_digest: f17e150f6fb4d5a8
   test_digest: f17e150f6fb4d5a8
-  status: proposed
+  status: confirmed
 - source: /section[1]/list_item[7]
   test: /section[1]/list_item[7]
   kind: same
@@ -146,7 +146,7 @@ correspondences:
   test_label: b
   source_digest: 40808a8f56700cc7
   test_digest: 40808a8f56700cc7
-  status: proposed
+  status: confirmed
 - source: /section[1]/list_item[8]
   test: /section[1]/list_item[8]
   kind: same
@@ -154,7 +154,7 @@ correspondences:
   test_label: '4'
   source_digest: 87a034b67317c596
   test_digest: 87a034b67317c596
-  status: proposed
+  status: confirmed
 - source: /section[1]/list_item[8]/list_item[1]
   test: /section[1]/list_item[8]/list_item[1]
   kind: same
@@ -162,7 +162,7 @@ correspondences:
   test_label: '1'
   source_digest: f3458f2973eb233f
   test_digest: f3458f2973eb233f
-  status: proposed
+  status: confirmed
 - source: /section[1]/list_item[9]
   test: /section[1]/list_item[9]
   kind: same
@@ -170,7 +170,7 @@ correspondences:
   test_label: '5'
   source_digest: e1506707df8e4430
   test_digest: e1506707df8e4430
-  status: proposed
+  status: confirmed
 - source: /section[1]/list_item[9]/list_item[1]
   test: /section[1]/list_item[9]/list_item[1]
   kind: same
@@ -178,7 +178,7 @@ correspondences:
   test_label: '1'
   source_digest: 6629098bc6153719
   test_digest: 6629098bc6153719
-  status: proposed
+  status: confirmed
 - source: /section[1]/list_item[9]/list_item[2]
   test: /section[1]/list_item[9]/list_item[2]
   kind: same
@@ -186,7 +186,7 @@ correspondences:
   test_label: '2'
   source_digest: a154e32193964056
   test_digest: a154e32193964056
-  status: proposed
+  status: confirmed
 - source: /section[1]/list_item[9]/list_item[3]
   test: /section[1]/list_item[9]/list_item[3]
   kind: same
@@ -194,7 +194,7 @@ correspondences:
   test_label: '3'
   source_digest: 7724cbd09c427a17
   test_digest: f280649c83c3ac44
-  status: proposed
+  status: confirmed
 - source: /section[1]/list_item[9]/list_item[4]
   test: /section[1]/list_item[9]/list_item[4]
   kind: same
@@ -202,7 +202,7 @@ correspondences:
   test_label: '4'
   source_digest: b1fbfe029f2b3d62
   test_digest: b1fbfe029f2b3d62
-  status: proposed
+  status: confirmed
 - source: /section[1]/list_item[10]
   test: /section[1]/list_item[10]
   kind: same
@@ -210,7 +210,7 @@ correspondences:
   test_label: '6'
   source_digest: aa549b90f1289504
   test_digest: aa549b90f1289504
-  status: proposed
+  status: confirmed
 - source: /section[1]/list_item[10]/list_item[1]
   test: /section[1]/list_item[10]/list_item[1]
   kind: same
@@ -218,7 +218,7 @@ correspondences:
   test_label: '1'
   source_digest: bff24df87b8f7edb
   test_digest: bff24df87b8f7edb
-  status: proposed
+  status: confirmed
 - source: /section[1]/list_item[10]/list_item[2]
   test: /section[1]/list_item[10]/list_item[2]
   kind: same
@@ -226,7 +226,7 @@ correspondences:
   test_label: '2'
   source_digest: 4cd89a1b9bbe4497
   test_digest: 4cd89a1b9bbe4497
-  status: proposed
+  status: confirmed
 - source: /section[1]/list_item[11]
   test: /section[1]/list_item[11]
   kind: same
@@ -234,7 +234,7 @@ correspondences:
   test_label: '7'
   source_digest: e857c83b80502dd9
   test_digest: e857c83b80502dd9
-  status: proposed
+  status: confirmed
 - source: /section[1]/list_item[11]/list_item[1]
   test: /section[1]/list_item[11]/list_item[1]
   kind: same
@@ -242,7 +242,7 @@ correspondences:
   test_label: '1'
   source_digest: db4b32eafeff2450
   test_digest: db4b32eafeff2450
-  status: proposed
+  status: confirmed
 - source: /section[1]/list_item[11]/list_item[2]
   test: /section[1]/list_item[11]/list_item[2]
   kind: same
@@ -250,7 +250,7 @@ correspondences:
   test_label: '2'
   source_digest: 7a7fe152ce78b0df
   test_digest: 7a7fe152ce78b0df
-  status: proposed
+  status: confirmed
 - source: /section[1]/list_item[11]/list_item[3]
   test: /section[1]/list_item[11]/list_item[3]
   kind: same
@@ -258,7 +258,7 @@ correspondences:
   test_label: '3'
   source_digest: f69d3f784f1e9092
   test_digest: f69d3f784f1e9092
-  status: proposed
+  status: confirmed
 - source: /section[1]/list_item[11]/list_item[4]
   test: /section[1]/list_item[11]/list_item[4]
   kind: same
@@ -266,7 +266,7 @@ correspondences:
   test_label: '4'
   source_digest: 57e980060f7ccb73
   test_digest: 57e980060f7ccb73
-  status: proposed
+  status: confirmed
 - source: /section[1]/list_item[11]/list_item[5]
   test: /section[1]/list_item[11]/list_item[5]
   kind: same
@@ -274,7 +274,7 @@ correspondences:
   test_label: '5'
   source_digest: ef943df47506c21e
   test_digest: 850a599ba14f3315
-  status: proposed
+  status: confirmed
 - source: /section[1]/list_item[11]/list_item[6]
   test: /section[1]/list_item[11]/list_item[6]
   kind: same
@@ -282,7 +282,7 @@ correspondences:
   test_label: '6'
   source_digest: 66631a7f1a76b335
   test_digest: 66631a7f1a76b335
-  status: proposed
+  status: confirmed
 - source: /section[1]/list_item[11]/list_item[7]
   test: /section[1]/list_item[11]/list_item[7]
   kind: same
@@ -290,7 +290,7 @@ correspondences:
   test_label: '7'
   source_digest: 92407a131bfd6c9c
   test_digest: 92407a131bfd6c9c
-  status: proposed
+  status: confirmed
 - source: /section[1]/list_item[11]/list_item[8]
   test: /section[1]/list_item[11]/list_item[8]
   kind: same
@@ -298,7 +298,7 @@ correspondences:
   test_label: '8'
   source_digest: 68bc6706e3152751
   test_digest: 68bc6706e3152751
-  status: proposed
+  status: confirmed
 - source: /section[1]/list_item[11]/list_item[9]
   test: /section[1]/list_item[11]/list_item[9]
   kind: same
@@ -306,7 +306,7 @@ correspondences:
   test_label: '9'
   source_digest: 4b1d7d861506ea84
   test_digest: 4b1d7d861506ea84
-  status: proposed
+  status: confirmed
 - source: /section[1]/list_item[11]/list_item[10]
   test: /section[1]/list_item[11]/list_item[10]
   kind: same
@@ -314,7 +314,7 @@ correspondences:
   test_label: '10'
   source_digest: be1b18f8a91d2c63
   test_digest: be1b18f8a91d2c63
-  status: proposed
+  status: confirmed
 - source: /section[1]/list_item[11]/list_item[11]
   test: /section[1]/list_item[11]/list_item[11]
   kind: same
@@ -322,7 +322,7 @@ correspondences:
   test_label: '11'
   source_digest: e71257eae39670a9
   test_digest: e71257eae39670a9
-  status: proposed
+  status: confirmed
 - source: /section[1]/list_item[11]/list_item[12]
   test: /section[1]/list_item[11]/list_item[12]
   kind: same
@@ -330,7 +330,7 @@ correspondences:
   test_label: '12'
   source_digest: 22a8e49fba4d0a7e
   test_digest: 22a8e49fba4d0a7e
-  status: proposed
+  status: confirmed
 - source: /section[1]/list_item[12]
   test: /section[1]/list_item[12]
   kind: same
@@ -338,7 +338,7 @@ correspondences:
   test_label: '8'
   source_digest: bb3651739377eb62
   test_digest: bb3651739377eb62
-  status: proposed
+  status: confirmed
 - source: /section[1]/list_item[12]/list_item[1]
   test: /section[1]/list_item[12]/list_item[1]
   kind: same
@@ -346,7 +346,7 @@ correspondences:
   test_label: '1'
   source_digest: 7f1c7f1a921bd047
   test_digest: 7f1c7f1a921bd047
-  status: proposed
+  status: confirmed
 - source: /section[1]/list_item[12]/list_item[2]
   test: /section[1]/list_item[12]/list_item[2]
   kind: same
@@ -354,7 +354,7 @@ correspondences:
   test_label: '2'
   source_digest: 9a6540719f732ff0
   test_digest: 9a6540719f732ff0
-  status: proposed
+  status: confirmed
 - source: /section[1]/list_item[12]/list_item[3]
   test: /section[1]/list_item[12]/list_item[3]
   kind: same
@@ -362,7 +362,7 @@ correspondences:
   test_label: '3'
   source_digest: 5581a15c77cd7535
   test_digest: 5581a15c77cd7535
-  status: proposed
+  status: confirmed
 - source: /section[1]/list_item[12]/list_item[4]
   test: /section[1]/list_item[12]/list_item[4]
   kind: same
@@ -370,7 +370,7 @@ correspondences:
   test_label: '4'
   source_digest: 5e54685e42e3de63
   test_digest: 5e54685e42e3de63
-  status: proposed
+  status: confirmed
 - source: /section[1]/list_item[12]/list_item[5]
   test: /section[1]/list_item[12]/list_item[5]
   kind: same
@@ -378,7 +378,7 @@ correspondences:
   test_label: '5'
   source_digest: d3a38a7d755064a3
   test_digest: d3a38a7d755064a3
-  status: proposed
+  status: confirmed
 - source: /section[1]/list_item[12]/list_item[6]
   test: /section[1]/list_item[12]/list_item[6]
   kind: same
@@ -386,7 +386,7 @@ correspondences:
   test_label: '6'
   source_digest: f1e9de7687e37748
   test_digest: f1e9de7687e37748
-  status: proposed
+  status: confirmed
 - source: /section[1]/list_item[12]/list_item[7]
   test: /section[1]/list_item[12]/list_item[7]
   kind: same
@@ -394,7 +394,7 @@ correspondences:
   test_label: '7'
   source_digest: e493d149bc1a6b3e
   test_digest: e493d149bc1a6b3e
-  status: proposed
+  status: confirmed
 - source: /section[1]/list_item[12]/list_item[8]
   test: /section[1]/list_item[12]/list_item[8]
   kind: same
@@ -402,10 +402,15 @@ correspondences:
   test_label: '8'
   source_digest: 227856edaa0ce4c9
   test_digest: 227856edaa0ce4c9
-  status: proposed
+  status: confirmed
 inserted: []
 deleted: []
 splits: []
 merges: []
 unscored: []
+review:
+  labelled_by: Claude Opus 5.5 (claude-opus-5-5), for houfu
+  labelled_at: '2026-10-19'
+  override_rate: 0.0
+  signature: 037a66d6a44e0cd5bd6417e712804af9d58a7c8fc445731141e0c6795bb54fe9
 move_verdicts: []

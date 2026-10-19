@@ -109,16 +109,46 @@ def _draft_tiers(results: Mapping[str, Any]) -> dict[str, int]:
     return draft
 
 
+def _unreviewed_tiers(results: Mapping[str, Any]) -> dict[str, int]:
+    """Tiers with pairs a labeller has signed but no reviewer has, and how many pairs.
+
+    No row is ``proposed`` any more, so these are labels rather than drafts, but
+    ADR-0034 keeps labelling and reviewing as separate passes and #142 says the
+    labels need a reviewer, not just a labeller. Until the reviewer's pass the
+    numbers are one person's reading, and the tables say so.
+    """
+    unreviewed: dict[str, int] = {}
+    for entry in results["tiers"]:
+        pairs = sum(
+            1
+            for pair in entry["pairs"]
+            if pair["labels_signed"] and not pair.get("labels_reviewed", False)
+        )
+        if pairs:
+            unreviewed[entry["tier"]] = max(unreviewed.get(entry["tier"], 0), pairs)
+    return unreviewed
+
+
+def _flagged_tiers(results: Mapping[str, Any]) -> dict[str, int]:
+    """Every tier a table should dagger: drafts, and labels still awaiting review."""
+    return {**_unreviewed_tiers(results), **_draft_tiers(results)}
+
+
 def _mark(tier: str, draft: Mapping[str, int]) -> str:
-    """Render a tier name for a table cell, daggered when its labels are drafts."""
+    """Render a tier name for a table cell, daggered when its labels are not yet reviewed."""
     return f"`{tier}` \u2020" if tier in draft else f"`{tier}`"
 
 
 def _draft_note(results: Mapping[str, Any]) -> list[str]:
     """The footnote every daggered table carries, or nothing when none is."""
     draft = _draft_tiers(results)
+    unreviewed = {
+        tier: pairs
+        for tier, pairs in _unreviewed_tiers(results).items()
+        if tier not in draft
+    }
     if not draft:
-        return []
+        return _unreviewed_note(unreviewed)
     listed = ", ".join(
         f"`{tier}` ({rows} rows)" for tier, rows in sorted(draft.items())
     )
@@ -132,6 +162,25 @@ def _draft_note(results: Mapping[str, Any]) -> list[str]:
         "numbers are published anyway, marked, because suppressing them until the "
         "labelling is finished would make the unfinished labelling invisible -- which is "
         "the failure ADR-0021 built this report to prevent.",
+        "",
+        *_unreviewed_note(unreviewed),
+    ]
+
+
+def _unreviewed_note(unreviewed: Mapping[str, int]) -> list[str]:
+    """The footnote for labelled-but-unreviewed tiers, or nothing when there are none."""
+    if not unreviewed:
+        return []
+    listed = ", ".join(
+        f"`{tier}` ({pairs} pairs)" for tier, pairs in sorted(unreviewed.items())
+    )
+    return [
+        f"\u2020 **These labels are signed by a labeller but not yet reviewed: {listed}.** "
+        "Every row has been confirmed or corrected, so they are not engine drafts, but "
+        "ADR-0034 keeps labelling and reviewing as separate passes and the reviewer's "
+        "sign-off is what makes them ground truth. Read the numbers as one reading of "
+        "the pairs until the `review` block names a reviewer, and read `How much to "
+        "trust the labels` below for who labelled them.",
         "",
     ]
 
@@ -358,7 +407,7 @@ def _corpus(results: Mapping[str, Any]) -> list[str]:
 
 def _headline_rows(results: Mapping[str, Any], key: str) -> list[list[str]]:
     """One row per (tier, engine, backend), for the ``links`` or ``flat_links`` set."""
-    draft = _draft_tiers(results)
+    draft = _flagged_tiers(results)
     rows: list[list[str]] = []
     for entry in results["tiers"]:
         counts = entry[key]
@@ -640,12 +689,13 @@ def _honesty(results: Mapping[str, Any]) -> list[str]:
         "",
         "The synthetic tier's labels are what the generator *did*, so they are ground "
         "truth by construction. The hand tier's were seeded from this engine and then "
-        "corrected by a human, which is the sharpest form of the self-marking risk "
+        "confirmed or corrected by a labeller -- the `review` block in each file names "
+        "who -- which is the sharpest form of the self-marking risk "
         "ADR-0021 names. Three things are printed rather than argued about: how many "
         "rows a labeller changed (`override rate` -- a suspiciously low one is the "
         "visible symptom of somebody agreeing with everything), how many rows are still "
         "`proposed` and therefore not yet ground truth at all, and whether the pair has "
-        "been signed off.",
+        "been signed by a labeller and, separately, by a reviewer.",
         "",
         "Moves are never engine-seeded, in either tier.",
         "",
@@ -657,6 +707,7 @@ def _honesty(results: Mapping[str, Any]) -> list[str]:
             continue
         pairs = entry["pairs"]
         signed = sum(1 for pair in pairs if pair["labels_signed"])
+        reviewed = sum(1 for pair in pairs if pair.get("labels_reviewed", False))
         proposed = sum(pair["proposed_rows"] for pair in pairs)
         rates = [
             pair["override_rate"] for pair in pairs if pair["override_rate"] is not None
@@ -665,6 +716,7 @@ def _honesty(results: Mapping[str, Any]) -> list[str]:
             [
                 f"`{tier}`",
                 f"{signed}/{len(pairs)}",
+                f"{reviewed}/{len(pairs)}",
                 str(proposed),
                 _fmt(sum(rates) / len(rates)) if rates else "n/a",
                 str(entry["skipped_splits"]),
@@ -675,7 +727,8 @@ def _honesty(results: Mapping[str, Any]) -> list[str]:
         _table(
             [
                 "Tier",
-                "Signed off",
+                "Labelled",
+                "Reviewed",
                 "Rows still proposed",
                 "Mean override rate",
                 "Splits skipped",
@@ -738,7 +791,7 @@ def _roles(results: Mapping[str, Any]) -> list[str]:
 def _gate_status(results: Mapping[str, Any]) -> list[str]:
     """Where each PRD § 10 target stands, and what the gate test does about it."""
     backend = _primary_backend(results)
-    draft = _draft_tiers(results)
+    draft = _flagged_tiers(results)
     rows: list[list[str]] = []
     for tier, name, target in GATES:
         entry = _tier(results, tier, "1.0", backend)
@@ -756,7 +809,11 @@ def _gate_status(results: Mapping[str, Any]) -> list[str]:
                 name,
                 f"≥ {target:.2f}",
                 _fmt(value),
-                "not assessed (draft labels)"
+                (
+                    "not assessed (draft labels)"
+                    if tier in _draft_tiers(results)
+                    else "not assessed (awaiting review)"
+                )
                 if tier in draft
                 else ("met" if met else "not met"),
             ]
@@ -793,10 +850,11 @@ def _gate_status(results: Mapping[str, Any]) -> list[str]:
         "removed by hand. That is the forcing function: a gate cannot be left quietly "
         "marked as expected-to-fail once it is green.",
         "",
-        "A tier whose labels are still drafts reads **not assessed** rather than *met*, "
-        "however high its number is, and the gate test for it asserts that its labels "
-        "are confirmed as well as that the ratio clears the bar. A gate an engine can "
-        "pass by being marked by itself is not a gate.",
+        "A tier whose labels are still drafts, or are labelled but not yet reviewed, "
+        "reads **not assessed** rather than *met*, however high its number is, and the "
+        "gate test for it asserts that its labels are confirmed and reviewed as well as "
+        "that the ratio clears the bar. A gate an engine can pass by being marked by "
+        "itself is not a gate, and neither is one a single labeller can pass alone.",
         "",
         *_table(["Tier", "Gate", "Target", "Measured", "Standing"], rows),
         "",

@@ -48,12 +48,12 @@ uv run python -m benchmark.label check benchmark/corpus/hand/<pair>  # schema, d
 uv run python -m benchmark.label sign benchmark/corpus/hand/<pair> --as NAME --role labeller
 ```
 
-Every pair committed in this repository today is at the `init` stage: `labels.yaml` carries
-`status: proposed` on every row, `review:` is absent, and **no row anywhere has `kind:
-move`** — moves are never engine-seeded (`benchmark/label.py`'s own docstring says why), so a
-pair's `move_worksheet.md` is where a human labels them, from a blank sheet. These are drafts,
-not ground truth, until a maintainer has worked through each `worksheet.md`, corrected what the
-engine got wrong, labelled moves independently, and run `label.py sign`.
+All ten pairs have had their labelling pass: every row is `confirmed` or `corrected`, moves
+were labelled from each pair's blank `move_worksheet.md` (never from the engine), and every
+`review:` block carries a labeller's signature. They are **not ground truth until a reviewer
+signs too**, on a separate pass (`label.py sign --role reviewer`), and rules on every engine
+move the labels do not account for in `move_verdicts`. Until then `REPORT.md` daggers the hand
+tier as *awaiting review* and the hand-tier F1 gate stays closed.
 
 ## The synthetic tier (#141)
 

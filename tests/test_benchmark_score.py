@@ -1008,7 +1008,12 @@ def _results() -> dict[str, object]:
                             test_label="2.1",
                         ),
                     ),
-                    review=Review(labelled_by="houfu", labelled_at="2026-09-05"),
+                    review=Review(
+                        labelled_by="houfu",
+                        labelled_at="2026-09-05",
+                        reviewed_by="houfu",
+                        reviewed_at="2026-09-06",
+                    ),
                 ),
                 reported=LINKS,
                 source_tree=read_document(
@@ -1082,6 +1087,24 @@ def test_the_report_says_a_single_backend_run_leaves_the_gap_unmeasured() -> Non
     """Better an explicit hole than a table that looks complete."""
     report = render_report(_results())
     assert "Unmeasured in this run" in report
+
+
+def test_the_report_marks_a_tier_labelled_but_not_reviewed() -> None:
+    """A labeller's signature alone is not sign-off (ADR-0034, #142); it is daggered."""
+    results = _results()
+    tiers = results["tiers"]
+    assert isinstance(tiers, list)
+    tiers[0]["pairs"][0]["labels_reviewed"] = False
+    report = render_report(results)
+    assert "signed by a labeller but not yet reviewed" in report
+    assert "`hand` †" in report
+
+
+def test_a_reviewed_tier_is_not_daggered() -> None:
+    """Once a reviewer has signed, the hand tier reads as ground truth."""
+    report = render_report(_results())
+    assert "`hand` †" not in report
+    assert "signed by a labeller but not yet reviewed" not in report
 
 
 def test_the_report_marks_a_draft_labelled_tier() -> None:

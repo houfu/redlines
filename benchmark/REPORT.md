@@ -93,9 +93,9 @@ The honest end-to-end number: every text-bearing block plus table rows.
 | `synthetic` | 1.0 | difflib | 1580 | 1579 | 0.9753 | 0.9747 | 0.9750 | 0.0000 | 0.7826 | 0.9932 |
 | `synthetic` | 1.0 | rapidfuzz | 1580 | 1579 | 0.9753 | 0.9747 | 0.9750 | 0.0000 | 0.7826 | 0.9932 |
 | `synthetic` | 0.6 | none | 1580 | 1327 | 0.9789 | 0.8222 | 0.8937 | 0.0121 | 0.0000 | 0.0000 |
-| `hand` † | 1.0 | difflib | 644 | 644 | 1.0000 | 1.0000 | 1.0000 | 0.0000 | n/a | 1.0000 |
-| `hand` † | 1.0 | rapidfuzz | 644 | 644 | 1.0000 | 1.0000 | 1.0000 | 0.0000 | n/a | 1.0000 |
-| `hand` † | 0.6 | none | 644 | 653 | 0.9648 | 0.9783 | 0.9715 | 0.0337 | n/a | 0.0000 |
+| `hand` † | 1.0 | difflib | 652 | 642 | 1.0000 | 0.9847 | 0.9923 | 0.0000 | 0.0000 | 0.9612 |
+| `hand` † | 1.0 | rapidfuzz | 652 | 642 | 1.0000 | 0.9847 | 0.9923 | 0.0000 | 0.0000 | 0.9612 |
+| `hand` † | 0.6 | none | 652 | 649 | 0.9800 | 0.9755 | 0.9777 | 0.0185 | 0.0000 | 0.0000 |
 
 ### Blocks the flat engine can address
 
@@ -106,29 +106,29 @@ The like-for-like number: table `row` and `cell` blocks dropped from both sides,
 | `synthetic` | 1.0 | difflib | 1444 | 1443 | 0.9730 | 0.9723 | 0.9726 | 0.0000 | 0.7826 | 0.9932 |
 | `synthetic` | 1.0 | rapidfuzz | 1444 | 1443 | 0.9730 | 0.9723 | 0.9726 | 0.0000 | 0.7826 | 0.9932 |
 | `synthetic` | 0.6 | none | 1444 | 1327 | 0.9789 | 0.8996 | 0.9376 | 0.0121 | 0.0000 | 0.0000 |
-| `hand` † | 1.0 | difflib | 644 | 644 | 1.0000 | 1.0000 | 1.0000 | 0.0000 | n/a | 1.0000 |
-| `hand` † | 1.0 | rapidfuzz | 644 | 644 | 1.0000 | 1.0000 | 1.0000 | 0.0000 | n/a | 1.0000 |
-| `hand` † | 0.6 | none | 644 | 653 | 0.9648 | 0.9783 | 0.9715 | 0.0337 | n/a | 0.0000 |
+| `hand` † | 1.0 | difflib | 652 | 642 | 1.0000 | 0.9847 | 0.9923 | 0.0000 | 0.0000 | 0.9612 |
+| `hand` † | 1.0 | rapidfuzz | 652 | 642 | 1.0000 | 0.9847 | 0.9923 | 0.0000 | 0.0000 | 0.9612 |
+| `hand` † | 0.6 | none | 652 | 649 | 0.9800 | 0.9755 | 0.9777 | 0.0185 | 0.0000 | 0.0000 |
 
-† **These labels are drafts, not ground truth: `hand` (644 rows).** Every one of those correspondence rows is still `status: proposed` -- what `benchmark/label.py init` proposed *from this engine's own alignment*, with no human having confirmed or corrected it. A score against them measures whether the engine agrees with itself, so read the row as provenance rather than as evidence, and read `How much to trust the labels` below before quoting it. The numbers are published anyway, marked, because suppressing them until the labelling is finished would make the unfinished labelling invisible -- which is the failure ADR-0021 built this report to prevent.
+† **These labels are signed by a labeller but not yet reviewed: `hand` (10 pairs).** Every row has been confirmed or corrected, so they are not engine drafts, but ADR-0034 keeps labelling and reviewing as separate passes and the reviewer's sign-off is what makes them ground truth. Read the numbers as one reading of the pairs until the `review` block names a reviewer, and read `How much to trust the labels` below for who labelled them.
 
 ## Release gates
 
 PRD § 10's targets, under the `difflib` backend. `tests/test_benchmark_gates.py` asserts each of these as an `xfail(strict=True)` test in the blocking CI job, which means that on the day a gate is met its test **fails because it passed** and the mark has to be removed by hand. That is the forcing function: a gate cannot be left quietly marked as expected-to-fail once it is green.
 
-A tier whose labels are still drafts reads **not assessed** rather than *met*, however high its number is, and the gate test for it asserts that its labels are confirmed as well as that the ratio clears the bar. A gate an engine can pass by being marked by itself is not a gate.
+A tier whose labels are still drafts, or are labelled but not yet reviewed, reads **not assessed** rather than *met*, however high its number is, and the gate test for it asserts that its labels are confirmed and reviewed as well as that the ratio clears the bar. A gate an engine can pass by being marked by itself is not a gate, and neither is one a single labeller can pass alone.
 
 | Tier | Gate | Target | Measured | Standing |
 |---|---|---|---|---|
 | `synthetic` | correspondence F1 | ≥ 0.95 | 0.9750 | met |
-| `hand` † | correspondence F1 | ≥ 0.85 | 1.0000 | not assessed (draft labels) |
+| `hand` † | correspondence F1 | ≥ 0.85 | 0.9923 | not assessed (awaiting review) |
 | `synthetic` | move recall | ≥ 0.90 | 0.7826 | not met |
 | `synthetic` | moves ruled wrong | 0 | 0 | met |
 | `synthetic` | unreviewed engine moves | 0 | 0 | met |
 | `hand` † | moves ruled wrong | 0 | 0 | met |
 | `hand` † | unreviewed engine moves | 0 | 3 | not met |
 
-† **These labels are drafts, not ground truth: `hand` (644 rows).** Every one of those correspondence rows is still `status: proposed` -- what `benchmark/label.py init` proposed *from this engine's own alignment*, with no human having confirmed or corrected it. A score against them measures whether the engine agrees with itself, so read the row as provenance rather than as evidence, and read `How much to trust the labels` below before quoting it. The numbers are published anyway, marked, because suppressing them until the labelling is finished would make the unfinished labelling invisible -- which is the failure ADR-0021 built this report to prevent.
+† **These labels are signed by a labeller but not yet reviewed: `hand` (10 pairs).** Every row has been confirmed or corrected, so they are not engine drafts, but ADR-0034 keeps labelling and reviewing as separate passes and the reviewer's sign-off is what makes them ground truth. Read the numbers as one reading of the pairs until the `review` block names a reviewer, and read `How much to trust the labels` below for who labelled them.
 
 ## What these numbers say
 
@@ -149,7 +149,7 @@ A tier whose labels are still drafts reads **not assessed** rather than *met*, h
 | Tier | ΔPrecision | ΔRecall | ΔF1 | ΔSpurious | ΔMove | ΔRenumber |
 |---|---|---|---|---|---|---|
 | `synthetic` | +0.0000 | +0.0000 | +0.0000 | +0.0000 | +0.0000 | +0.0000 |
-| `hand` | +0.0000 | +0.0000 | +0.0000 | +0.0000 | n/a | +0.0000 |
+| `hand` | +0.0000 | +0.0000 | +0.0000 | +0.0000 | +0.0000 | +0.0000 |
 
 ## Per pass
 
@@ -170,7 +170,7 @@ A pass with a low unique count and a high wrong count is the one to cut.
 | `hand` | `structural` | 6 | 0 | 0 | n/a | n/a |
 | `hand` | `fuzzy` | 59 | 59 | 0 | 0.0000 | 4 |
 | `hand` | `move` | 3 | 3 | 0 | 0.0000 | 3 |
-| `hand` | `positional` | 4 | 4 | 0 | 0.0000 | n/a |
+| `hand` | `positional` | 4 | 2 | 0 | 0.0000 | n/a |
 
 ## Synthetic results by difficulty
 
@@ -193,18 +193,18 @@ The 1.0 engine under `difflib`, grouped by the mutation plan that built the pair
 | Tier | Labelled | Reported | Hits | Precision | Recall | Ruled wrong | Unreviewed |
 |---|---|---|---|---|---|---|---|
 | `synthetic` | 23 | 18 | 18 | 1.0000 | 0.7826 | 0 | 0 |
-| `hand` | 0 | 3 | 0 | 0.0000 | n/a | 0 | 3 |
+| `hand` | 2 | 3 | 0 | 0.0000 | 0.0000 | 0 | 3 |
 
 ## How much to trust the labels
 
-The synthetic tier's labels are what the generator *did*, so they are ground truth by construction. The hand tier's were seeded from this engine and then corrected by a human, which is the sharpest form of the self-marking risk ADR-0021 names. Three things are printed rather than argued about: how many rows a labeller changed (`override rate` -- a suspiciously low one is the visible symptom of somebody agreeing with everything), how many rows are still `proposed` and therefore not yet ground truth at all, and whether the pair has been signed off.
+The synthetic tier's labels are what the generator *did*, so they are ground truth by construction. The hand tier's were seeded from this engine and then confirmed or corrected by a labeller -- the `review` block in each file names who -- which is the sharpest form of the self-marking risk ADR-0021 names. Three things are printed rather than argued about: how many rows a labeller changed (`override rate` -- a suspiciously low one is the visible symptom of somebody agreeing with everything), how many rows are still `proposed` and therefore not yet ground truth at all, and whether the pair has been signed by a labeller and, separately, by a reviewer.
 
 Moves are never engine-seeded, in either tier.
 
-| Tier | Signed off | Rows still proposed | Mean override rate | Splits skipped | Merges skipped |
-|---|---|---|---|---|---|
-| `synthetic` | 0/40 | 0 | 0.0000 | 6 | 12 |
-| `hand` | 0/10 | 644 | 0.0000 | 0 | 0 |
+| Tier | Labelled | Reviewed | Rows still proposed | Mean override rate | Splits skipped | Merges skipped |
+|---|---|---|---|---|---|---|
+| `synthetic` | 0/40 | 0/40 | 0 | 0.0000 | 6 | 12 |
+| `hand` | 10/10 | 0/10 | 0 | 0.0258 | 4 | 0 |
 
 ## The semantic pass: coverage, not precision
 
@@ -268,12 +268,12 @@ The 1.0 engine under `difflib`, one row per pair, so a headline number can be tr
 | `synthetic` | `twin-text-mixed` | 10 | 1.0000 | 1.0000 | 1.0000 | 0.0000 | 1/1 | 3/3 |
 | `synthetic` | `twin-text-move-heavy` | 13 | 1.0000 | 1.0000 | 1.0000 | 0.0000 | 0/0 | 0/0 |
 | `hand` | `csa-1.0-to-1.1` | 113 | 1.0000 | 1.0000 | 1.0000 | 0.0000 | 0/0 | 0/0 |
-| `hand` | `csa-1.1-to-2.0` | 97 | 1.0000 | 1.0000 | 1.0000 | 0.0000 | 0/0 | 91/91 |
+| `hand` | `csa-1.1-to-2.0` | 100 | 1.0000 | 0.9600 | 0.9796 | 0.0000 | 0/2 | 90/94 |
 | `hand` | `design-partner-agreement-1.0-to-1.1` | 48 | 1.0000 | 1.0000 | 1.0000 | 0.0000 | 0/0 | 0/0 |
 | `hand` | `dpa-1.0-to-1.1` | 76 | 1.0000 | 1.0000 | 1.0000 | 0.0000 | 0/0 | 0/0 |
-| `hand` | `govinfo-hr4668-ih-to-rh` | 29 | 1.0000 | 1.0000 | 1.0000 | 0.0000 | 0/0 | 0/0 |
-| `hand` | `govinfo-hr7385-ih-to-eh` | 11 | 1.0000 | 1.0000 | 1.0000 | 0.0000 | 0/0 | 0/0 |
+| `hand` | `govinfo-hr4668-ih-to-rh` | 32 | 1.0000 | 0.9062 | 0.9508 | 0.0000 | 0/0 | 0/0 |
+| `hand` | `govinfo-hr7385-ih-to-eh` | 14 | 1.0000 | 0.7857 | 0.8800 | 0.0000 | 0/0 | 0/0 |
 | `hand` | `partnership-agreement-1.0-to-1.1` | 85 | 1.0000 | 1.0000 | 1.0000 | 0.0000 | 0/0 | 0/0 |
 | `hand` | `pilot-agreement-1.0-to-1.1` | 68 | 1.0000 | 1.0000 | 1.0000 | 0.0000 | 0/0 | 0/0 |
 | `hand` | `psa-1.0-to-1.1` | 103 | 1.0000 | 1.0000 | 1.0000 | 0.0000 | 0/0 | 0/0 |
-| `hand` | `sla-1.0-to-2.0` | 14 | 1.0000 | 1.0000 | 1.0000 | 0.0000 | 0/0 | 10/10 |
+| `hand` | `sla-1.0-to-2.0` | 13 | 1.0000 | 1.0000 | 1.0000 | 0.0000 | 0/0 | 9/9 |

@@ -16,12 +16,11 @@ state:
   never engine-seeded, so a `move` row can only exist once a human has confirmed or corrected
   it (ADR-0034 D-10, ADR-0021's anti-self-marking mitigation).
 
-Every pair committed today is, in fact, entirely `status: proposed` with no `move` rows at
-all and no `review:` block -- these are drafts awaiting a maintainer's labelling pass and a
-separate review pass, exactly as the PR that added them says. The fourth test above is written
-to the durable invariant, not to today's snapshot, so it keeps meaning something once a human
-has been through a worksheet and some rows have become `confirmed`, `corrected`, or genuinely
-`move`.
+The pairs were committed as drafts, entirely `status: proposed`, and have since had a
+labelling pass: every row is now `confirmed` or `corrected`, two genuine `move` rows exist, and
+each `review:` block carries a labeller's signature awaiting a separate reviewer's. The fourth
+test above was written to the durable invariant rather than to either snapshot, which is why
+it means the same thing before and after that pass.
 """
 
 from __future__ import annotations
